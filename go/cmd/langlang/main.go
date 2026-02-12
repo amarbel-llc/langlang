@@ -185,8 +185,9 @@ func main() {
 			if err != nil {
 				printParsingError(err, matcher, tree, "<stdin>")
 			} else if tree != nil {
-				root, _ := tree.Root()
-				fmt.Println(tree.Highlight(root))
+				if root, ok := tree.Root(); ok {
+					fmt.Println(tree.Highlight(root))
+				}
 			}
 		}
 		return
