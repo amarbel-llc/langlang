@@ -1,14 +1,16 @@
 #!/bin/bash
 
 VERSION=$(git describe --tags --always --dirty)
+BENCH_COUNT=${BENCH_COUNT:-15}
 
 declare -a suites=(
-    "arithmetic"
-    "arithmetic_leftrec"
     "charsets"
     "import"
     "json"
     "langlang"
+    "arithmetic"
+    "arithmetic_leftrec"
+    "golang"
 )
 
 diff_benchmarks() {
@@ -82,7 +84,7 @@ for suite in "${suites[@]}"; do
          -bench=BenchmarkParser\/ -benchmem    \
          -memprofile "${BENCH_PATH}/mem.out"  \
          -cpuprofile "${BENCH_PATH}/cpu.out"  \
-         -benchtime 2s -count 15 | tee $BENCH_PATH/txt
+         -benchtime 2s -count $BENCH_COUNT | tee $BENCH_PATH/txt
 
       BENCH_PATH_NOCAP=benches/${VERSION}/${suite}_nocap
       mkdir -p $BENCH_PATH_NOCAP
@@ -92,7 +94,7 @@ for suite in "${suites[@]}"; do
          -bench=BenchmarkNoCapParser/ -benchmem     \
          -memprofile "${BENCH_PATH_NOCAP}/mem.out"  \
          -cpuprofile "${BENCH_PATH_NOCAP}/cpu.out"  \
-         -benchtime 2s -count 15 | tee $BENCH_PATH_NOCAP/txt
+         -benchtime 2s -count $BENCH_COUNT | tee $BENCH_PATH_NOCAP/txt
 
       if [ "${suite}" = "json" ]; then
           BENCH_STRIPPED_PATH=benches/${VERSION}/${suite}_stripped
@@ -103,7 +105,7 @@ for suite in "${suites[@]}"; do
              -bench=BenchmarkStrippedParser\/ -benchmem    \
              -memprofile "${BENCH_STRIPPED_PATH}/mem.out"  \
              -cpuprofile "${BENCH_STRIPPED_PATH}/cpu.out"  \
-             -benchtime 2s -count 15 | tee $BENCH_STRIPPED_PATH/txt
+             -benchtime 2s -count $BENCH_COUNT | tee $BENCH_STRIPPED_PATH/txt
 
           BENCH_STRIPPED_PATH_NOCAP=benches/${VERSION}/${suite}_stripped_nocap
           mkdir -p $BENCH_STRIPPED_PATH_NOCAP
@@ -113,7 +115,7 @@ for suite in "${suites[@]}"; do
              -bench=BenchmarkStrippedNoCapParser/ -benchmem     \
              -memprofile "${BENCH_STRIPPED_PATH_NOCAP}/mem.out"  \
              -cpuprofile "${BENCH_STRIPPED_PATH_NOCAP}/cpu.out"  \
-             -benchtime 2s -count 15 | tee $BENCH_STRIPPED_PATH_NOCAP/txt
+             -benchtime 2s -count $BENCH_COUNT | tee $BENCH_STRIPPED_PATH_NOCAP/txt
       fi
 
   else
