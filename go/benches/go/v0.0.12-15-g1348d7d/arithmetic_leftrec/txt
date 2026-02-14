@@ -1,0 +1,199 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/clarete/langlang/go/tests/arithmetic_leftrec
+cpu: Apple M1 Max
+BenchmarkParser
+BenchmarkParser/Atom
+BenchmarkParser/Atom-10         	 1965649	      1221 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1967604	      1219 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1967876	      1224 ns/op	   2.45 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1961380	      1221 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1966418	      1221 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1964604	      1220 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1965648	      1220 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1969932	      1221 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1963203	      1224 ns/op	   2.45 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1960384	      1224 ns/op	   2.45 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1958686	      1221 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1965166	      1222 ns/op	   2.45 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1966137	      1222 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1956927	      1223 ns/op	   2.45 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Atom-10         	 1961338	      1220 ns/op	   2.46 MB/s	     100 B/op	       3 allocs/op
+BenchmarkParser/Addition
+BenchmarkParser/Addition-10     	 1000000	      2300 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2303 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2304 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2308 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2298 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2299 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2311 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2310 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2309 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2303 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2301 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2305 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2302 ns/op	   2.61 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2305 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Addition-10     	 1000000	      2304 ns/op	   2.60 MB/s	     156 B/op	       6 allocs/op
+BenchmarkParser/Mixed_Precedence
+BenchmarkParser/Mixed_Precedence-10         	  709376	      3348 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  706052	      3345 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  712701	      3336 ns/op	   3.00 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  715225	      3338 ns/op	   3.00 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  711172	      3343 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  708042	      3347 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  711226	      3370 ns/op	   2.97 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  712612	      3347 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  709065	      3346 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  666434	      3381 ns/op	   2.96 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  716857	      3403 ns/op	   2.94 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  676316	      3458 ns/op	   2.89 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  707798	      3349 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  710413	      3354 ns/op	   2.98 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Mixed_Precedence-10         	  708428	      3342 ns/op	   2.99 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Parenthesized
+BenchmarkParser/Parenthesized-10            	  397339	      5977 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  395025	      6010 ns/op	   2.00 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  397855	      6008 ns/op	   2.00 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  397867	      5982 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  392060	      5982 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  399830	      5984 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  393318	      5985 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  397966	      5977 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  399636	      5979 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  398557	      5981 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  400448	      6026 ns/op	   1.99 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  399385	      5975 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  398634	      5974 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  397418	      5978 ns/op	   2.01 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Parenthesized-10            	  396823	      5986 ns/op	   2.00 MB/s	     372 B/op	      16 allocs/op
+BenchmarkParser/Unary_Plus_Binary
+BenchmarkParser/Unary_Plus_Binary-10        	  621955	      3817 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  613183	      3822 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  618440	      3820 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  620186	      3818 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  613636	      3825 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  609686	      3818 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  619566	      3814 ns/op	   1.84 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  620779	      3810 ns/op	   1.84 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  620132	      3818 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  620104	      3810 ns/op	   1.84 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  614412	      3812 ns/op	   1.84 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  621637	      3834 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  618279	      3820 ns/op	   1.83 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  620474	      3815 ns/op	   1.84 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Unary_Plus_Binary-10        	  623308	      3813 ns/op	   1.84 MB/s	     260 B/op	      10 allocs/op
+BenchmarkParser/Deep_Arithmetic
+BenchmarkParser/Deep_Arithmetic-10          	  309522	      7670 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311683	      7681 ns/op	   3.38 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  307767	      7666 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311172	      7657 ns/op	   3.40 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  312324	      7666 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311763	      7669 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311894	      7673 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311689	      7680 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311000	      7668 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311900	      7679 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  311209	      7681 ns/op	   3.39 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  305829	      7759 ns/op	   3.35 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  305752	      7694 ns/op	   3.38 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  309415	      7695 ns/op	   3.38 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Deep_Arithmetic-10          	  310676	      7864 ns/op	   3.31 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Logical_And_Comparison
+BenchmarkParser/Logical_And_Comparison-10   	  373690	      6232 ns/op	   4.17 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  378457	      6208 ns/op	   4.19 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  383378	      6223 ns/op	   4.18 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  384858	      6216 ns/op	   4.18 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  385759	      6218 ns/op	   4.18 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  385692	      6206 ns/op	   4.19 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  385359	      6248 ns/op	   4.16 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  383719	      6217 ns/op	   4.18 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  376412	      6256 ns/op	   4.16 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  381624	      6228 ns/op	   4.17 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  384610	      6215 ns/op	   4.18 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  384386	      6248 ns/op	   4.16 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  384843	      6231 ns/op	   4.17 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  382328	      6222 ns/op	   4.18 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Logical_And_Comparison-10   	  384435	      6241 ns/op	   4.17 MB/s	     380 B/op	      18 allocs/op
+BenchmarkParser/Full_Precedence_Chain
+BenchmarkParser/Full_Precedence_Chain-10    	  313519	      7487 ns/op	   3.87 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  320571	      7462 ns/op	   3.89 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  320514	      7474 ns/op	   3.88 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  317292	      7477 ns/op	   3.88 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  317425	      7487 ns/op	   3.87 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  318502	      7504 ns/op	   3.86 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  311497	      7513 ns/op	   3.86 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  319339	      7475 ns/op	   3.88 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  320810	      7514 ns/op	   3.86 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  318307	      7513 ns/op	   3.86 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  319344	      7480 ns/op	   3.88 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  319951	      7477 ns/op	   3.88 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  319065	      7494 ns/op	   3.87 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  319444	      7492 ns/op	   3.87 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Full_Precedence_Chain-10    	  320403	      7473 ns/op	   3.88 MB/s	     436 B/op	      21 allocs/op
+BenchmarkParser/Let_Statement
+BenchmarkParser/Let_Statement-10            	  704026	      3408 ns/op	   6.75 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  702465	      3401 ns/op	   6.76 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  691230	      3402 ns/op	   6.76 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  696820	      3389 ns/op	   6.79 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  697153	      3391 ns/op	   6.78 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  702416	      3394 ns/op	   6.78 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  689740	      3397 ns/op	   6.77 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  702860	      3391 ns/op	   6.78 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  698094	      3387 ns/op	   6.79 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  701158	      3393 ns/op	   6.78 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  704673	      3393 ns/op	   6.78 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  695914	      3388 ns/op	   6.79 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  703166	      3382 ns/op	   6.80 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  692049	      3395 ns/op	   6.77 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/Let_Statement-10            	  700633	      3386 ns/op	   6.79 MB/s	     212 B/op	       9 allocs/op
+BenchmarkParser/If_Statement
+BenchmarkParser/If_Statement-10             	  641634	      3709 ns/op	   4.58 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  643155	      3698 ns/op	   4.60 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  642914	      3693 ns/op	   4.60 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  632085	      3702 ns/op	   4.59 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  642757	      3690 ns/op	   4.61 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  638232	      3700 ns/op	   4.59 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  632560	      3690 ns/op	   4.61 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  641811	      3692 ns/op	   4.60 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  634038	      3690 ns/op	   4.61 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  637954	      3690 ns/op	   4.61 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  642652	      3705 ns/op	   4.59 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  641787	      3696 ns/op	   4.60 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  638912	      3688 ns/op	   4.61 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  635863	      3692 ns/op	   4.60 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/If_Statement-10             	  642140	      3683 ns/op	   4.62 MB/s	     256 B/op	       9 allocs/op
+BenchmarkParser/Multi_Statement
+BenchmarkParser/Multi_Statement-10          	  446308	      5312 ns/op	   6.02 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  450093	      5313 ns/op	   6.02 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  444242	      5311 ns/op	   6.03 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  447325	      5308 ns/op	   6.03 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  446974	      5316 ns/op	   6.02 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  448282	      5308 ns/op	   6.03 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  446667	      5317 ns/op	   6.02 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  445714	      5308 ns/op	   6.03 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  448668	      5321 ns/op	   6.01 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  449005	      5331 ns/op	   6.00 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  444702	      5321 ns/op	   6.01 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  448935	      5317 ns/op	   6.02 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  441680	      5419 ns/op	   5.91 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  444739	      5309 ns/op	   6.03 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Multi_Statement-10          	  448936	      5320 ns/op	   6.02 MB/s	     316 B/op	      13 allocs/op
+BenchmarkParser/Complex_Program
+BenchmarkParser/Complex_Program-10          	  142844	     16759 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142975	     16789 ns/op	   4.47 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  141487	     16745 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142716	     16735 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  143035	     16753 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  141740	     16866 ns/op	   4.45 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  143214	     16750 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  143326	     16754 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142544	     16740 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  141040	     16780 ns/op	   4.47 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142716	     16740 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142874	     16745 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142898	     16740 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142392	     16790 ns/op	   4.47 MB/s	     968 B/op	      44 allocs/op
+BenchmarkParser/Complex_Program-10          	  142921	     16728 ns/op	   4.48 MB/s	     968 B/op	      44 allocs/op
+PASS
+ok  	github.com/clarete/langlang/go/tests/arithmetic_leftrec	456.188s
