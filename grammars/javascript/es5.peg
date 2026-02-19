@@ -1,0 +1,204 @@
+// JavaScript ES5 grammar baseline (ECMA-262 ES5-focused).
+
+Script <- Program
+Program <- space* (Statement space*)* EOF
+
+Statement <- Block
+           / FunctionDeclaration
+           / VariableStatement
+           / IfStatement
+           / IterationStatement
+           / SwitchStatement
+           / TryStatement
+           / ThrowStatement
+           / ReturnStatement
+           / BreakStatement
+           / ContinueStatement
+           / WithStatement
+           / DebuggerStatement
+           / LabelledStatement
+           / ExpressionStatement
+           / EmptyStatement
+
+WithStatement <- "with" space* "(" space* Expression space* ")" space* Statement
+DebuggerStatement <- "debugger" !IdentifierPart StatementTerminator
+
+Block <- "{" space* (Statement space*)* "}"
+
+EmptyStatement <- ";"
+
+VariableStatement <- #("var" !IdentifierPart) space* VariableDeclarationList StatementTerminator
+VariableDeclarationList <- VariableDeclaration (space* "," space* VariableDeclaration)*
+VariableDeclaration <- Identifier Initialiser?
+Initialiser <- space* "=" AssignmentExpression
+
+FunctionDeclaration <- "function" space* Identifier space* "(" FormalParameterList? ")" Block
+FunctionExpression <- "function" space* Identifier? space* "(" FormalParameterList? ")" Block
+FormalParameterList <- FormalParameter (space* "," space* FormalParameter)*
+FormalParameter <- Identifier
+
+IfStatement <- "if" space* "(" space* Expression space* ")" space* Statement (space* #("else" !IdentifierPart) space* Statement)?
+
+IterationStatement <- "while" "(" Expression ")" Statement
+                    / #("do" !IdentifierPart) Statement "while" "(" Expression ")" StatementTerminator
+                    / "for" "(" #("var" !IdentifierPart) Identifier "in" ForInRHS ")" Statement
+                    / "for" "(" LeftHandSideExpression "in" ForInRHS ")" Statement
+                    / "for" "(" ForInit? ";" Expression? ";" Expression? ")" Statement
+                    / "for" "(" ForHeaderRaw ")" Statement
+ForInit <- #("var" !IdentifierPart) VariableDeclarationList / Expression
+ForInRHS <- Expression / (!")" .)+
+ForHeaderRaw <- ("(" ForHeaderRaw ")" / !")" .)*
+
+SwitchStatement <- "switch" "(" Expression ")" "{" CaseClause* DefaultClause? CaseClause* "}"
+CaseClause <- #("case" !IdentifierPart) Expression space* ":" space* (Statement space*)*
+DefaultClause <- #("default" !IdentifierPart) ":" space* (Statement space*)*
+
+TryStatement <- "try" Block Catch Finally?
+              / "try" Block Finally
+Catch <- "catch" "(" Identifier ")" Block
+      / "catch" Block
+Finally <- "finally" Block
+ThrowStatement <- #("throw" !IdentifierPart) space* Expression StatementTerminator
+
+ReturnStatement <- #("return" !IdentifierPart) (space* Expression)? StatementTerminator
+BreakStatement <- #("break" !IdentifierPart) (space* Identifier)? StatementTerminator
+ContinueStatement <- #("continue" !IdentifierPart) (space* Identifier)? StatementTerminator
+LabelledStatement <- Identifier ":" Statement
+
+ExpressionStatement <- !("{" / "function" !IdentifierPart) Expression StatementTerminator
+StatementTerminator <- space* ";" / &"}" / &EOF / &LineTerminator / #(LineComment (&LineTerminator / &EOF))
+                     / space* &IdentifierStart
+
+Expression <- AssignmentExpression (space* "," space* AssignmentExpression)*
+
+AssignmentExpression <- ConditionalExpression AssignmentTail?
+AssignmentTail <- AssignmentOperator AssignmentExpression
+AssignmentOperator <- "=" / "**=" / "*=" / "/=" / "%=" / "+=" / "-="
+                    / "<<=" / ">>=" / ">>>="
+                    / "&=" / "^=" / "|="
+                    / "&&=" / "||=" / "??="
+
+ConditionalExpression <- NullishCoalescingExpression (space* "?" space* AssignmentExpression space* ":" space* AssignmentExpression)?
+NullishCoalescingExpression <- LogicalOrExpression (space* "??" space* LogicalOrExpression)*
+
+LogicalOrExpression <- LogicalAndExpression (space* "||" space* LogicalAndExpression)*
+LogicalAndExpression <- BitwiseOrExpression (space* "&&" space* BitwiseOrExpression)*
+BitwiseOrExpression <- BitwiseXorExpression (space* "|" !"|" space* BitwiseXorExpression)*
+BitwiseXorExpression <- BitwiseAndExpression (space* "^" space* BitwiseAndExpression)*
+BitwiseAndExpression <- EqualityExpression (space* "&" !"&" space* EqualityExpression)*
+EqualityExpression <- RelationalExpression (space* ("===" / "!==" / "==" / "!=") space* RelationalExpression)*
+RelationalExpression <- ShiftExpression (space* RelationalTail)*
+RelationalTail <- ("<=" / ">=" / "<" / ">" / #("in" !IdentifierPart) / #("instanceof" !IdentifierPart)) space* ShiftExpression
+ShiftExpression <- AdditiveExpression (space* (">>>" / ">>" / "<<") space* AdditiveExpression)*
+AdditiveExpression <- MultiplicativeExpression (space* ("+" / "-") space* MultiplicativeExpression)*
+MultiplicativeExpression <- UnaryExpression (space* ("*" / "/" / "%") space* UnaryExpression)*
+
+UnaryExpression <- (#("delete" !IdentifierPart) / #("void" !IdentifierPart) / #("typeof" !IdentifierPart) / #("new" !IdentifierPart) / "++" / "--" / "+" / "-" / "~" / "!") UnaryExpression
+                 / PostfixExpression
+                 / (BlockComment / LineComment) UnaryExpression
+
+PostfixExpression <- LeftHandSideExpression ("++" / "--")?
+
+LeftHandSideExpression <- NewExpression / PrimaryExpression Suffix*
+NewExpression <- #("new" !IdentifierPart) LeftHandSideExpression Arguments?
+Suffix <- "." IdentifierName
+        / "?." IdentifierName
+        / "?." "[" Expression? "]"
+        / "?." Arguments
+        / "[" Expression? "]"
+        / Arguments
+Arguments <- "(" space* ArgumentList? space* ")"
+ArgumentList <- Argument (space* "," space* Argument)* space* ","?
+Argument <- "..." AssignmentExpression / AssignmentExpression
+
+PrimaryExpression <- "this" !IdentifierPart
+                   / Identifier
+                   / Literal
+                   / ArrayLiteral
+                   / ObjectLiteral
+                   / FunctionExpression
+                   / "(" Expression ")"
+
+ArrayLiteral <- "[" space* "]"
+              / "[" space* (ArrayItem (space* "," space* ArrayItem)* space* ","?) space* "]"
+ArrayItem <- AssignmentExpression?
+
+ObjectLiteral <- "{" space* PropertyAssignmentList? space* "}"
+PropertyAssignmentList <- PropertyAssignment (space* "," space* PropertyAssignment)* space* ","?
+PropertyAssignment <- PropertyName space* ":" space* AssignmentExpression
+                    / "get" PropertyName "(" ")" Block
+                    / "set" PropertyName "(" Identifier ")" Block
+PropertyName <- IdentifierName / StringLiteral / NumericLiteral
+
+Literal <- NullLiteral / BooleanLiteral / NumericLiteral / StringLiteral / RegularExpressionLiteral
+NullLiteral <- "null" !IdentifierPart
+BooleanLiteral <- ("true" / "false") !IdentifierPart
+
+NumericLiteral <- BigIntLiteral / HexIntegerLiteral / BinaryIntegerLiteral / OctalIntegerLiteral / DecimalLiteral
+BigIntLiteral <- (HexIntegerLiteral / BinaryIntegerLiteral / OctalIntegerLiteral / DecimalIntegerLiteral) "n"
+DecimalIntegerLiteral <- [0-9] ("_"? [0-9])*
+DecimalLiteral <- [0-9] ("_"? [0-9])* ("." ([0-9] ("_"? [0-9])*)?)? ([eE] [+-]? [0-9] ("_"? [0-9])*)?
+                / "." [0-9] ("_"? [0-9])* ([eE] [+-]? [0-9] ("_"? [0-9])*)?
+HexIntegerLiteral <- "0x" [0-9a-fA-F] ("_"? [0-9a-fA-F])* / "0X" [0-9a-fA-F] ("_"? [0-9a-fA-F])*
+BinaryIntegerLiteral <- "0b" [01] ("_"? [01])* / "0B" [01] ("_"? [01])*
+OctalIntegerLiteral <- "0o" [0-7] ("_"? [0-7])* / "0O" [0-7] ("_"? [0-7])*
+
+StringLiteral <- #("\"" DoubleStringCharacter* "\"")
+               / #("'" SingleStringCharacter* "'")
+DoubleStringCharacter <- !("\"" / "\\" / LineTerminator) . / "\\" .
+SingleStringCharacter <- !("'" / "\\" / LineTerminator) . / "\\" .
+
+RegularExpressionLiteral <- RegexSpaceStarHashLiteral
+                         / !("/*" / "//") "/" RegularExpressionBody? "/" RegularExpressionFlags
+RegexSpaceStarHashLiteral <- "/" [ ]* "*" "#" "/" RegularExpressionFlags
+RegularExpressionBody <- #(RegularExpressionFirstChar RegularExpressionChar*)
+RegularExpressionFirstChar <- !("*" / "\\" / "/" / "[" / LineTerminator) .
+                            / "\\" .
+                            / "[" #(RegularExpressionClassChar*) "]"
+RegularExpressionChar <- !("\\" / "/" / "[" / LineTerminator) .
+                       / "\\" .
+                       / "[" #(RegularExpressionClassChar*) "]"
+RegularExpressionClassChar <- !("]" / "\\" / LineTerminator) . / "\\" .
+RegularExpressionFlags <- #(IdentifierPart*)
+
+Identifier <- !ReservedWord IdentifierName
+IdentifierName <- #(IdentifierStart IdentifierPart*)
+IdentifierStart <- [A-Za-z_$] / UnicodeEscapeSequence
+IdentifierPart <- [A-Za-z0-9_$] / UnicodeEscapeSequence
+UnicodeEscapeSequence <- #("\\" "u" "{" HexDigit+ "}")
+                       / #("\\" "u" HexDigit HexDigit HexDigit HexDigit)
+HexDigit <- [0-9a-fA-F]
+
+ReservedWord <- Keyword / NullLiteral / BooleanLiteral
+Keyword <- "break" !IdentifierPart
+         / "case" !IdentifierPart
+         / "catch" !IdentifierPart
+         / "continue" !IdentifierPart
+         / "debugger" !IdentifierPart
+         / "default" !IdentifierPart
+         / "delete" !IdentifierPart
+         / "do" !IdentifierPart
+         / "else" !IdentifierPart
+         / "finally" !IdentifierPart
+         / "for" !IdentifierPart
+         / "function" !IdentifierPart
+         / "if" !IdentifierPart
+         / "in" !IdentifierPart
+         / "instanceof" !IdentifierPart
+         / "new" !IdentifierPart
+         / "return" !IdentifierPart
+         / "switch" !IdentifierPart
+         / "this" !IdentifierPart
+         / "throw" !IdentifierPart
+         / "try" !IdentifierPart
+         / "typeof" !IdentifierPart
+         / "var" !IdentifierPart
+         / "void" !IdentifierPart
+         / "while" !IdentifierPart
+         / "with" !IdentifierPart
+
+LineTerminator <- "\n" / "\r" / "\u2028" / "\u2029"
+space <- Whitespace / LineComment / BlockComment
+Whitespace <- [ \t\r\n]
+LineComment <- "//" (!LineTerminator .)*
+BlockComment <- "/*" (!"*/" .)* "*/"

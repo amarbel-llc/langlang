@@ -1,0 +1,258 @@
+// JavaScript ESNext grammar.
+// Extends ES5 with all modern features: modules, classes, let/const,
+// arrow functions, generators, yield, async/await, destructuring,
+// tagged templates, exponentiation, optional chaining, nullish coalescing,
+// decorators, using/await using, and more.
+
+@import Script, Program, Statement, Block, FunctionDeclaration, FunctionExpression, VariableStatement, IfStatement, SwitchStatement, TryStatement, ThrowStatement, ReturnStatement, BreakStatement, ContinueStatement, WithStatement, DebuggerStatement, LabelledStatement, ExpressionStatement, EmptyStatement, StatementTerminator, IterationStatement, ForInRHS, ForInit, ForHeaderRaw, VariableDeclaration, FormalParameter, AssignmentExpression, PrimaryExpression, Keyword, LeftHandSideExpression, Expression, RelationalExpression, ShiftExpression, MultiplicativeExpression, UnaryExpression, PostfixExpression, Literal, PropertyAssignment, space, IdentifierPart, BlockComment, LineComment, LineTerminator, StringLiteral from "./es5.peg"
+
+Script <- Program
+Program <- HashbangComment? space* (Statement space*)* EOF
+HashbangComment <- #("#!" (!LineTerminator .)*)
+
+// Statements
+
+Statement <- Block
+           / ImportDeclaration
+           / ExportDeclaration
+           / FunctionDeclaration
+           / DecoratedClassDeclaration
+           / ClassDeclaration
+           / VariableStatement
+           / LexicalDeclaration
+           / UsingDeclaration
+           / IfStatement
+           / IterationStatement
+           / SwitchStatement
+           / TryStatement
+           / ThrowStatement
+           / ReturnStatement
+           / BreakStatement
+           / ContinueStatement
+           / WithStatement
+           / DebuggerStatement
+           / LabelledStatement
+           / ExpressionStatement
+           / EmptyStatement
+
+// Modules — import / export
+
+ImportDeclaration <- ImportKw ImportClause FromClause StatementTerminator
+                   / ImportKw StringLiteral StatementTerminator
+ImportKw <- "import" !IdentifierPart
+
+ImportClause <- Identifier (space* "," space* NamedImports)?
+              / Identifier (space* "," space* NamespaceImport)?
+              / NamespaceImport
+              / NamedImports
+
+NamespaceImport <- "*" space* AsKw Identifier
+
+NamedImports <- "{" space* (ImportSpecifier (space* "," space* ImportSpecifier)* space* ","?)? space* "}"
+ImportSpecifier <- IdentifierName space* AsKw Identifier
+                 / Identifier
+
+FromClause <- FromKw StringLiteral
+FromKw <- "from" !IdentifierPart
+AsKw <- "as" !IdentifierPart
+
+ExportDeclaration <- ExportKw DefaultKw FunctionDeclaration
+                   / ExportKw DefaultKw ClassDeclaration
+                   / ExportKw DefaultKw AssignmentExpression StatementTerminator
+                   / ExportKw "*" AsKw IdentifierName FromClause StatementTerminator
+                   / ExportKw "*" FromClause StatementTerminator
+                   / ExportKw "{" space* ExportList? space* "}" FromClause StatementTerminator
+                   / ExportKw "{" space* ExportList? space* "}" StatementTerminator
+                   / ExportKw LexicalDeclaration
+                   / ExportKw VariableStatement
+                   / ExportKw FunctionDeclaration
+                   / ExportKw ClassDeclaration
+ExportKw <- "export" !IdentifierPart
+DefaultKw <- "default" !IdentifierPart
+
+ExportList <- ExportSpecifier (space* "," space* ExportSpecifier)* space* ","?
+ExportSpecifier <- IdentifierName space* AsKw IdentifierName
+                 / IdentifierName
+
+// Functions — async, generators
+
+FunctionDeclaration <- AsyncPrefix? "function" space* "*" ? space* Identifier space* "(" FormalParameterList? ")" Block
+FunctionExpression <- AsyncPrefix? "function" space* "*" ? space* Identifier? space* "(" FormalParameterList? ")" Block
+AsyncPrefix <- "async"
+
+FormalParameterList <- space* FormalParameter (space* "," space* FormalParameter)* space* ","? space*
+FormalParameter <- ("..." space* (Identifier / BindingPattern))
+                / ((Identifier / BindingPattern) (space* "=" space* AssignmentExpression)?)
+
+// Lexical declarations, iteration
+
+LexicalDeclaration <- (#("let" !IdentifierPart) / #("const" !IdentifierPart)) space* VariableDeclarationList StatementTerminator
+
+IterationStatement <- "for" space* "await"? space* "(" space* (#("var" !IdentifierPart) / #("let" !IdentifierPart) / #("const" !IdentifierPart)) space* (BindingPattern / Identifier) space* "of" space* ForInRHS space* ")" space* Statement
+                    / "for" space* "(" space* LeftHandSideExpression space* "of" space* ForInRHS space* ")" space* Statement
+                    / "while" "(" Expression ")" Statement
+                    / "do" Statement "while" "(" Expression ")" StatementTerminator
+                    / "for" "(" "var" Identifier "in" ForInRHS ")" Statement
+                    / "for" "(" LeftHandSideExpression "in" ForInRHS ")" Statement
+                    / "for" "(" ForInit? ";" Expression? ";" Expression? ")" Statement
+                    / "for" "(" ForHeaderRaw ")" Statement
+
+// Destructuring / binding patterns
+
+VariableDeclaration <- (Identifier / BindingPattern) Initialiser?
+
+BindingPattern <- ObjectBindingPattern / ArrayBindingPattern
+ObjectBindingPattern <- "{" (ObjectBindingPattern / ArrayBindingPattern / !"}" .)* "}"
+ArrayBindingPattern <- "[" (ObjectBindingPattern / ArrayBindingPattern / !"]" .)* "]"
+
+// Decorators (ES2023+)
+
+Decorator <- "@" LeftHandSideExpression
+DecoratedClassDeclaration <- Decorator+ (ExportKw space* DefaultKw? space*)? ClassDeclaration
+
+// Using declarations (Explicit Resource Management, ES2024+)
+
+UsingDeclaration <- AwaitKw UsingKw space* VariableDeclarationList StatementTerminator
+                  / UsingKw space* VariableDeclarationList StatementTerminator
+AwaitKw <- "await" !IdentifierPart
+UsingKw <- "using" !IdentifierPart
+
+// Classes
+
+ClassDeclaration <- ClassKw !ExtendsKw Identifier ClassHeritage? ClassBody
+ClassExpression <- ClassKw (!ExtendsKw Identifier)? ClassHeritage? ClassBody
+ClassKw <- "class" !IdentifierPart
+ClassHeritage <- ExtendsKw LeftHandSideExpression
+ExtendsKw <- "extends" !IdentifierPart
+ClassBody <- "{" ClassBodyItem* "}"
+ClassBodyItem <- LineComment / BlockComment / StringLiteral / TemplateLiteral / ClassBodyBracketExpr / "{" ClassBodyItem* "}" / ClassBodyRegexCtx / !("}" / "/") . / "/"
+ClassBodyRegexCtx <- ClassBodyRegexTrigger ClassBodySlashExpr?
+ClassBodyRegexTrigger <- "return" !IdentifierPart / "case" !IdentifierPart / "typeof" !IdentifierPart
+                       / "void" !IdentifierPart / "delete" !IdentifierPart / "throw" !IdentifierPart
+                       / "new" !IdentifierPart / "in" !IdentifierPart / "yield" !IdentifierPart
+                       / "=>" / "=" !">" / "(" / "," / ";" / ":" / "!" / "|" / "&" / "^" / "~" / "?"
+ClassBodySlashExpr <- #(!("//" / "/*") "/" ClassBodySlashContent+ "/")
+ClassBodySlashContent <- "\\" . / "[" ("\\" . / !"]" .)* "]" / "{" ClassBodySlashContent* "}" / !("/" / "}" / LineTerminator) .
+ClassBodyBracketExpr <- #("[" ClassBodyBracketContent* "]")
+ClassBodyBracketContent <- "\\" .
+                         / "\"" ("\\" . / !"\"" .)* "\""
+                         / "'" ("\\" . / !"'" .)* "'"
+                         / "[" ClassBodyBracketContent* "]"
+                         / !"]" .
+
+// Expressions — assignment, arrow, yield
+
+AssignmentExpression <- AsyncArrowFunction
+                      / ArrowFunction
+                      / YieldExpression
+                      / ConditionalExpression AssignmentTail?
+
+AsyncArrowFunction <- "async" ArrowParameters "=>" Block
+                    / "async" ArrowParameters "=>" AssignmentExpression
+ArrowFunction <- ArrowParameters "=>" Block
+               / ArrowParameters "=>" AssignmentExpression
+ArrowParameters <- Identifier / "(" FormalParameterList? ")"
+
+YieldKw <- "yield" !IdentifierPart
+YieldExpression <- YieldKw space* "*" space* AssignmentExpression
+                 / YieldKw space* AssignmentExpression
+
+// Operators — exponentiation layer (ES2016, between unary and multiplicative)
+
+MultiplicativeExpression <- ExponentiationExpression (space* ("*" !"*" / "/" / "%") space* ExponentiationExpression)*
+ExponentiationExpression <- UnaryExpression (space* "**" space* ExponentiationExpression)?
+
+UnaryExpression <- #("await" !IdentifierPart) UnaryExpression
+                 / (#("delete" !IdentifierPart) / #("void" !IdentifierPart) / #("typeof" !IdentifierPart) / #("new" !IdentifierPart) / "++" / "--" / "+" / "-" / "~" / "!") UnaryExpression
+                 / PostfixExpression
+                 / (BlockComment / LineComment) UnaryExpression
+
+// Relational
+
+RelationalExpression <- ShiftExpression (space* RelationalTail)*
+RelationalTail <- ("<=" / ">=" / "<" / ">" / "in" !IdentifierPart / "instanceof") space* ShiftExpression
+
+// Left-hand side — tagged templates as suffix
+
+LeftHandSideExpression <- NewExpression / PrimaryExpression Suffix2015*
+Suffix2015 <- "." IdentifierName
+            / "?." IdentifierName
+            / "?." "[" Expression? "]"
+            / "?." Arguments
+            / "[" Expression? "]"
+            / Arguments
+            / TemplateLiteral
+
+PrimaryExpression <- "this" !IdentifierPart
+                   / "new" "." "target" !IdentifierPart
+                   / "super" !IdentifierPart
+                   / "import" "." "meta" !IdentifierPart
+                   / "import" "(" AssignmentExpression ")"
+                   / FunctionExpression
+                   / ClassExpression
+                   / Identifier
+                   / Literal
+                   / ArrayLiteral
+                   / ObjectLiteral
+                   / "(" Expression ")"
+
+// Literals — arrays, objects, templates
+
+ArrayLiteral <- "[" space* "]"
+              / "[" space* (ArrayItem2015 (space* "," space* ArrayItem2015)* space* ","?) space* "]"
+ArrayItem2015 <- "..." AssignmentExpression / AssignmentExpression?
+
+PropertyAssignment <- "[" Expression "]" space* ":" space* AssignmentExpression
+                    / "..." AssignmentExpression
+                    / AsyncPrefix? space* "*"? space* "[" Expression "]" space* "(" FormalParameterList? ")" space* Block
+                    / AsyncPrefix? space* "*"? space* PropertyName space* "(" FormalParameterList? ")" space* Block
+                    / PropertyName space* ":" space* AssignmentExpression
+                    / "get" PropertyName "(" ")" Block
+                    / "set" PropertyName "(" Identifier ")" Block
+                    / Identifier
+
+Literal <- NullLiteral / BooleanLiteral / NumericLiteral / StringLiteral / TemplateLiteral / RegularExpressionLiteral
+
+TemplateLiteral <- #("`" TemplateChunk* "`")
+TemplateChunk <- TemplateEscape / TemplateSubstitution / !"`" .
+TemplateEscape <- "\\" .
+TemplateSubstitution <- "${" TemplateExpressionChunk* "}"
+TemplateExpressionChunk <- TemplateSubstitution / TemplateLiteral / LineComment / BlockComment / StringLiteral / "{" TemplateExpressionChunk* "}" / TemplateRegexCtx / !("}" / "/") . / "/"
+TemplateRegexCtx <- TemplateRegexTrigger TemplateSlashExpr?
+TemplateRegexTrigger <- "return" !IdentifierPart / "case" !IdentifierPart / "typeof" !IdentifierPart
+                      / "void" !IdentifierPart / "delete" !IdentifierPart / "throw" !IdentifierPart
+                      / "new" !IdentifierPart / "in" !IdentifierPart / "yield" !IdentifierPart
+                      / "=>" / "=" !">" / "(" / "," / ";" / ":" / "!" / "|" / "&" / "^" / "~" / "?"
+TemplateSlashExpr <- #(!("//" / "/*") "/" TemplateSlashContent+ "/")
+TemplateSlashContent <- "\\" . / "[" ("\\" . / !"]" .)* "]" / "{" TemplateSlashContent* "}" / !("/" / "}" / LineTerminator) .
+
+// Keywords (ES2015+ — only true reserved words, not contextual keywords)
+
+Keyword <- "break" !IdentifierPart
+         / "case" !IdentifierPart
+         / "catch" !IdentifierPart
+         / "class" !IdentifierPart
+         / "const" !IdentifierPart
+         / "continue" !IdentifierPart
+         / "default" !IdentifierPart
+         / "delete" !IdentifierPart
+         / "do" !IdentifierPart
+         / "else" !IdentifierPart
+         / "finally" !IdentifierPart
+         / "for" !IdentifierPart
+         / "function" !IdentifierPart
+         / "if" !IdentifierPart
+         / "in" !IdentifierPart
+         / "instanceof" !IdentifierPart
+         / "let" !IdentifierPart
+         / "new" !IdentifierPart
+         / "return" !IdentifierPart
+         / "switch" !IdentifierPart
+         / "this" !IdentifierPart
+         / "throw" !IdentifierPart
+         / "try" !IdentifierPart
+         / "typeof" !IdentifierPart
+         / "var" !IdentifierPart
+         / "void" !IdentifierPart
+         / "while" !IdentifierPart
+         / "with" !IdentifierPart
