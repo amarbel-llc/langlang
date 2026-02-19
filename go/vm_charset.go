@@ -66,6 +66,15 @@ func (cs *charset) hasByte(i byte) bool {
 	return cs.bits[i>>3]&(1<<(i&7)) != 0
 }
 
+func (cs *charset) hasHighBytes() bool {
+	for i := 16; i < 32; i++ {
+		if cs.bits[i] != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (cs *charset) popcount() int {
 	var total int
 	for _, oneByte := range cs.bits {

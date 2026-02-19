@@ -404,7 +404,12 @@ code:
 				}
 				goto fail
 			}
-			cursor++
+			if c < utf8.RuneSelf {
+				cursor++
+			} else {
+				_, s := decodeRune(data, cursor)
+				cursor += s
+			}
 			pc += opSetSizeInBytes
 
 		case opSpan:
@@ -413,7 +418,12 @@ code:
 			for cursor < ilen {
 				c := data[cursor]
 				if set.hasByte(c) {
-					cursor++
+					if c < utf8.RuneSelf {
+						cursor++
+					} else {
+						_, s := decodeRune(data, cursor)
+						cursor += s
+					}
 					continue
 				}
 				break

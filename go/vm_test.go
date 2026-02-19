@@ -1056,6 +1056,30 @@ B <- 'x'`,
     ├── "+" (2..3)
     └── "n" (3..4)`,
 		},
+		{
+			Name:           "Complement charset with multi-byte UTF-8 rune (opSet)",
+			Grammar:        "G <- ![x] .",
+			Input:          "☺",
+			ExpectedCursor: 3,
+			ExpectedAST: `G (1..2)
+└── "☺" (1..2)`,
+		},
+		{
+			Name:           "Complement charset span with multi-byte UTF-8 runes (opSpan)",
+			Grammar:        "G <- (![;] .)*",
+			Input:          "a☺b",
+			ExpectedCursor: 5,
+			ExpectedAST: `G (1..4)
+└── "a☺b" (1..4)`,
+		},
+		{
+			Name:           "Positive charset does not over-consume at UTF-8 boundary",
+			Grammar:        "G <- [a-z]+ .",
+			Input:          "abc☺",
+			ExpectedCursor: 6,
+			ExpectedAST: `G (1..5)
+└── "abc☺" (1..5)`,
+		},
 	}
 
 	for _, test := range vmTests {

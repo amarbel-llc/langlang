@@ -770,6 +770,9 @@ func (c *compiler) shouldUseCapOffset(cap *CaptureNode) bool {
 func (c *compiler) capExprSize(node AstNode) (int, bool) {
 	switch n := node.(type) {
 	case *CharsetNode:
+		if n.cs.hasHighBytes() {
+			return 0, false
+		}
 		return 1, true
 
 	case *LiteralNode:
