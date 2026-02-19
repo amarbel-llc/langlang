@@ -16,7 +16,7 @@
 SourceFile       <- Skip PackageClause SemiOpt Skip (ImportDecl SemiOpt Skip)* TopLevelDeclList Skip EOF
 TopLevelDeclList <- (TopLevelDecl (ListSep / &EOF))*
 SemiOpt          <- SEMI?
-ListSep          <- SEMI / NL+
+ListSep          <- SEMI Skip / NL+
 Skip             <- (HSpace / GeneralComment / EOL / LineComment)*
 
 // Packages and imports
@@ -65,8 +65,7 @@ Type <- TypeName TypeArgs?
       / TypeLit
       / LPAREN Type RPAREN
 
-TypeName <- QualifiedIdent / Identifier
-QualifiedIdent <- PackageName DOT Identifier
+TypeName <- Identifier (DOT Identifier)?
 
 TypeLit <- ArrayType
          / StructType
@@ -137,23 +136,16 @@ Statement <- Declaration
           / EmptyStmt
 
 EmptyStmt <- SEMI
-LabeledStmt <- Label COLON Statement
+LabeledStmt <- Label !COLONEQU COLON Statement?
 Label <- Identifier
 
-SimpleStmt <- SendStmt
-            / IncDecStmt
-            / Assignment
-            / ShortVarDecl
-            / ExpressionStmt
-
-ExpressionStmt <- Expression
-SendStmt <- Channel Spacing? SEND Spacing? Expression
-Channel <- Expression
-IncDecStmt <- Expression Spacing? (INC / DEC)
-Assignment <- ExpressionList Spacing? AssignOp Spacing? ExpressionList
+SimpleStmt <- ExpressionList Spacing? SimpleStmtSuffix?
+SimpleStmtSuffix <- AssignOp Spacing? ExpressionList
+                  / COLONEQU Spacing? ExpressionList
+                  / SEND Spacing? Expression
+                  / INC / DEC
 AssignOp <- EQU / PLUSEQU / MINUSEQU / STAREQU / DIVEQU / MODEQU
          / ANDEQU / OREQU / XOREQU / SHLEQU / SHREQU / ANDNOTEQU
-ShortVarDecl <- IdentifierList Spacing? COLONEQU Spacing? ExpressionList
 
 GoStmt <- GO Expression
 DeferStmt <- DEFER Expression
@@ -163,33 +155,35 @@ ContinueStmt <- CONTINUE Label?
 GotoStmt <- GOTO Label
 FallthroughStmt <- FALLTHROUGH
 
-IfStmt <- IF (SimpleStmt SEMI)? ControlExpr Block (ELSE (IfStmt / Block))?
+IfStmt <- IF (SimpleStmt SEMI Skip)? ControlExpr Block (ELSE (IfStmt / Block))?
 
 SwitchStmt <- ExprSwitchStmt / TypeSwitchStmt
 
-ExprSwitchStmt <- SWITCH (SimpleStmt SEMI)? ControlExpr? LBRACE ExprCaseClause* RBRACE
+ExprSwitchStmt <- SWITCH (SimpleStmt SEMI Skip)? ControlExpr? LBRACE ExprCaseClause* RBRACE
 ExprCaseClause <- ExprSwitchCase COLON StatementList?
 ExprSwitchCase <- CASE ExpressionList / DEFAULT
 
-TypeSwitchStmt <- SWITCH (SimpleStmt SEMI)? TypeSwitchGuard LBRACE TypeCaseClause* RBRACE
+TypeSwitchStmt <- SWITCH (SimpleStmt SEMI Skip)? TypeSwitchGuard LBRACE TypeCaseClause* RBRACE
 TypeSwitchGuard <- (Identifier COLONEQU)? PrimaryExpr DOT LPAREN TYPE RPAREN
 TypeCaseClause <- TypeSwitchCase COLON StatementList?
 TypeSwitchCase <- CASE TypeList / DEFAULT
 
 SelectStmt <- SELECT LBRACE CommClause* RBRACE
 CommClause <- CommCase COLON StatementList?
-CommCase <- CASE (SendStmt / RecvStmt) / DEFAULT
-RecvStmt <- ExpressionList EQU RecvExpr / IdentifierList COLONEQU RecvExpr / RecvExpr
-RecvExpr <- Expression
+CommCase <- CASE SimpleStmt / DEFAULT
 
 ForStmt <- FOR (RangeClause / ForClause / Condition)? Block
 Condition <- ControlExpr
-ForClause <- InitStmt? SEMI Condition? SEMI PostStmt?
+ForClause <- InitStmt? SEMI Skip Condition? SEMI Skip ForPostStmt?
 InitStmt <- SimpleStmt
-PostStmt <- SimpleStmt
+ForPostStmt <- ControlExprList Spacing? ForPostStmtSuffix?
+ForPostStmtSuffix <- AssignOp Spacing? ControlExprList
+                   / COLONEQU Spacing? ControlExprList
+                   / SEND Spacing? ControlExpr
+                   / INC / DEC
+ControlExprList <- ControlExpr (COMMA ControlExpr)*
 RangeClause <- (ExpressionList EQU / IdentifierList COLONEQU)? RANGE RangeExpr
-RangeExpr <- NonNamedCompositeLit / ControlExpr
-NonNamedCompositeLit <- LiteralTypeNoTypeName LiteralValue
+RangeExpr <- ControlExpr
 
 // Expressions
 
@@ -217,17 +211,22 @@ ControlRelExpr <- ControlAddExpr (RelOp ControlAddExpr)*
 ControlAddExpr <- ControlMulExpr (AddOp ControlMulExpr)*
 ControlMulExpr <- ControlUnaryExpr (MulOp ControlUnaryExpr)*
 ControlUnaryExpr <- ControlPrimaryExpr / UnaryOp ControlUnaryExpr / RECEIVE ControlUnaryExpr
-ControlPrimaryExpr <- ControlOperand (Selector / Index / Slice / TypeAssertion / Arguments)*
+ControlPrimaryExpr <- ControlOperand (Selector / Index / Slice / GenericArgs / TypeAssertion / Arguments)*
 ControlOperand <- BasicLit
                / FunctionLit
+               / ControlCompositeLit
                / OperandName
+               / Conversion
                / LPAREN Expression RPAREN
                / MethodExpr
+ControlCompositeLit <- ControlLiteralType LiteralValue
+ControlLiteralType <- ArrayType / LBRACK ELLIPSIS RBRACK ElementType / SliceType / MapType
 
-PrimaryExpr <- Operand (Selector / Index / Slice / TypeAssertion / Arguments)*
+PrimaryExpr <- Operand (Selector / Index / Slice / GenericArgs / TypeAssertion / Arguments)*
+GenericArgs <- LBRACK TypeList RBRACK
 Selector <- DOT Identifier
 Index <- LBRACK Expression RBRACK
-Slice <- LBRACK (Expression? COLON Expression? / Expression? COLON Expression COLON Expression) RBRACK
+Slice <- LBRACK (Expression? COLON Expression COLON Expression / Expression? COLON Expression?) RBRACK
 TypeAssertion <- DOT LPAREN Type RPAREN
 Arguments <- LPAREN ArgumentList? RPAREN
 ArgumentList <- (ExpressionList / (Type (COMMA ExpressionList)?)) ELLIPSIS? COMMA?
@@ -237,13 +236,13 @@ Operand <- Literal
         / Conversion
         / LPAREN Expression RPAREN
         / MethodExpr
-OperandName <- QualifiedIdent / Identifier
+OperandName <- Identifier (DOT Identifier)?
 MethodExpr <- ReceiverType DOT MethodName
 ReceiverType <- Type
 Conversion <- Type LPAREN Expression COMMA? RPAREN
 
 Literal <- BasicLit / CompositeLit / FunctionLit
-BasicLit <- IntLit / FloatLit / ImaginaryLit / RuneLit / StringLit
+BasicLit <- ImaginaryLit / FloatLit / IntLit / RuneLit / StringLit
 FunctionLit <- FUNC Signature FunctionBody
 
 CompositeLit <- LiteralType LiteralValue
@@ -253,23 +252,17 @@ LiteralType <- StructType
             / SliceType
             / MapType
             / TypeName TypeArgs?
-LiteralTypeNoTypeName <- StructType
-                       / ArrayType
-                       / LBRACK ELLIPSIS RBRACK ElementType
-                       / SliceType
-                       / MapType
-
 LiteralValue <- LBRACE ElementList? COMMA? RBRACE
 ElementList <- KeyedElement (COMMA KeyedElement)*
 KeyedElement <- (Key COLON)? Element
-Key <- FieldName / Expression / LiteralValue
+Key <- LiteralValue / Expression
 FieldName <- Identifier
 Element <- Expression / LiteralValue
 
 // Lexical rules
 
-Identifier <- !Keyword #(Letter IdentCont*) Spacing
-Letter <- [a-zA-Z_]
+Identifier <- !Keyword Letter IdentCont* Spacing
+Letter <- [a-zA-Z_] / [\u0080-\uFFFF]
 IdentCont <- Letter / Digit
 Digit <- [0-9]
 
@@ -299,16 +292,16 @@ Keyword <- ('break'
           / 'type'
           / 'var') !IdentCont
 
-IntLit <- #(BinaryLit / HexLit / OctalLit / DecimalLit) Spacing
+IntLit <- (BinaryLit / HexLit / OctalLit / DecimalLit) Spacing
 DecimalLit <- '0' / [1-9] ([_]* Digit)*
-BinaryLit <- ('0b' / '0B') [01] ([_]* [01])*
-OctalLit <- ('0o' / '0O') [0-7] ([_]* [0-7])*
+BinaryLit <- ('0b' / '0B') [_]? [01] ([_]* [01])*
+OctalLit <- ('0o' / '0O') [_]? [0-7] ([_]* [0-7])*
          / '0' ([_]* [0-7])+
-HexLit <- ('0x' / '0X') HexDigits
+HexLit <- ('0x' / '0X') [_]? HexDigits
 HexDigits <- HexDigit ([_]* HexDigit)*
 HexDigit <- [0-9a-fA-F]
 
-FloatLit <- #(DecFloatLit / HexFloatLit) Spacing
+FloatLit <- (DecFloatLit / HexFloatLit) Spacing
 DecFloatLit <- DecimalDigits '.' DecimalDigits? Exponent?
              / '.' DecimalDigits Exponent?
              / DecimalDigits Exponent
@@ -317,12 +310,12 @@ Exponent <- [eE] [+\-]? DecimalDigits
 HexFloatLit <- HexMantissa [pP] [+\-]? DecimalDigits
 HexMantissa <- ('0x' / '0X') HexDigits? '.' HexDigits / HexLit '.'?
 
-ImaginaryLit <- #((BinaryLit / HexLit / OctalLit / DecimalLit / DecFloatLit / HexFloatLit) 'i') Spacing
+ImaginaryLit <- (DecFloatLit / HexFloatLit / BinaryLit / HexLit / OctalLit / DecimalLit) 'i' Spacing
 
-RuneLit <- #(['] (EscapeSequence / ![\\'\n\r] .) [']) Spacing
+RuneLit <- ['] (EscapeSequence / ![\\'\n\r] .) ['] Spacing
 StringLit <- RawStringLit / InterpretedStringLit
-RawStringLit <- #('`' (!'`' .)* '`') Spacing
-InterpretedStringLit <- #('"' (EscapeSequence / ![\\"\n\r] .)* '"') Spacing
+RawStringLit <- '`' (!'`' .)* '`' Spacing
+InterpretedStringLit <- '"' (EscapeSequence / ![\\"\n\r] .)* '"' Spacing
 
 EscapeSequence <- '\\' ( [abfnrtv\\'"]
                        / OctalByteValue
@@ -337,30 +330,30 @@ BigUValue <- 'U' HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit 
 
 // Tokens and spacing
 
-PACKAGE <- 'package' !IdentCont Spacing
-IMPORT <- 'import' !IdentCont Spacing
-CONST <- 'const' !IdentCont Spacing
-TYPE <- 'type' !IdentCont Spacing
-VAR <- 'var' !IdentCont Spacing
-FUNC <- 'func' !IdentCont Spacing
-STRUCT <- 'struct' !IdentCont Spacing
-INTERFACE <- 'interface' !IdentCont Spacing
-MAP <- 'map' !IdentCont Spacing
-CHAN <- 'chan' !IdentCont Spacing
+PACKAGE <- 'package' !IdentCont Skip
+IMPORT <- 'import' !IdentCont Skip
+CONST <- 'const' !IdentCont Skip
+TYPE <- 'type' !IdentCont Skip
+VAR <- 'var' !IdentCont Skip
+FUNC <- 'func' !IdentCont Skip
+STRUCT <- 'struct' !IdentCont Skip
+INTERFACE <- 'interface' !IdentCont Skip
+MAP <- 'map' !IdentCont Skip
+CHAN <- 'chan' !IdentCont Skip
 RETURN <- 'return' !IdentCont Spacing
-IF <- 'if' !IdentCont Spacing
-ELSE <- 'else' !IdentCont Spacing
-SWITCH <- 'switch' !IdentCont Spacing
-CASE <- 'case' !IdentCont Spacing
-DEFAULT <- 'default' !IdentCont Spacing
-SELECT <- 'select' !IdentCont Spacing
-FOR <- 'for' !IdentCont Spacing
-RANGE <- 'range' !IdentCont Spacing
-GO <- 'go' !IdentCont Spacing
-DEFER <- 'defer' !IdentCont Spacing
+IF <- 'if' !IdentCont Skip
+ELSE <- 'else' !IdentCont Skip
+SWITCH <- 'switch' !IdentCont Skip
+CASE <- 'case' !IdentCont Skip
+DEFAULT <- 'default' !IdentCont Skip
+SELECT <- 'select' !IdentCont Skip
+FOR <- 'for' !IdentCont Skip
+RANGE <- 'range' !IdentCont Skip
+GO <- 'go' !IdentCont Skip
+DEFER <- 'defer' !IdentCont Skip
 BREAK <- 'break' !IdentCont Spacing
 CONTINUE <- 'continue' !IdentCont Spacing
-GOTO <- 'goto' !IdentCont Spacing
+GOTO <- 'goto' !IdentCont Skip
 FALLTHROUGH <- 'fallthrough' !IdentCont Spacing
 
 SEMI   <- ';' Spacing
@@ -420,6 +413,6 @@ ANDNOTEQU <- '&^=' Skip
 HSpace <- [ \t\u000C]
 EOL <- '\r\n' / '\n' / '\r'
 Spacing <- (HSpace / GeneralComment)*
-NL <- (EOL / (LineComment EOL?))+ HSpace*
+NL <- (EOL / (LineComment EOL?) / GeneralComment)+ HSpace*
 LineComment <- '//' (![\r\n] .)*
 GeneralComment <- '/*' (!'*/' .)* '*/'
