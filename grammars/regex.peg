@@ -1,0 +1,111 @@
+// https://pkg.go.dev/regexp/syntax
+
+Regexp <- Expression
+
+// Composites
+
+Expression <- Concatenation
+
+// xy  x followed by y
+Concatenation <- Alternative*
+
+// x|y  x or y (prefer x)
+Alternative <- Suffix ('|' Suffix)*
+
+
+// Repetitions
+
+// x*             zero or more x, prefer more
+// x+             one or more x, prefer more
+// x?             zero or one x, prefer one
+// x{n,m}         n or n+1 or ... or m x, prefer more
+// x{n,}          n or more x, prefer more
+// x{n}           exactly n x
+// x*?            zero or more x, prefer fewer
+// x+?            one or more x, prefer fewer
+// x??            zero or one x, prefer zero
+// x{n,m}?        n or n+1 or ... or m x, prefer fewer
+// x{n,}?         n or more x, prefer fewer
+// x{n}?          exactly n x
+Suffix  <- Primary (('*' / '+' / '?' / Counted) '?'?)?
+Counted <- '{' Digit (',' Digit?)? '}'
+Digit   <- [0-9]+
+Primary <- Any
+         / CharClass
+         / Escape
+         / Class
+         / Anchor
+         / Literal
+         / '(?P<' Name '>' Expression ')'
+         / '(?:' Expression ')'
+         / '(?' Flags ':' Expression ')'
+         / '(?' Flags ')'
+         / '(' Expression ')'
+
+// Single characters
+
+// [xyz]          character class
+// [^xyz]         negated character class
+Class <- '[' Negate? (Range / Char)+ ']'
+
+Char <- #(Escape / !']' .)
+
+// Perl character classes (all ASCII-only):
+//
+// \d             digits (== [0-9])
+// \D             not digits (== [^0-9])
+// \s             whitespace (== [\t\n\f\r ])
+// \S             not whitespace (== [^\t\n\f\r ])
+// \w             word characters (== [0-9A-Za-z_])
+// \W             not word characters (== [^0-9A-Za-z_])
+//
+// \p{Foo}        Unicode character class Foo
+// \P{Foo}        negated Unicode character class Foo
+//
+// \b  \B  \.  \+  \\  etc.  escaped meta-characters
+Escape <- '\\' [pP] '{' [a-zA-Z]+ '}'
+        / '\\' .
+
+Literal  <- (!MetaChar .)+
+MetaChar <- '.' / '|' / '\\' / '(' / ')' / '[' / ']' / '^' / '$' / '*' / '+' / '?' / '{' / '}'
+
+// A-Z            character range (inclusive)
+Range <- Char '-' Char
+
+
+// x              single character
+// \d             Perl character class
+// [:foo:]        ASCII character class foo
+// \p{Foo}        Unicode character class Foo
+// \pF            Unicode character class F (one-letter name)
+
+Negate <- '^'
+
+// ^  $            anchors
+Anchor <- '^' / '$'
+
+CharClass <- '[[:' CharClassName ':]]'
+
+CharClassName <- "alnum"  //    alphanumeric (== [0-9A-Za-z])
+               / "alpha"  //    alphabetic (== [A-Za-z])
+               / "ascii"  //    ASCII (== [\x00-\x7F])
+               / "blank"  //    blank (== [\t ])
+               / "cntrl"  //    control (== [\x00-\x1F\x7F])
+               / "digit"  //    digits (== [0-9])
+               / "graph"  //    graphical (== [!-~] == [A-Za-z0-9!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])
+               / "lower"  //    lower case (== [a-z])
+               / "print"  //    printable (== [ -~] == [ [:graph:]])
+               / "punct"  //    punctuation (== [!-/:-@[-`{-~])
+               / "space"  //    whitespace (== [\t\n\v\f\r ])
+               / "upper"  //    upper case (== [A-Z])
+               / "word"   //    word characters (== [0-9A-Za-z_])
+               / "xdigit" //    hex digit (== [0-9A-Fa-f])
+
+// any character, possibly including newline (flag s=true)
+Any   <- '.'
+
+// (?i)  (?m)  (?s)  (?U)  (?-i)  etc.
+Flags <- [imsU-]+
+
+// (?P<name>...)  named capturing group
+Name <- [a-zA-Z_][a-zA-Z0-9_]*
