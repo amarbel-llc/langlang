@@ -1,0 +1,33 @@
+// Rust grammar (edition 2024) for langlang
+//
+// Extends rust2021.peg with Edition 2024: gen keyword and gen blocks (RFC 3513).
+// For Edition 2021 (gen is a valid identifier), use rust2021.peg directly.
+//
+// Written for --disable-spaces; all whitespace is consumed explicitly.
+
+@import Crate from "./rust2021.peg"
+
+// Re-declare start rule so it remains the entry point after merge (first definition wins).
+Crate <- Skip InnerAttribute* Item* Skip EOF
+
+// --- Edition 2024: gen keyword and gen blocks ---
+
+Keyword <- ('as' / 'async' / 'await' / 'break' / 'const' / 'continue'
+          / 'crate' / 'dyn' / 'else' / 'enum' / 'extern' / 'false'
+          / 'fn' / 'for' / 'gen' / 'if' / 'impl' / 'in' / 'let' / 'loop'
+          / 'match' / 'mod' / 'move' / 'mut' / 'pub' / 'ref' / 'return'
+          / 'self' / 'Self' / 'static' / 'struct' / 'super' / 'trait'
+          / 'true' / 'type' / 'unsafe' / 'use' / 'where'
+          / 'while' / 'yield') !IdentCont
+
+GEN      <- 'gen' !IdentCont Skip
+
+GenBlock <- GEN MOVE? Block
+
+ExpressionWithBlock <- CONST Block
+                     / UNSAFE Block
+                     / LoopLabel? (LoopExpr / WhileExpr / ForExpr / Block)
+                     / IfExpression
+                     / MatchExpression
+                     / AsyncBlock
+                     / GenBlock

@@ -1,0 +1,633 @@
+// Rust grammar (edition 2021) for langlang
+//
+// Based on https://doc.rust-lang.org/reference/
+//
+// Use this grammar for Edition 2021 crates (gen is a valid
+// identifier).  Edition 2024 (gen reserved, gen blocks) is rust.peg,
+// which @imports from this file.
+//
+// Written for --disable-spaces; all whitespace is consumed explicitly
+// via Skip (whitespace+comments) or Spacing (horizontal only).
+
+Crate <- Skip InnerAttribute* Item* Skip EOF
+
+// --- Attributes ---
+
+InnerAttribute <- '#' '!' '[' Skip AttrContent ']' Skip
+OuterAttribute <- '#' '[' Skip AttrContent ']' Skip
+AttrContent    <- UNSAFE LPAREN SimplePath AttrInput? RPAREN
+               / SimplePath AttrInput?
+AttrInput      <- LPAREN TokenTrees RPAREN
+               / EQU MacroInvocation
+               / EQU LiteralExpr
+               / EQU SimplePath
+
+// --- Items ---
+
+Item <- OuterAttribute* VisibilityOpt ItemBody
+
+VisibilityOpt <- (PUB (LPAREN VisRestriction RPAREN)?)? Skip
+VisRestriction <- CRATE / SELF / SUPER / IN SimplePath
+
+ItemBody <- UseDecl
+          / ExternCrateDecl
+          / ModDecl
+          / FnDecl
+          / TypeAlias
+          / StructDecl
+          / EnumDecl
+          / UnionDecl
+          / ConstItem
+          / StaticItem
+          / TraitDecl
+          / ImplBlock
+          / ExternBlock
+          / MacroInvocationItem
+
+// --- Use declarations ---
+
+UseDecl <- USE UseTree SEMI
+UseTree <- SimplePath COLONCOLON STAR
+         / SimplePath COLONCOLON LBRACE UseTreeList RBRACE
+         / SimplePath (AS (Identifier / UNDERSCORE))?
+         / STAR
+         / LBRACE UseTreeList RBRACE
+UseTreeList <- (UseTree (COMMA UseTree)* COMMA?)?
+
+// --- Extern crate ---
+
+ExternCrateDecl <- EXTERN CRATE (Identifier / SELF) (AS (Identifier / UNDERSCORE))? SEMI
+
+// --- Modules ---
+
+ModDecl <- UNSAFE? MOD Identifier (SEMI / LBRACE InnerAttribute* Item* RBRACE)
+
+// --- Functions ---
+
+FnDecl <- FnQualifiers FN Identifier GenericParams? LPAREN FnParams? RPAREN FnReturnType? WhereClause? (Block / SEMI)
+FnQualifiers <- CONST? ASYNC? UNSAFE? (EXTERN ABIString?)?
+ABIString <- StringLit
+FnReturnType <- RARROW Type
+FnParams <- FnParam (COMMA FnParam)* COMMA?
+FnParam <- OuterAttribute* FnParamPat
+FnParamPat <- AND LIFETIME? MUT? SELF (COLON Type)?
+           / MUT? SELF !(COLONCOLON) (COLON Type)?
+           / PatNoTopAlt COLON Type
+           / Type
+           / ELLIPSIS
+
+// --- Type aliases ---
+
+TypeAlias <- TYPE Identifier GenericParams? (COLON TypeParamBounds?)? WhereClause? (EQU Type WhereClause?)? SEMI
+
+// --- Structs ---
+
+StructDecl <- STRUCT Identifier GenericParams? WhereClause? StructBody
+StructBody <- LBRACE StructFields? RBRACE
+            / LPAREN TupleFields? RPAREN WhereClause? SEMI
+            / WhereClause? SEMI
+StructFields <- StructField (COMMA StructField)* COMMA?
+StructField <- OuterAttribute* VisibilityOpt Identifier COLON Type
+TupleFields <- TupleField (COMMA TupleField)* COMMA?
+TupleField <- OuterAttribute* VisibilityOpt Type
+
+// --- Enums ---
+
+EnumDecl <- ENUM Identifier GenericParams? WhereClause? LBRACE EnumVariants? RBRACE
+EnumVariants <- EnumVariant (COMMA EnumVariant)* COMMA?
+EnumVariant <- OuterAttribute* VisibilityOpt Identifier EnumVariantBody?
+EnumVariantBody <- LPAREN TupleFields? RPAREN
+                 / LBRACE StructFields? RBRACE
+                 / EQU Expression
+
+// --- Unions ---
+
+UnionDecl <- UNION Identifier GenericParams? WhereClause? LBRACE StructFields? RBRACE
+
+// --- Const and static ---
+
+ConstItem  <- CONST (Identifier / UNDERSCORE) COLON Type (EQU Expression)? SEMI
+StaticItem <- STATIC MUT? Identifier COLON Type (EQU Expression)? SEMI
+
+// --- Traits ---
+
+TraitDecl <- UNSAFE? TRAIT Identifier GenericParams? (COLON TypeParamBounds?)? WhereClause? LBRACE InnerAttribute* TraitItem* RBRACE
+TraitItem <- OuterAttribute* VisibilityOpt TraitItemBody
+TraitItemBody <- FnDecl
+              / TypeAlias
+              / ConstItem
+              / MacroInvocationItem
+
+// --- Impls ---
+
+ImplBlock <- UNSAFE? IMPL GenericParams? (BANG? TypePath FOR)? Type WhereClause? LBRACE InnerAttribute* ImplItem* RBRACE
+ImplItem <- OuterAttribute* VisibilityOpt ImplItemBody
+ImplItemBody <- FnDecl
+             / TypeAlias
+             / ConstItem
+             / MacroInvocationItem
+
+// --- Extern blocks ---
+
+ExternBlock <- UNSAFE? EXTERN ABIString? LBRACE InnerAttribute* ExternItem* RBRACE
+ExternItem <- OuterAttribute* VisibilityOpt ExternItemBody
+ExternItemBody <- FnDecl
+               / StaticItem
+               / TypeAlias
+               / MacroInvocationItem
+
+// --- Macros ---
+
+MacroInvocationItem <- SimplePath BANG MacroInvocationBody
+MacroInvocationBody <- Identifier? LPAREN TokenTrees RPAREN SEMI
+                     / Identifier? LBRACK TokenTrees RBRACK SEMI
+                     / Identifier? LBRACE TokenTrees RBRACE !('.' / '(' / '[' / '?')
+
+MacroInvocation <- SimplePath BANG MacroInvocationTail
+MacroInvocationTail <- LPAREN TokenTrees RPAREN
+                     / LBRACK TokenTrees RBRACK
+                     / LBRACE TokenTrees RBRACE
+
+TokenTrees <- TokenTree*
+TokenTree  <- LPAREN TokenTrees RPAREN
+            / LBRACK TokenTrees RBRACK
+            / LBRACE TokenTrees RBRACE
+            / TokenNonDelim
+
+TokenNonDelim <- !(')' / ']' / '}') (CStringLit / RawCStringLit / StringLit / RawStringLit / ByteStringLit / RawByteStringLit / CharLit / ByteLit / LineComment / GeneralComment / TokenChar) Skip
+TokenChar <- ![()\[\]{} \t\r\n] .
+
+// --- Generics ---
+
+// GT_GENERIC allows `>>` to close nested generics (e.g. Vec<Option<i32>>)
+GenericParams <- LT_GENERIC GenericParamList? GT_GENERIC
+GenericParamList <- GenericParam (COMMA GenericParam)* COMMA?
+GenericParam <- OuterAttribute* (LifetimeParam / ConstParam / TypeParam)
+LifetimeParam <- LIFETIME (COLON LifetimeBounds)?
+TypeParam <- Identifier (COLON TypeParamBounds?)? (EQU Type)?
+ConstParam <- CONST Identifier COLON Type (EQU ConstArgExpr)?
+ConstArgExpr <- Block / LiteralExpr / MINUS LiteralExpr / SimplePath
+
+TypeParamBounds <- TypeParamBound (PLUS TypeParamBound)* PLUS?
+TypeParamBound <- LIFETIME / UseBound / LPAREN QUESTION? ForLifetimes? TypePath RPAREN / QUESTION? ForLifetimes? TypePath
+UseBound <- USE LT (UseBoundParam (COMMA UseBoundParam)*)? GT_GENERIC
+UseBoundParam <- LIFETIME / SelfTypeKw / Identifier
+LifetimeBounds <- LIFETIME (PLUS LIFETIME)* PLUS?
+
+WhereClause <- WHERE (WhereClauseItem (COMMA WhereClauseItem)* COMMA?)?
+WhereClauseItem <- LIFETIME COLON LifetimeBounds
+                 / (FOR LT LifetimeParam (COMMA LifetimeParam)* GT_GENERIC)? Type COLON TypeParamBounds?
+
+// --- Types ---
+
+Type <- TypeNoBounds (PLUS TypeParamBound)* PLUS?
+
+TypeNoBounds <- ImplTraitTypeOneBound
+             / TraitObjectTypeOneBound
+             / ParenType
+             / TupleType
+             / NeverType
+             / RawPointerType
+             / ReferenceType
+             / ArrayType
+             / SliceType
+             / InferredType
+             / QualifiedPathInType
+             / BareFunctionType
+             / MacroInvocation
+             / TypePath
+
+ImplTraitTypeOneBound <- IMPL TypeParamBounds
+TraitObjectTypeOneBound <- DYN TypeParamBounds
+
+ParenType <- LPAREN Type RPAREN
+TupleType <- LPAREN (Type (COMMA Type)* COMMA?)? RPAREN
+NeverType <- BANG
+RawPointerType <- STAR (CONST / MUT) TypeNoBounds
+ReferenceType <- ANDAND LIFETIME? MUT? TypeNoBounds
+              / AND LIFETIME? MUT? TypeNoBounds
+ArrayType <- LBRACK Type SEMI Expression RBRACK
+SliceType <- LBRACK Type RBRACK
+InferredType <- UNDERSCORE
+
+BareFunctionType <- ForLifetimes? FnTypeQualifiers FN LPAREN FnTypeParams? RPAREN FnReturnType?
+FnTypeQualifiers <- UNSAFE? (EXTERN ABIString?)?
+ForLifetimes <- FOR LT LifetimeParam (COMMA LifetimeParam)* GT_GENERIC
+FnTypeParams <- FnTypeParam (COMMA FnTypeParam)* COMMA?
+FnTypeParam <- OuterAttribute* (PatNoTopAlt COLON)? Type
+
+QualifiedPathInType <- LT_GENERIC Type (AS TypePath)? GT_GENERIC (COLONCOLON TypePathSegment)+
+
+TypePath <- COLONCOLON? TypePathSegment (COLONCOLON TypePathSegment)*
+TypePathSegment <- PathIdent LPAREN (Type (COMMA Type)* COMMA?)? RPAREN FnReturnType?
+                 / PathIdent (COLONCOLON? GenericArgs)?
+GenericArgs <- LT_GENERIC GenericArgList? GT_GENERIC
+GenericArgList <- GenericArg (COMMA GenericArg)* COMMA?
+GenericArg <- LIFETIME
+            / Identifier EQU Type
+            / TypeBinding
+            / Type
+            / ConstArgExpr
+TypeBinding <- Identifier GenericArgs? COLON TypeParamBounds
+             / Identifier GenericArgs? EQU Type
+
+// --- Patterns ---
+
+Pattern <- OR? PatternNoTopAlt (OR PatternNoTopAlt)*
+PatNoTopAlt <- PatternNoTopAlt
+
+PatternNoTopAlt <- RangePattern
+                 / PatternWithoutRange
+
+PatternWithoutRange <- LiteralPattern
+                    / MacroInvocation
+                    / IdentifierPattern
+                    / WildcardPattern
+                    / RestPattern
+                    / ReferencePattern
+                    / StructPattern
+                    / TupleStructPattern
+                    / TuplePattern
+                    / GroupedPattern
+                    / SlicePattern
+                    / PathPattern
+
+LiteralPattern <- MINUS? (FloatLit / IntLit) / CharLit / ByteLit / CStringLit / RawCStringLit / StringLit / RawStringLit / ByteStringLit / RawByteStringLit / TRUE / FALSE
+IdentifierPattern <- REF? MUT? Identifier !LBRACE !(COLONCOLON / LPAREN) (AT PatternNoTopAlt)?
+WildcardPattern <- UNDERSCORE
+RestPattern <- DOTDOT
+ReferencePattern <- AND MUT? PatternNoTopAlt / ANDAND MUT? PatternNoTopAlt
+StructPattern <- PathInExpression LBRACE StructPatternElements? RBRACE
+StructPatternElements <- StructPatternField (COMMA StructPatternField)* (COMMA DOTDOT?)? / DOTDOT
+StructPatternField <- OuterAttribute* (IntLit COLON Pattern / Identifier COLON Pattern / REF? MUT? Identifier)
+TupleStructPattern <- PathInExpression LPAREN TupleStructItems? RPAREN
+TupleStructItems <- Pattern (COMMA Pattern)* COMMA?
+TuplePattern <- LPAREN TuplePatternItems? RPAREN
+TuplePatternItems <- Pattern (COMMA Pattern)* COMMA?
+GroupedPattern <- LPAREN Pattern RPAREN
+SlicePattern <- LBRACK (Pattern (COMMA Pattern)* COMMA?)? RBRACK
+PathPattern <- PathInExpression
+
+RangePattern <- RangePatternBound DOTDOTEQU RangePatternBound
+              / RangePatternBound DOTDOT RangePatternBound
+              / DOTDOTEQU RangePatternBound
+              / DOTDOT RangePatternBound
+              / RangePatternBound DOTDOT
+              / RangePatternBound DOTDOTEQU
+RangePatternBound <- LiteralPattern / PathInExpression
+
+// --- Expressions ---
+
+Expression <- OuterAttribute* (ExpressionNoBlock AssignSuffix?
+            / ExpressionWithBlock PostfixOp* AssignSuffix?)
+
+AssignSuffix <- (CompoundAssignOp / EQU) Expression
+
+ExpressionNoBlock <- ClosureExpression
+                   / ReturnExpression
+                   / BreakExpression
+                   / ContinueExpression
+                   / AsyncExpr
+                   / YieldExpression
+                   / RangeExpr
+
+YieldExpression <- YIELD Expression?
+
+AsyncExpr <- ASYNC MOVE? Block PostfixOp*
+
+RangeExpr <- (DOTDOT / DOTDOTEQU) OrExpression?
+           / OrExpression ((DOTDOT / DOTDOTEQU) OrExpression?)?
+
+OrExpression <- AndExpression (OROR AndExpression)*
+AndExpression <- ComparisonExpr (ANDAND ComparisonExpr)*
+ComparisonExpr <- OrBitExpr (ComparisonOp OrBitExpr)?
+ComparisonOp <- EQUEQU / NOTEQU / LE / GE / LT / GT
+OrBitExpr <- XorBitExpr (OR XorBitExpr)*
+XorBitExpr <- AndBitExpr (HAT AndBitExpr)*
+AndBitExpr <- ShiftExpr (AND ShiftExpr)*
+ShiftExpr <- AddExpr (ShiftOp AddExpr)*
+ShiftOp <- SHL / SHR
+AddExpr <- MulExpr (AddOp MulExpr)*
+AddOp <- PLUS / MINUS
+MulExpr <- CastExpr (MulOp CastExpr)*
+MulOp <- STAR / DIV / PERCENT
+CastExpr <- UnaryExpr (AS TypeNoBounds)*
+UnaryExpr <- MINUS UnaryExpr
+           / BANG UnaryExpr
+           / STAR UnaryExpr
+           / AND RAW (CONST / MUT) UnaryExpr
+           / AND MUT? UnaryExpr
+           / ANDAND MUT? UnaryExpr
+           / ClosureExpression
+           / PostfixExpr
+
+PostfixExpr <- PrimaryExpr PostfixOp*
+PostfixOp <- DOT AWAIT
+           / MethodCall
+           / TupleIndex
+           / FieldAccess
+           / CallArgs
+           / IndexExpr
+           / QUESTION
+           / AS TypeNoBounds
+
+PostfixOpNoCall <- DOT AWAIT
+                 / MethodCall
+                 / TupleIndex
+                 / FieldAccess
+                 / QUESTION
+                 / AS TypeNoBounds
+
+AWAIT <- 'await' !IdentCont Skip
+MethodCall <- DOT PathExprSegment CallArgs
+FieldAccess <- DOT (Identifier / IntLitNoSuffix)
+TupleIndex <- DOT IntLitNoSuffix
+CallArgs <- LPAREN CallArgList? RPAREN
+CallArgList <- Expression (COMMA Expression)* COMMA?
+IndexExpr <- LBRACK Expression RBRACK
+
+PrimaryExpr <- LiteralExpr
+             / MacroInvocation
+             / StructExpression
+             / QualifiedPathExpr
+             / PathExpression
+             / ExpressionWithBlock
+             / GroupedOrTuple
+             / ArrayExpr
+             / UNDERSCORE
+
+QualifiedPathExpr <- LT_GENERIC Type (AS TypePath)? GT_GENERIC (COLONCOLON PathExprSegment)+
+
+StructExpression <- PathInExpression LBRACE StructExprFields? RBRACE
+StructExprFields <- StructExprField (COMMA StructExprField)* (COMMA (DOTDOT Expression)?)? / DOTDOT Expression
+StructExprField <- OuterAttribute* ((Identifier / IntLit) COLON Expression / Identifier)
+
+GroupedOrTuple <- LPAREN Expression (COMMA (Expression (COMMA Expression)* COMMA?)?)? RPAREN
+               / LPAREN RPAREN
+
+ArrayExpr <- LBRACK (Expression (SEMI Expression / (COMMA Expression)* COMMA?))? RBRACK
+
+LiteralExpr <- CStringLit / RawCStringLit / ByteStringLit / RawByteStringLit / StringLit / RawStringLit / ByteLit / CharLit / FloatLit / IntLit / TRUE / FALSE
+
+PathExpression <- PathInExpression
+PathInExpression <- COLONCOLON? PathExprSegment (COLONCOLON PathExprSegment)*
+PathExprSegment <- PathIdent (COLONCOLON GenericArgs)?
+
+SimplePath <- COLONCOLON? PathIdent (COLONCOLON PathIdent)*
+
+PathIdent <- Identifier / SelfKw / SelfTypeKw / SuperKw / CrateKw
+SelfKw     <- 'self' !IdentCont Spacing
+SelfTypeKw <- 'Self' !IdentCont Spacing
+SuperKw    <- 'super' !IdentCont Spacing
+CrateKw    <- 'crate' !IdentCont Spacing
+
+ClosureExpression <- ForLifetimes? STATIC? ASYNC? MOVE? (OR ClosureParams? OR / OROR) FnReturnType? (Expression / Block)
+ClosureParams <- ClosureParam (COMMA ClosureParam)* COMMA?
+ClosureParam <- OuterAttribute* PatNoTopAlt (COLON Type)?
+
+ReturnExpression <- RETURN Expression?
+BreakExpression <- BREAK LIFETIME? Expression?
+ContinueExpression <- CONTINUE LIFETIME?
+
+CompoundAssignOp <- PLUSEQU / MINUSEQU / STAREQU / DIVEQU / PERCENTEQU
+                  / ANDEQU / OREQU / XOREQU / SHLEQU / SHREQU
+
+// --- Expression with block ---
+
+ExpressionWithBlock <- CONST Block
+                     / UNSAFE Block
+                     / LoopLabel? (LoopExpr / WhileExpr / ForExpr / Block)
+                     / IfExpression
+                     / MatchExpression
+                     / AsyncBlock
+
+LoopLabel <- LIFETIME COLON
+
+Block <- LBRACE InnerAttribute* Statements Skip RBRACE
+Statements <- (Statement)* Expression?
+Statement <- SEMI
+           / Item
+           / OuterAttribute* LetStatement
+           / OuterAttribute* ExpressionStatement
+
+LetStatement <- LET Pattern (COLON Type)? (EQU Expression (ELSE Block)?)? SEMI
+ExpressionStatement <- Expression SEMI
+                     / ExpressionWithBlock PostfixOpNoCall* SEMI?
+
+IfExpression <- IF LetCondition Block (ELSE (IfExpression / Block))?
+LetCondition <- LetPattern (ANDAND LetCondition)?
+             / ExpressionNS (ANDAND LetCondition)?
+LetPattern <- LET Pattern EQU ExpressionNS
+MatchExpression <- MATCH ExpressionNS LBRACE InnerAttribute* MatchArms? Skip RBRACE
+MatchArms <- (MatchArm FATARROW (Expression COMMA / ExpressionWithBlock COMMA?))*
+           (MatchArm FATARROW Expression COMMA?)?
+MatchArm <- OuterAttribute* Pattern MatchGuard?
+MatchGuard <- IF LetCondition
+
+LoopExpr <- LOOP Block
+WhileExpr <- WHILE LetCondition Block
+ForExpr <- FOR Pattern IN ExpressionNS Block
+
+AsyncBlock <- ASYNC MOVE? Block
+
+// No-struct expression chain (prohibits struct literals in conditions)
+ExpressionNS <- OuterAttribute* (ExpressionNoBlockNS AssignSuffix?
+              / ExpressionWithBlock PostfixOp* AssignSuffix?)
+ExpressionNoBlockNS <- ClosureExpression
+                     / ReturnExpression
+                     / BreakExpression
+                     / ContinueExpression
+                     / AsyncExpr
+                     / YieldExpression
+                     / RangeExprNS
+RangeExprNS <- (DOTDOT / DOTDOTEQU) (!'{' OrExprNS)?
+             / OrExprNS ((DOTDOT / DOTDOTEQU) (!'{' OrExprNS)?)?
+OrExprNS <- AndExprNS (OROR AndExprNS)*
+AndExprNS <- CompExprNS (ANDAND CompExprNS)*
+CompExprNS <- OrBitExprNS (ComparisonOp OrBitExprNS)?
+OrBitExprNS <- XorBitExprNS (OR XorBitExprNS)*
+XorBitExprNS <- AndBitExprNS (HAT AndBitExprNS)*
+AndBitExprNS <- ShiftExprNS (AND ShiftExprNS)*
+ShiftExprNS <- AddExprNS (ShiftOp AddExprNS)*
+AddExprNS <- MulExprNS (AddOp MulExprNS)*
+MulExprNS <- CastExprNS (MulOp CastExprNS)*
+CastExprNS <- UnaryExprNS (AS TypeNoBounds)*
+UnaryExprNS <- MINUS UnaryExprNS
+             / BANG UnaryExprNS
+             / STAR UnaryExprNS
+             / AND RAW (CONST / MUT) UnaryExprNS
+             / AND MUT? UnaryExprNS
+             / ANDAND MUT? UnaryExprNS
+             / ClosureExpression
+             / PostfixExprNS
+PostfixExprNS <- PrimaryExprNS PostfixOp*
+PrimaryExprNS <- LiteralExpr
+               / MacroInvocation
+               / QualifiedPathExpr
+               / PathExpression
+               / ExpressionWithBlock
+               / GroupedOrTuple
+               / ArrayExpr
+               / UNDERSCORE
+
+// --- Lexical rules ---
+
+Identifier <- RawIdentifier / !Keyword #(IdentStart IdentCont*) Spacing
+RawIdentifier <- 'r#' #(IdentStart IdentCont*) Spacing
+IdentStart <- [a-zA-Z_] / [\u0080-\uFFFF]
+IdentCont <- IdentStart / [0-9]
+
+Keyword <- ('as' / 'async' / 'await' / 'break' / 'const' / 'continue'
+          / 'crate' / 'dyn' / 'else' / 'enum' / 'extern' / 'false'
+          / 'fn' / 'for' / 'if' / 'impl' / 'in' / 'let' / 'loop'
+          / 'match' / 'mod' / 'move' / 'mut' / 'pub' / 'ref' / 'return'
+          / 'self' / 'Self' / 'static' / 'struct' / 'super' / 'trait'
+          / 'true' / 'type' / 'unsafe' / 'use' / 'where'
+          / 'while' / 'yield') !IdentCont
+
+IntLit <- #(HexLit / OctalLit / BinaryLit / DecimalLit) '_'? IntSuffix? Spacing
+IntLitNoSuffix <- #(DecimalLit) Spacing
+DecimalLit <- [0-9] ([_]* [0-9])*
+HexLit <- '0x' [_]? [0-9a-fA-F] ([_]* [0-9a-fA-F])*
+OctalLit <- '0o' [_]? [0-7] ([_]* [0-7])*
+BinaryLit <- '0b' [_]? [01] ([_]* [01])*
+IntSuffix <- 'u8' / 'u16' / 'u32' / 'u64' / 'u128' / 'usize'
+           / 'i8' / 'i16' / 'i32' / 'i64' / 'i128' / 'isize'
+
+FloatLit <- #(DecimalLit '.' DecimalLit FloatExponent? / DecimalLit '.' FloatExponent / DecimalLit '.' !(IdentStart / '.') / DecimalLit FloatExponent) '_'? FloatSuffix? Spacing
+           / #(DecimalLit) '_'? FloatSuffix Spacing
+FloatExponent <- [eE] [+\-]? DecimalLit
+FloatSuffix <- 'f32' / 'f64'
+
+CharLit <- ['] (EscapeSequence / !['\\] .) ['] Spacing
+ByteLit <- "b'" (EscapeSequence / !['\\] .) "'" Spacing
+StringLit <- '"' (EscapeSequence / !["\\] .)* '"' Spacing
+ByteStringLit <- 'b"' (EscapeSequence / !["\\] .)* '"' Spacing
+CStringLit <- 'c"' (EscapeSequence / !["\\] .)* '"' Spacing
+RawCStringLit <- 'cr' RawStringBody Spacing
+RawStringLit <- 'r' RawStringBody Spacing
+RawByteStringLit <- 'br' RawStringBody Spacing
+RawStringBody <- '########' '"' (!('"########') .)* '"' '########'
+              / '#######' '"' (!('"#######') .)* '"' '#######'
+              / '######' '"' (!('"######') .)* '"' '######'
+              / '#####' '"' (!('"#####') .)* '"' '#####'
+              / '####' '"' (!('"####') .)* '"' '####'
+              / '###' '"' (!('"###') .)* '"' '###'
+              / '##' '"' (!('"##') .)* '"' '##'
+              / '#' '"' (!('"#') .)* '"' '#'
+              / '"' (!'"' .)* '"'
+
+EscapeSequence <- '\\' ([nrt\\'"0]
+                      / 'x' [0-9a-fA-F] [0-9a-fA-F]
+                      / 'u{' [0-9a-fA-F]+ '}'
+                      / '\n')
+
+LIFETIME <- "'" IdentStart IdentCont* Spacing
+
+// --- Tokens ---
+
+FN       <- 'fn' !IdentCont Skip
+LET      <- 'let' !IdentCont Skip
+MUT      <- 'mut' !IdentCont Skip
+REF      <- 'ref' !IdentCont Skip
+IF       <- 'if' !IdentCont Skip
+ELSE     <- 'else' !IdentCont Skip
+WHILE    <- 'while' !IdentCont Skip
+LOOP     <- 'loop' !IdentCont Skip
+FOR      <- 'for' !IdentCont Skip
+IN       <- 'in' !IdentCont Skip
+MATCH    <- 'match' !IdentCont Skip
+RETURN   <- 'return' !IdentCont Skip
+BREAK    <- 'break' !IdentCont Skip
+CONTINUE <- 'continue' !IdentCont Skip
+AS       <- 'as' !IdentCont Skip
+USE      <- 'use' !IdentCont Skip
+MOD      <- 'mod' !IdentCont Skip
+PUB      <- 'pub' !IdentCont Skip
+CRATE    <- 'crate' !IdentCont Skip
+SELF     <- 'self' !IdentCont Skip
+SUPER    <- 'super' !IdentCont Skip
+STRUCT   <- 'struct' !IdentCont Skip
+ENUM     <- 'enum' !IdentCont Skip
+TRAIT    <- 'trait' !IdentCont Skip
+IMPL     <- 'impl' !IdentCont Skip
+TYPE     <- 'type' !IdentCont Skip
+CONST    <- 'const' !IdentCont Skip
+STATIC   <- 'static' !IdentCont Skip
+EXTERN   <- 'extern' !IdentCont Skip
+UNSAFE   <- 'unsafe' !IdentCont Skip
+ASYNC    <- 'async' !IdentCont Skip
+MOVE     <- 'move' !IdentCont Skip
+DYN      <- 'dyn' !IdentCont Skip
+UNION    <- 'union' !IdentCont Skip
+RAW      <- 'raw' !IdentCont Skip
+WHERE    <- 'where' !IdentCont Skip
+TRUE     <- 'true' !IdentCont Spacing
+FALSE    <- 'false' !IdentCont Spacing
+YIELD    <- 'yield' !IdentCont Skip
+
+SEMI       <- ';' Skip
+COMMA      <- ',' Skip
+DOT        <- '.' !'.' Skip
+DOTDOT     <- '..' !'.' !'=' Skip
+DOTDOTEQU  <- '..=' Skip
+COLON      <- ':' !':' Skip
+COLONCOLON <- '::' Skip
+RARROW     <- '->' Skip
+FATARROW   <- '=>' Skip
+LPAREN     <- '(' Skip
+RPAREN     <- ')' Skip
+LBRACK     <- '[' Skip
+RBRACK     <- ']' Skip
+LBRACE     <- '{' Skip
+RBRACE     <- '}' Skip
+AT         <- '@' Skip
+UNDERSCORE <- '_' !IdentCont Skip
+QUESTION   <- '?' Skip
+ELLIPSIS   <- '...' Skip
+
+BANG    <- '!' !'=' Skip
+AND     <- '&' ![&=] Skip
+ANDAND  <- '&&' !'=' Skip
+OR      <- '|' ![|=] Skip
+OROR    <- '||' Skip
+HAT     <- '^' !'=' Skip
+STAR    <- '*' !'=' Skip
+PLUS    <- '+' !'=' Skip
+MINUS   <- '-' ![>=] Skip
+DIV     <- '/' ![/=*] Skip
+PERCENT <- '%' !'=' Skip
+SHL     <- '<<' !'=' Skip
+SHR     <- '>>' !'=' Skip
+
+EQU     <- '=' ![>=] Skip
+EQUEQU  <- '==' Skip
+NOTEQU  <- '!=' Skip
+LT      <- '<' ![<=] Skip
+LT_GENERIC <- '<' !'=' Skip
+GT      <- '>' ![>=] Skip
+GT_GENERIC <- '>' Skip
+LE      <- '<=' Skip
+GE      <- '>=' Skip
+
+PLUSEQU  <- '+=' Skip
+MINUSEQU <- '-=' Skip
+STAREQU  <- '*=' Skip
+DIVEQU   <- '/=' Skip
+PERCENTEQU <- '%=' Skip
+ANDEQU   <- '&=' Skip
+OREQU    <- '|=' Skip
+XOREQU   <- '^=' Skip
+SHLEQU   <- '<<=' Skip
+SHREQU   <- '>>=' Skip
+
+POUND  <- '#' Skip
+
+// --- Spacing ---
+
+Skip    <- (HSpace / GeneralComment / EOL / LineComment)*
+Spacing <- Skip
+HSpace  <- [ \t\u000C]
+EOL     <- '\r\n' / '\n' / '\r'
+LineComment <- '//' (![\r\n] .)*
+GeneralComment <- '/*' (GeneralComment / !'*/' .)* '*/'
