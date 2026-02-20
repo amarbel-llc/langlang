@@ -1,0 +1,307 @@
+// TypeScript grammar.
+// Extends ESNext JavaScript grammar with TypeScript-specific syntax:
+// type annotations, interfaces, type aliases, enums, generics,
+// access modifiers, abstract classes, namespaces, and more.
+
+@import Script from "./javascript/esnext.peg"
+
+Script <- Program
+
+// Statements — add TypeScript declaration types
+
+Statement <- Block
+           / ImportDeclaration
+           / ExportDeclaration
+           / InterfaceDeclaration
+           / TypeAliasDeclaration
+           / EnumDeclaration
+           / NamespaceDeclaration
+           / DeclareStatement
+           / FunctionDeclaration
+           / DecoratedClassDeclaration
+           / ClassDeclaration
+           / VariableStatement
+           / LexicalDeclaration
+           / UsingDeclaration
+           / IfStatement
+           / IterationStatement
+           / SwitchStatement
+           / TryStatement
+           / ThrowStatement
+           / ReturnStatement
+           / BreakStatement
+           / ContinueStatement
+           / WithStatement
+           / DebuggerStatement
+           / LabelledStatement
+           / ExpressionStatement
+           / EmptyStatement
+
+// Interface declarations
+
+InterfaceDeclaration <- InterfaceKw Identifier TypeParameters? InterfaceExtends? InterfaceBody
+InterfaceKw <- "interface" !IdentifierPart
+InterfaceExtends <- ExtendsKw TypeExprList
+InterfaceBody <- "{" InterfaceBodyContent* "}"
+InterfaceBodyContent <- LineComment / BlockComment / StringLiteral / TemplateLiteral
+                      / "{" InterfaceBodyContent* "}"
+                      / "[" InterfaceBodyContent* "]"
+                      / "(" InterfaceBodyContent* ")"
+                      / "<" InterfaceBodyContent* ">"
+                      / "=>" / ">>>" / ">>" / ">="
+                      / !("}" / "/" / ">" / ")" / "]") .
+                      / "/"
+
+// Type aliases
+
+TypeAliasDeclaration <- TypeKw Identifier TypeParameters? "=" TypeExpr StatementTerminator
+TypeKw <- "type" !IdentifierPart
+
+// Enums
+
+EnumDeclaration <- ConstKw? EnumKw Identifier "{" space* EnumMemberList? space* "}"
+EnumKw <- "enum" !IdentifierPart
+ConstKw <- "const" !IdentifierPart
+EnumMemberList <- EnumMember (space* "," space* EnumMember)* space* ","?
+EnumMember <- (Identifier / StringLiteral) (space* "=" space* AssignmentExpression)?
+
+// Namespaces / modules
+
+NamespaceDeclaration <- (NamespaceKw / ModuleKw) (Identifier / StringLiteral) Block
+NamespaceKw <- "namespace" !IdentifierPart
+ModuleKw <- "module" !IdentifierPart
+
+// Declare (ambient declarations)
+
+DeclareStatement <- DeclareKw (AmbientFunctionDeclaration / FunctionDeclaration / ClassDeclaration / VariableStatement / LexicalDeclaration / EnumDeclaration / NamespaceDeclaration / InterfaceDeclaration / TypeAliasDeclaration / ModuleKw StringLiteral Block)
+AmbientFunctionDeclaration <- AsyncPrefix? "function" space* "*" ? space* Identifier TypeParameters? space* "(" FormalParameterList? ")" TypeAnnotation? StatementTerminator
+DeclareKw <- "declare" !IdentifierPart
+
+// Export — extend for TS-specific exports
+
+ExportDeclaration <- ExportKw DefaultKw FunctionDeclaration
+                   / ExportKw DefaultKw ClassDeclaration
+                   / ExportKw DefaultKw AssignmentExpression StatementTerminator
+                   / ExportKw TypeKw "{" space* ExportList? space* "}" FromClause StatementTerminator
+                   / ExportKw TypeKw "{" space* ExportList? space* "}" StatementTerminator
+                   / ExportKw "*" AsKw IdentifierName FromClause StatementTerminator
+                   / ExportKw "*" FromClause StatementTerminator
+                   / ExportKw "{" space* ExportList? space* "}" FromClause StatementTerminator
+                   / ExportKw "{" space* ExportList? space* "}" StatementTerminator
+                   / ExportKw InterfaceDeclaration
+                   / ExportKw TypeAliasDeclaration
+                   / ExportKw EnumDeclaration
+                   / ExportKw NamespaceDeclaration
+                   / ExportKw DeclareStatement
+                   / ExportKw LexicalDeclaration
+                   / ExportKw VariableStatement
+                   / ExportKw AmbientFunctionDeclaration
+                   / ExportKw FunctionDeclaration
+                   / ExportKw ClassDeclaration
+
+ExportList <- ExportSpecifier (space* "," space* ExportSpecifier)* space* ","?
+ExportSpecifier <- TypeKw? IdentifierName space* AsKw IdentifierName
+                 / TypeKw? IdentifierName
+FromClause <- FromKw StringLiteral
+FromKw <- "from" !IdentifierPart
+AsKw <- "as" !IdentifierPart
+
+// Import — extend for type-only imports
+
+ImportDeclaration <- ImportKw TypeKw? ImportClause FromClause StatementTerminator
+                   / ImportKw StringLiteral StatementTerminator
+ImportKw <- "import" !IdentifierPart
+
+ImportClause <- Identifier (space* "," space* NamedImports)?
+              / Identifier (space* "," space* NamespaceImport)?
+              / NamespaceImport
+              / NamedImports
+
+NamespaceImport <- "*" space* AsKw Identifier
+NamedImports <- "{" space* (ImportSpecifier (space* "," space* ImportSpecifier)* space* ","?)? space* "}"
+ImportSpecifier <- TypeKw? IdentifierName space* AsKw Identifier
+                 / TypeKw? Identifier
+
+// Functions — add generic type parameters and return type annotations
+
+FunctionDeclaration <- AsyncPrefix? "function" space* "*" ? space* Identifier TypeParameters? space* "(" FormalParameterList? ")" TypeAnnotation? Block
+FunctionExpression <- AsyncPrefix? "function" space* "*" ? space* Identifier? TypeParameters? space* "(" FormalParameterList? ")" TypeAnnotation? Block
+
+FormalParameterList <- FormalParameter (space* "," space* FormalParameter)* space* ","? space*
+FormalParameter <- ("..." space* (Identifier / BindingPattern) TypeAnnotation?)
+                / ((Identifier / BindingPattern) "?"? TypeAnnotation? (space* "=" space* AssignmentExpression)?)
+
+// Variable declarations — add type annotations
+
+VariableDeclaration <- (Identifier / BindingPattern) "!"? TypeAnnotation? Initialiser?
+
+// Arrow functions — add type parameters and return type
+
+ArrowFunction <- TypeParameters? ArrowParameters TypeAnnotation? "=>" Block
+               / TypeParameters? ArrowParameters TypeAnnotation? "=>" AssignmentExpression
+AsyncArrowFunction <- "async" TypeParameters? ArrowParameters TypeAnnotation? "=>" Block
+                    / "async" TypeParameters? ArrowParameters TypeAnnotation? "=>" AssignmentExpression
+
+// Classes — extend for TS features
+
+ClassDeclaration <- AbstractKw? ClassKw !ExtendsKw Identifier TypeParameters? ClassHeritage? ImplementsClause? ClassBody
+ClassExpression <- ClassKw (!ExtendsKw Identifier)? TypeParameters? ClassHeritage? ImplementsClause? ClassBody
+ClassHeritage <- ExtendsKw LeftHandSideExpression TypeArguments?
+AbstractKw <- "abstract" !IdentifierPart
+ImplementsClause <- ImplementsKw TypeExprList
+ImplementsKw <- "implements" !IdentifierPart
+
+// Expressions — add 'as', 'satisfies', non-null assertion
+
+PostfixExpression <- LeftHandSideExpression AsExpr* ("++" / "--")?
+AsExpr <- space* AsKw space* ConstKw
+        / space* AsKw space* TypeExpr
+        / space* SatisfiesKw space* TypeExpr
+SatisfiesKw <- "satisfies" !IdentifierPart
+
+LeftHandSideExpression <- NewExpression / PrimaryExpression TsSuffix*
+TsSuffix <- TypeArguments Arguments
+          / TypeArguments TemplateLiteral
+          / TypeArguments &("," / ")" / "]" / ";" / "}" / "." / "?." / "==" / "===" / "!=" / "!==" / "&&" / "||" / "??" / "|" / "&" / "^" / ":" / EOF)
+          / "!" !"=" !"~"
+          / Suffix2015
+NewExpression <- #("new" !IdentifierPart) LeftHandSideExpression Arguments?
+
+PrimaryExpression <- "this" !IdentifierPart
+                   / "new" "." "target" !IdentifierPart
+                   / "super" !IdentifierPart
+                   / "import" "." "meta" !IdentifierPart
+                   / "import" "(" AssignmentExpression ")"
+                   / FunctionExpression
+                   / ClassExpression
+                   / Identifier
+                   / Literal
+                   / ArrayLiteral
+                   / ObjectLiteral
+                   / TypeAssertionExpression
+                   / "(" Expression ")"
+
+TypeAssertionExpression <- "<" TypeExpr ">" UnaryExpression
+
+ArrayLiteral <- "[" space* "]"
+              / "[" space* (ArrayItem (space* "," space* ArrayItem)* space* ","?) space* "]"
+ArrayItem <- "..." AssignmentExpression / AssignmentExpression?
+
+ObjectLiteral <- "{" space* PropertyAssignmentList? space* "}"
+PropertyAssignmentList <- PropertyAssignment (space* "," space* PropertyAssignment)* space* ","?
+
+// Type annotations (: Type)
+
+TypeAnnotation <- space* ":" space* AssertsKw space* Identifier (space* IsKw space* TypeExpr)?
+               / space* ":" space* Identifier space* IsKw space* TypeExpr
+               / space* ":" space* TypeExpr
+AssertsKw <- "asserts" !IdentifierPart
+IsKw <- "is" !IdentifierPart
+
+// Type expressions
+
+TypeExpr <- TypeConditional
+TypeConditional <- TypeUnion (space* ExtendsKw space* TypeUnion space* "?" space* TypeExpr space* ":" space* TypeExpr)?
+TypeUnion <- ("|" space*)? TypeIntersection (space* "|" space* TypeIntersection)*
+TypeIntersection <- TypePostfix (space* "&" space* TypePostfix)*
+TypePostfix <- TypePrefix (space* "[" space* TypeExpr space* "]" / space* "[]")*
+TypePrefix <- InferKw Identifier (space* ExtendsKw space* TypeExpr)?
+            / (KeyofKw / TypeofKw / ReadonlyKw / UniqueKw) space* TypePrefix
+            / TypePrimary
+
+TypePrimary <- TypeParen
+             / TypeTuple
+             / TypeObject
+             / TemplateLiteral
+             / StringLiteral
+             / NumericLiteral
+             / ("true" / "false") !IdentifierPart
+             / "null" !IdentifierPart
+             / "undefined" !IdentifierPart
+             / "void" !IdentifierPart
+             / "never" !IdentifierPart
+             / "any" !IdentifierPart
+             / "unknown" !IdentifierPart
+             / "number" !IdentifierPart
+             / "string" !IdentifierPart
+             / "boolean" !IdentifierPart
+             / "symbol" !IdentifierPart
+             / "bigint" !IdentifierPart
+             / "object" !IdentifierPart
+             / "this" !IdentifierPart
+             / "..." TypeExpr
+             / TypeName TypeArguments? (space* "[]")*
+
+TypeParen <- "(" space* TypeParamsList? space* ")" space* "=>" space* AssertsKw space* Identifier (space* IsKw space* TypeExpr)?
+           / "(" space* TypeParamsList? space* ")" space* "=>" space* Identifier space* IsKw space* TypeExpr
+           / "(" space* TypeParamsList? space* ")" space* "=>" space* TypeExpr
+           / "(" space* TypeExpr space* ")"
+
+TypeTuple <- "[" space* (TypeTupleElement (space* "," space* TypeTupleElement)* space* ","?)? space* "]"
+TypeTupleElement <- "..."? (Identifier "?"? space* ":" space*)? TypeExpr "?"?
+
+TypeObject <- "{" space* TypeObjectMembers? space* "}"
+TypeObjectMembers <- TypeObjectMember (space* (";" / ",") space* TypeObjectMember)* space* (";" / ",")?
+TypeObjectMember <- "readonly"? space* TypeMappedKey
+                  / "readonly"? space* ("[" space* Identifier space* "in" space* TypeExpr (space* "as" space* TypeExpr)? space* "]") space* "?"? space* ":" space* TypeExpr
+                  / "readonly"? space* ("[" space* Identifier space* ":" space* TypeExpr space* "]") space* ":" space* TypeExpr
+                  / "readonly"? space* ("[" space* AssignmentExpression space* "]") space* "?"? space* ":" space* TypeExpr
+                  / "readonly"? space* (IdentifierName / StringLiteral / NumericLiteral) space* "?"? space* ":" space* TypeExpr
+                  / "readonly"? space* (IdentifierName / StringLiteral / NumericLiteral) space* "?"? TypeParameters? space* "(" space* TypeParamsList? space* ")" space* ":" space* TypeExpr
+                  / "(" space* TypeParamsList? space* ")" space* ":" space* TypeExpr
+                  / "new" space* "(" space* TypeParamsList? space* ")" space* ":" space* TypeExpr
+TypeMappedKey <- "[" space* Identifier space* "in" space* TypeExpr space* "]" space* "?"? space* ":" space* TypeExpr
+
+TypeParamsList <- TypeParam (space* "," space* TypeParam)* space* ","? space*
+TypeParam <- "..." space* (Identifier / BindingPattern) TypeAnnotation?
+           / (Identifier / BindingPattern) "?"? TypeAnnotation?
+
+TypeName <- IdentifierName ("." IdentifierName)*
+TypeArguments <- "<" space* TypeExpr (space* "," space* TypeExpr)* space* ">"
+TypeExprList <- TypeExpr (space* "," space* TypeExpr)*
+
+// Generic type parameters
+
+TypeParameters <- "<" space* TypeParameterDecl (space* "," space* TypeParameterDecl)* space* ","? space* ">"
+TypeParameterDecl <- Identifier (space* ExtendsKw space* TypeExpr)? (space* "=" space* TypeExpr)?
+
+// Type expression keywords
+
+KeyofKw <- "keyof" !IdentifierPart
+TypeofKw <- "typeof" !IdentifierPart
+ReadonlyKw <- "readonly" !IdentifierPart
+UniqueKw <- "unique" !IdentifierPart
+InferKw <- "infer" !IdentifierPart
+
+// Keywords — extend with TypeScript reserved words
+
+Keyword <- "break" !IdentifierPart
+         / "case" !IdentifierPart
+         / "catch" !IdentifierPart
+         / "class" !IdentifierPart
+         / "const" !IdentifierPart
+         / "continue" !IdentifierPart
+         / "default" !IdentifierPart
+         / "delete" !IdentifierPart
+         / "do" !IdentifierPart
+         / "else" !IdentifierPart
+         / "enum" !IdentifierPart
+         / "finally" !IdentifierPart
+         / "for" !IdentifierPart
+         / "function" !IdentifierPart
+         / "if" !IdentifierPart
+         / "in" !IdentifierPart
+         / "instanceof" !IdentifierPart
+         / "interface" !IdentifierPart
+         / "let" !IdentifierPart
+         / "new" !IdentifierPart
+         / "return" !IdentifierPart
+         / "switch" !IdentifierPart
+         / "this" !IdentifierPart
+         / "throw" !IdentifierPart
+         / "try" !IdentifierPart
+         / "typeof" !IdentifierPart
+         / "var" !IdentifierPart
+         / "void" !IdentifierPart
+         / "while" !IdentifierPart
+         / "with" !IdentifierPart
