@@ -10,7 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	langlang "github.com/clarete/langlang/go"
+	"github.com/clarete/langlang/go"
+
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -30,7 +32,10 @@ var goSnippets = []struct {
 }
 
 func TestGoGrammarDifferentialSnippets(t *testing.T) {
-	matcher := newMatcher()
+	cfg := langlang.NewConfig()
+	cfg.SetBool("grammar.handle_spaces", false)
+	matcher, err := langlang.MatcherFromFilePathWithConfig(grammarPath, cfg)
+	require.NoError(t, err)
 	fset := token.NewFileSet()
 	for _, tc := range goSnippets {
 		t.Run(tc.name, func(t *testing.T) {
@@ -51,7 +56,10 @@ func TestGoGrammarDifferentialSnippets(t *testing.T) {
 }
 
 func TestGoGrammarDifferentialAgainstStdlibFullCorpus(t *testing.T) {
-	matcher := newMatcher()
+	cfg := langlang.NewConfig()
+	cfg.SetBool("grammar.handle_spaces", false)
+	matcher, err := langlang.MatcherFromFilePathWithConfig(grammarPath, cfg)
+	require.NoError(t, err)
 	files := collectGoFiles(corpusRoot)
 	fset := token.NewFileSet()
 	for _, filename := range files {
@@ -95,7 +103,12 @@ var sampledCorpusFiles = []string{
 // real .go files.  This follows the naming convention used by the
 // other benchmark suites so the rb script can pick it up.
 func BenchmarkParser(b *testing.B) {
-	matcher := newMatcher()
+	cfg := langlang.NewConfig()
+	cfg.SetBool("grammar.handle_spaces", false)
+	matcher, err := langlang.MatcherFromFilePathWithConfig(grammarPath, cfg)
+	if err != nil {
+		b.Fatalf("failed to create matcher: %v", err)
+	}
 	for _, tc := range goSnippets {
 		data := []byte(tc.src)
 		b.Run(tc.name, func(b *testing.B) {
@@ -158,18 +171,6 @@ func BenchmarkStdlib(b *testing.B) {
 			}
 		})
 	}
-}
-
-func newMatcher() langlang.Matcher {
-	cfg := langlang.NewConfig()
-	cfg.SetBool("grammar.handle_spaces", false)
-	loader := langlang.NewRelativeImportLoader()
-	db := langlang.NewDatabase(cfg, loader)
-	matcher, err := langlang.QueryMatcher(db, grammarPath)
-	if err != nil {
-		panic(fmt.Errorf("failed to create matcher: %v", err))
-	}
-	return matcher
 }
 
 func collectGoFiles(root string) []string {
