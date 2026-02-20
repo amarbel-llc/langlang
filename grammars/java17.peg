@@ -1,0 +1,207 @@
+//
+//   Parsing Expression Grammar for Java 17.
+//   Extends java8.peg with syntax additions from Java 9-17:
+//     - Local variable type inference (var) — Java 10
+//     - Text blocks — Java 13
+//     - Switch expressions with arrow labels — Java 14
+//     - Records — Java 14
+//     - Pattern matching instanceof — Java 16
+//     - Sealed classes — Java 17
+//
+//   Adapted for langlang PEG compiler.
+//
+
+@import CompilationUnit from "./java8.peg"
+@import Spacing from "./java1.7.peg"
+
+// Start rule — must be first definition so it's the entry point.
+CompilationUnit <- PackageDeclaration? ImportDeclaration* TypeDeclaration* EOF
+
+//   Type Declaration — add records and sealed classes
+
+// Extend ClassDeclaration to support records and sealed modifiers.
+ClassDeclaration <- NormalClassDeclaration
+                  / EnumDeclaration
+                  / RecordDeclaration
+
+NormalClassDeclaration <- CLASS Identifier TypeParameters?
+                          (EXTENDS ClassType)?
+                          (IMPLEMENTS ClassTypeList)?
+                          (PERMITS ClassTypeList)?
+                          ClassBody
+
+//   Records (JEP 395, Java 14/16)
+
+RecordDeclaration <- RECORD Identifier TypeParameters?
+                     RecordHeader
+                     (IMPLEMENTS ClassTypeList)?
+                     RecordBody
+
+RecordHeader <- LPAR RecordComponentList? RPAR
+RecordComponentList <- RecordComponent (COMMA RecordComponent)*
+RecordComponent <- Annotation* Type Identifier
+
+RecordBody <- LWING RecordBodyDeclaration* RWING
+RecordBodyDeclaration <- CompactConstructorDeclaration
+                       / ClassBodyDeclaration
+
+CompactConstructorDeclaration <- Modifier* Identifier MethodBody
+
+//   Sealed Classes (JEP 409, Java 17)
+
+// 'sealed' and 'non-sealed' are context-sensitive keywords.
+// The Modifier rule is extended to handle them.
+Modifier <- Annotation
+          / ( 'public'
+            / 'protected'
+            / 'private'
+            / 'static'
+            / 'abstract'
+            / 'final'
+            / 'native'
+            / 'synchronized'
+            / 'transient'
+            / 'volatile'
+            / 'strictfp'
+            / 'default'
+            / 'sealed'
+            / 'non-sealed'
+            ) !LetterOrDigit
+
+// Override InterfaceDeclaration to support 'permits' clause.
+InterfaceDeclaration <- INTERFACE Identifier TypeParameters?
+                        (EXTENDS ClassTypeList)?
+                        (PERMITS ClassTypeList)?
+                        InterfaceBody
+
+PERMITS <- 'permits' !LetterOrDigit
+
+//   Switch Expressions (JEP 361, Java 14)
+
+// Override Statement to add yield and switch expression arrow syntax.
+Statement <- Block
+           / ASSERT Expression (COLON Expression)? SEMI
+           / IF ParExpression Statement (ELSE Statement)?
+           / FOR LPAR ForInit? SEMI Expression? SEMI ForUpdate? RPAR Statement
+           / FOR LPAR FormalParameter COLON Expression RPAR Statement
+           / WHILE ParExpression Statement
+           / DO Statement WHILE ParExpression SEMI
+           / TRY LPAR Resource (SEMI Resource)* SEMI? RPAR Block Catch* Finally?
+           / TRY Block (Catch+ Finally? / Finally)
+           / SWITCH ParExpression LWING SwitchBlockStatementGroups RWING
+           / SYNCHRONIZED ParExpression Block
+           / RETURN Expression? SEMI
+           / THROW Expression SEMI
+           / BREAK Identifier? SEMI
+           / CONTINUE Identifier? SEMI
+           / YIELD Expression SEMI
+           / SEMI
+           / StatementExpression SEMI
+           / Identifier COLON Statement
+
+// Switch expressions can appear in expression position (return switch {...}).
+// Override Primary to add SwitchExpression before QualifiedIdentifier.
+Primary <- ParExpression
+         / NonWildcardTypeArguments (ExplicitGenericInvocationSuffix / THIS Arguments)
+         / THIS Arguments?
+         / SUPER SuperSuffix
+         / Literal
+         / NEW Creator
+         / SwitchExpression
+         / MethodReference
+         / QualifiedIdentifier IdentifierSuffix?
+         / BasicType Dim* DOT CLASS
+         / VOID DOT CLASS
+
+SwitchExpression <- SWITCH ParExpression LWING SwitchBlockStatementGroups RWING
+
+// Override switch labels to support arrow (->) syntax from Java 14.
+// The EnumConstantName alternative must stay separate: ConstantExpression
+// includes LambdaExpression which would greedily consume the arrow (->)
+// in patterns like `case A, B -> expr;`.
+// Type patterns (case Type var ->) are added for Java 21 preview.
+SwitchBlockStatementGroup <- SwitchLabel BlockStatements
+SwitchLabel <- CASE Type (DeconstructionPattern / Identifier) (COMMA Type (DeconstructionPattern / Identifier))* (WHEN ConditionalExpression)? (COLON / ARROW)
+             / CASE ConstantExpression (COMMA ConstantExpression)* (COMMA DEFAULT)? (COLON / ARROW)
+             / CASE EnumConstantName (COMMA EnumConstantName)* (COMMA DEFAULT)? (COLON / ARROW)
+             / DEFAULT (COLON / ARROW)
+
+WHEN <- 'when' !LetterOrDigit
+
+// Java 9: try-with-resources can use existing effectively-final variables.
+Resource <- Modifier* Type VariableDeclaratorId EQU Expression
+          / Expression
+
+// Extend MethodReference to handle array-type receivers (e.g. String[]::new).
+MethodReference <- (ClassType / BasicType) Dim* COLONCOLON TypeArguments? (Identifier / NEW)
+                 / SUPER COLONCOLON TypeArguments? Identifier
+
+// Add :: as a Selector so expressions like this::method, obj.foo::bar work.
+Selector <- COLONCOLON TypeArguments? (Identifier / NEW)
+          / DOT Identifier Arguments?
+          / DOT ExplicitGenericInvocation
+          / DOT THIS
+          / DOT SUPER SuperSuffix
+          / DOT NEW NonWildcardTypeArguments? InnerCreator
+          / DimExpr
+
+YIELD <- 'yield' !LetterOrDigit
+
+//   Type-use annotations (JLS 9.7.4)
+
+// Allow annotations before types inside generic type arguments.
+TypeArgument <- Annotation* ReferenceType
+              / QUERY ((EXTENDS / SUPER) Annotation* ReferenceType)?
+
+// Allow annotations in array dimensions for types.
+Dim <- Annotation* LBRK RBRK
+
+//   Cast + Lambda (JLS 15.16, 15.27)
+
+// After a reference-type cast, the expression may be a lambda.
+UnaryExpression <- PrefixOp UnaryExpression
+                 / LPAR Type RPAR (LambdaExpression / UnaryExpression)
+                 / Primary (Selector)* (PostfixOp)*
+
+//   Pattern Matching instanceof (JEP 394, Java 16)
+//   Pattern Matching switch (JEP 441, Java 21 preview)
+
+// Override RelationalExpression to add pattern matching and
+// deconstruction patterns (JEP 440, Java 21).
+RelationalExpression <- ShiftExpression
+                        ( (LE / GE / LT / GT) ShiftExpression
+                        / INSTANCEOF Type DeconstructionPattern? Identifier?
+                        )*
+
+DeconstructionPattern <- LPAR (Type DeconstructionPattern? Identifier (COMMA Type DeconstructionPattern? Identifier)*)? RPAR
+
+// (SwitchLabel defined above in the Switch Expressions section.)
+
+//   Text Blocks (JEP 378, Java 13)
+
+// Override Literal to include text blocks.
+Literal <- ( FloatLiteral
+         / IntegerLiteral
+         / CharLiteral
+         / TextBlock
+         / StringLiteral
+         / 'true'  !LetterOrDigit
+         / 'false' !LetterOrDigit
+         / 'null'  !LetterOrDigit
+         )
+
+TextBlock <- #('\"\"\"' TextBlockContent '\"\"\"')
+TextBlockContent <- (!('\"\"\"') .)*
+
+//   Local Variable Type Inference (JEP 286, Java 10)
+
+// 'var' is a reserved type name, not a keyword.
+// Override LocalVariableDeclaration to support it.
+LocalVariableDeclaration <- FINAL? (VAR / Type) VariableDeclarators
+
+VAR <- 'var' !LetterOrDigit
+
+//   New tokens
+
+RECORD <- 'record' !LetterOrDigit
+

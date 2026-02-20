@@ -1,0 +1,93 @@
+//
+//   Parsing Expression Grammar for Java 21.
+//   Extends java17.peg with syntax additions from Java 18-21:
+//     - Lambda in ternary false branch (JLS 15.25)
+//     - Type-use annotations in qualified types (JLS 4.11)
+//     - Pattern matching switch expressions (JEP 441, Java 21)
+//     - Record patterns / deconstruction patterns (JEP 440, Java 21)
+//     - Local interface declarations in blocks (JEP 395)
+//     - Varargs in record components
+//     - Qualified super method references (JLS 15.13)
+//     - Text block escape sequences (JEP 378)
+//     - Switch case constants (qualified enums, string concat)
+//     - Guarded patterns with 'when' clause
+//
+//   Adapted for langlang PEG compiler.
+//
+
+@import CompilationUnit from "./java17.peg"
+@import Spacing from "./java1.7.peg"
+
+CompilationUnit <- PackageDeclaration? ImportDeclaration* TypeDeclaration* EOF
+
+//   Ternary: allow lambda in both branches (JLS 15.25)
+
+ConditionalExpression <- ConditionalOrExpression
+                         (QUERY Expression COLON (LambdaExpression / ConditionalOrExpression))*
+
+//   Type-use annotations in qualified ClassType (JLS 4.11)
+//   e.g.  Outer.@NotNull Inner
+
+ClassType <- Identifier TypeArguments? (DOT Annotation* Identifier TypeArguments?)*
+
+//   Pattern matching instanceof (JEP 394/440, Java 16-21)
+//   Allow 'final' modifier before the type pattern.
+
+RelationalExpression <- ShiftExpression
+                        ( (LE / GE / LT / GT) ShiftExpression
+                        / INSTANCEOF FINAL? Type DeconstructionPattern? Identifier?
+                        )*
+
+//   Deconstruction / record patterns (JEP 440, Java 21)
+//   Identifier is optional after a nested pattern.
+
+DeconstructionPattern <- LPAR (Type (DeconstructionPattern Identifier? / Identifier)
+                               (COMMA Type (DeconstructionPattern Identifier? / Identifier))*
+                         )? RPAR
+
+//   Switch labels: unified case constants (JEP 441, Java 21)
+//   Use ConditionalExpression instead of Expression for case constants
+//   to prevent lambda arrows (->) from being consumed by the case value.
+//   Supports qualified enums (KeyType.Org), string concatenation
+//   ("-" + FOO), null, and comma-separated lists.
+
+SwitchLabel <- CASE Type (DeconstructionPattern Identifier? / Identifier) (COMMA Type (DeconstructionPattern Identifier? / Identifier))* (WHEN ConditionalExpression)? (COLON / ARROW)
+             / CASE SwitchCaseConstant (COMMA SwitchCaseConstant)* (COMMA DEFAULT)? (COLON / ARROW)
+             / DEFAULT (COLON / ARROW)
+
+SwitchCaseConstant <- ConditionalExpression
+
+//   Local interface declarations in blocks (Java 16+)
+
+BlockStatement <- LocalVariableDeclarationStatement
+                / (Modifier* (ClassDeclaration / EnumDeclaration / InterfaceDeclaration))
+                / Statement
+
+//   Varargs in record components
+//   e.g.  record DataPoint(long orgId, String... tags) {}
+
+RecordComponent <- Annotation* Type ELLIPSIS? Identifier
+
+//   Method references: qualified super (JLS 15.13)
+//   e.g.  Actor.super::aroundReceive
+//         PackageExporter.super::getExportedFileSuffix
+
+MethodReference <- ClassType DOT SUPER COLONCOLON TypeArguments? (Identifier / NEW)
+                 / (ClassType / BasicType) Dim* COLONCOLON TypeArguments? (Identifier / NEW)
+                 / SUPER COLONCOLON TypeArguments? Identifier
+
+//   Text blocks: handle escape sequences (JEP 378)
+//   Without this, \""" inside a text block is misinterpreted because
+//   the PEG scanner sees the three quotes as the closing delimiter.
+//   Everything stays inside #() to preserve lexical scanning.
+
+TextBlock <- #('\"\"\"' ('\\' . / !('\"\"\"') .)* '\"\"\"')
+
+//   Type-use annotations on generic method return types (JLS 4.11)
+//   e.g.  <T> @Nullable Stream<T> method(...)
+
+GenericMethodOrConstructorRest <- Annotation* (Type / VOID) Identifier MethodDeclaratorRest
+                                / Identifier ConstructorDeclaratorRest
+
+InterfaceGenericMethodDecl <- TypeParameters Annotation* (Type / VOID) Identifier InterfaceMethodDeclaratorRest
+

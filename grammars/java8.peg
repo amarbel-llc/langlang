@@ -1,0 +1,90 @@
+//
+//   Parsing Expression Grammar for Java 8.
+//   Extends java1.7.peg with Java 8 syntax additions:
+//     - Lambda expressions (JLS 15.27)
+//     - Method references (JLS 15.13)
+//     - Default and static interface methods (JLS 9.4)
+//
+//   Adapted for langlang PEG compiler.
+//
+
+@import CompilationUnit, Spacing from "./java1.7.peg"
+
+// Start rule — must be first definition so it's the entry point.
+CompilationUnit <- PackageDeclaration? ImportDeclaration* TypeDeclaration* EOF
+
+//   Expressions — Lambda and Method Reference
+
+// Java 8 adds lambda as an assignment target.
+// Expression now allows LambdaExpression as an alternative.
+Expression <- LambdaExpression
+            / ConditionalExpression (AssignmentOperator (LambdaExpression / ConditionalExpression))*
+
+// Lambda: (params) -> body  or  x -> body
+LambdaExpression <- LambdaParameters ARROW LambdaBody
+LambdaParameters <- Identifier
+                  / LPAR InferredFormalParameterList? RPAR
+                  / LPAR FormalParameterList RPAR
+
+InferredFormalParameterList <- Identifier (COMMA Identifier)*
+
+LambdaBody <- Expression / Block
+
+// Method reference: added as a new Primary alternative.
+// Must appear before QualifiedIdentifier to avoid consuming the prefix.
+Primary <- ParExpression
+         / NonWildcardTypeArguments (ExplicitGenericInvocationSuffix / THIS Arguments)
+         / THIS Arguments?
+         / SUPER SuperSuffix
+         / Literal
+         / NEW Creator
+         / MethodReference
+         / QualifiedIdentifier IdentifierSuffix?
+         / BasicType Dim* DOT CLASS
+         / VOID DOT CLASS
+
+// JLS 15.13: Method References
+// Type::method, expr::method, Type::new, super::method
+MethodReference <- ClassType COLONCOLON TypeArguments? (Identifier / NEW)
+                 / Primary COLONCOLON TypeArguments? Identifier
+                 / SUPER COLONCOLON TypeArguments? Identifier
+
+//   Interface Declaration — Default and Static methods
+
+// Java 8 allows default and static methods with bodies in interfaces.
+InterfaceBodyDeclaration <- Modifier* InterfaceMemberDecl / SEMI
+
+InterfaceMemberDecl <- InterfaceMethodOrFieldDecl
+                     / InterfaceGenericMethodDecl
+                     / VOID Identifier VoidInterfaceMethodDeclaratorRest
+                     / InterfaceDeclaration
+                     / AnnotationTypeDeclaration
+                     / ClassDeclaration
+                     / EnumDeclaration
+
+// Override: interface methods can now have bodies (default/static).
+InterfaceMethodDeclaratorRest     <- FormalParameters Dim* (THROWS ClassTypeList)? (MethodBody / SEMI)
+VoidInterfaceMethodDeclaratorRest <- FormalParameters (THROWS ClassTypeList)? (MethodBody / SEMI)
+
+// Add 'default' to the modifier list.
+Modifier <- Annotation
+          / ( 'public'
+            / 'protected'
+            / 'private'
+            / 'static'
+            / 'abstract'
+            / 'final'
+            / 'native'
+            / 'synchronized'
+            / 'transient'
+            / 'volatile'
+            / 'strictfp'
+            / 'default'
+            ) !LetterOrDigit
+
+//   New tokens
+
+ARROW      <- '->'
+COLONCOLON <- '::'
+DEFAULT    <- 'default' !LetterOrDigit
+
