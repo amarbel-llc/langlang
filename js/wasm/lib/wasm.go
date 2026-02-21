@@ -40,11 +40,7 @@ func register() {
 				return jsErr(err.Error())
 			}
 		}
-		entry := "grammar.peg"
-		loader := langlang.NewInMemoryImportLoader()
-		loader.Add(entry, []byte(grammar))
-		db := langlang.NewDatabase(cfg, loader)
-		m, err := langlang.QueryMatcher(db, entry)
+		m, err := langlang.MatcherFromBytesWithConfig([]byte(grammar), cfg)
 		if err != nil {
 			return jsErr(err.Error())
 		}
