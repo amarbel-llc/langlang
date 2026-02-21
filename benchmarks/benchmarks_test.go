@@ -72,7 +72,10 @@ func BenchmarkParsers(b *testing.B) {
 
 func loadInput(tb testing.TB, filename string) []byte {
 	tb.Helper()
-	path := filepath.Join(".", "input", filename)
+	path, err := filepath.Abs(filepath.Join("..", "testdata", "json", filename))
+	if err != nil {
+		tb.Fatalf("failed to read input file %s: %v", filename, err)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		tb.Fatalf("failed to read input file %s: %v", path, err)

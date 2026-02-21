@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,8 @@ func getInputs(tb testing.TB) map[string][]byte {
 
 	inputs := make(map[string][]byte, len(inputNames))
 	read := func(n string) []byte {
-		text, err := os.ReadFile(fmt.Sprintf("./input_%s.json", n))
+		path := filepath.Join("..", "..", "..", "testdata", "json", "input_"+n+".json")
+		text, err := os.ReadFile(path)
 		require.NoError(tb, err)
 		return text
 	}
