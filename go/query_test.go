@@ -77,14 +77,9 @@ Main <- Number "+" Number
 	assert.Contains(t, grammar.DefsByName, "Number")
 }
 
-func TestQueryMatcher(t *testing.T) {
-	loader := NewInMemoryImportLoader()
-	loader.Add("test.peg", []byte(`G <- "hello"`))
-
-	cfg := NewConfig()
-	db := NewDatabase(cfg, loader)
-
-	matcher, err := QueryMatcher(db, "test.peg")
+func TestMatcherFromString(t *testing.T) {
+	grammar := `G <- "hello"`
+	matcher, err := MatcherFromString(grammar)
 	require.NoError(t, err)
 	require.NotNil(t, matcher)
 
@@ -92,6 +87,28 @@ func TestQueryMatcher(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 5, n)
 	assert.NotNil(t, tree)
+}
+
+func TestMatcherFromBytes(t *testing.T) {
+	grammar := []byte(`G <- "hello"`)
+	matcher, err := MatcherFromBytes(grammar)
+	require.NoError(t, err)
+	require.NotNil(t, matcher)
+
+	tree, n, err := matcher.Match([]byte("hello"))
+	require.NoError(t, err)
+	assert.Equal(t, 5, n)
+	assert.NotNil(t, tree)
+
+	// With explicit config
+	cfg := NewConfig()
+	matcher2, err := MatcherFromBytesWithConfig(grammar, cfg)
+	require.NoError(t, err)
+	require.NotNil(t, matcher2)
+	tree2, n2, err := matcher2.Match([]byte("hello"))
+	require.NoError(t, err)
+	assert.Equal(t, 5, n2)
+	assert.NotNil(t, tree2)
 }
 
 func TestQueryResolver(t *testing.T) {

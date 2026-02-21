@@ -13,6 +13,42 @@ func QueryMatcher(db *Database, entryPath string) (Matcher, error) {
 	return vm, nil
 }
 
+// MatcherFromFilePath compiles a grammar from a file.
+func MatcherFromFilePath(filePath string) (Matcher, error) {
+	return MatcherFromFilePathWithConfig(filePath, NewConfig())
+}
+
+// MatcherFromFilePathWithConfig compiles a grammar from a file with a
+// custom configuration.
+func MatcherFromFilePathWithConfig(filePath string, cfg *Config) (Matcher, error) {
+	loader := NewRelativeImportLoader()
+	db := NewDatabase(cfg, loader)
+	return QueryMatcher(db, filePath)
+}
+
+const matcherFromStringEntry = "grammar.peg"
+
+// MatcherFromString compiles a single grammar source string into a
+// Matcher using an in-memory loader. It is a convenience for one-off
+// grammars without filesystem or multi-file imports.
+func MatcherFromString(grammar string) (Matcher, error) {
+	return MatcherFromBytes([]byte(grammar))
+}
+
+// MatcherFromBytes compiles a single grammar source (as bytes) into a
+// Matcher using an in-memory loader. It is a convenience for one-off
+// grammars without filesystem or multi-file imports.
+func MatcherFromBytes(grammar []byte) (Matcher, error) {
+	return MatcherFromBytesWithConfig(grammar, NewConfig())
+}
+
+func MatcherFromBytesWithConfig(grammar []byte, cfg *Config) (Matcher, error) {
+	loader := NewInMemoryImportLoader()
+	loader.Add(matcherFromStringEntry, grammar)
+	db := NewDatabase(cfg, loader)
+	return QueryMatcher(db, matcherFromStringEntry)
+}
+
 // QueryAST returns the transformed AST for a grammar file using the
 // query system.
 func QueryAST(db *Database, entryPath string) (*GrammarNode, error) {

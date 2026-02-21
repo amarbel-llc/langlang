@@ -190,8 +190,8 @@ type Tree interface {
 // import resolution.
 //
 // The import system is where langlang assembles a complete grammar
-// from an entrypoint plus its imports.  We currently have two different
-// implementations of ImportLoader:
+// from an entrypoint plus its imports.  We currently have two
+// different implementations of ImportLoader:
 //
 // - [NewRelativeImportLoader]: loads grammars from the filesystem
 // - [NewInMemoryImportLoader]: loads grammars from memory
