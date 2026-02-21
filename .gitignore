@@ -45,3 +45,4 @@ benchmarks/pointlander_json_stripped/json.stripped.pointlander.peg.go
 
 # realworld JS fixtures (downloaded by testdata/javascript/tools/fetch_realworld)
 testdata/javascript/realworld/
+tests/rust/.cache/
