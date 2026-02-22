@@ -65,6 +65,9 @@ var defaultCorpusRepos = []corpus.Repo{
 //	go test -run TestRustAutoCorpus -v -timeout 60m ./tests/rust/
 //	go test -run TestRustAutoCorpus -v -timeout 60m ./tests/rust/ -args -corpus_cache=~/cache/rust-corpus
 func TestRustAutoCorpus(t *testing.T) {
+	if os.Getenv("AUTO_CORPUS") != "true" {
+		t.Skip()
+	}
 	flag.Parse()
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git not found in PATH")
@@ -122,6 +125,9 @@ func grammarPathForRepo(name string) string {
 //	go test -run TestRustAutoCorpus2021 -v -timeout 60m ./tests/rust/
 //	go test -run TestRustAutoCorpus2021 -v -timeout 60m ./tests/rust/ -args -corpus_cache=~/cache/rust-corpus
 func TestRustAutoCorpus2021(t *testing.T) {
+	if os.Getenv("AUTO_CORPUS") != "true" {
+		t.Skip()
+	}
 	flag.Parse()
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git not found in PATH")
