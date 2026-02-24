@@ -370,7 +370,7 @@ ElementValues                    <- ElementValue (COMMA ElementValue)*
 
 //   JLS 3.6-7  Spacing
 
-Spacing <- ( [ \t\r\n\u000C]+          // WhiteSpace
+Spacing <- ( [ \t\r\n\u{C}]+          // WhiteSpace
            / '/*' (!'*/' .)* '*/'      // TraditionalComment
            / '//' (![\r\n] .)* [\r\n]  // EndOfLineComment
            )*

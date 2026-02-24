@@ -197,7 +197,7 @@ Keyword <- "break" !IdentifierPart
          / "while" !IdentifierPart
          / "with" !IdentifierPart
 
-LineTerminator <- "\n" / "\r" / "\u2028" / "\u2029"
+LineTerminator <- "\n" / "\r" / "\u{2028}" / "\u{2029}"
 space <- Whitespace / LineComment / BlockComment
 Whitespace <- [ \t\r\n]
 LineComment <- "//" (!LineTerminator .)*

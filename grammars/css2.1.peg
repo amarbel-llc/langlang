@@ -195,7 +195,7 @@ NmStart <- #([_a-zA-Z] / NonAscii / Escape)
 NmChar <- #([_a-zA-Z0-9-] / NonAscii / Escape)
 
 // nonascii : [^\0-\177]
-NonAscii <- [\u0080-\uFFFF]
+NonAscii <- [\u{80}-\u{FFFF}]
 
 // escape : {unicode}|\\[^\n\r\f0-9a-fA-F]
 Escape <- #(Unicode / '\\' ![0-9a-fA-F\n\r] .)

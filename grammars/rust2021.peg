@@ -474,7 +474,7 @@ PrimaryExprNS <- LiteralExpr
 
 Identifier <- RawIdentifier / !Keyword #(IdentStart IdentCont*) Spacing
 RawIdentifier <- 'r#' #(IdentStart IdentCont*) Spacing
-IdentStart <- [a-zA-Z_] / [\u0080-\uFFFF]
+IdentStart <- [a-zA-Z_] / [\u{80}-\u{FFFF}]
 IdentCont <- IdentStart / [0-9]
 
 Keyword <- ('as' / 'async' / 'await' / 'break' / 'const' / 'continue'
@@ -627,7 +627,7 @@ POUND  <- '#' Skip
 
 Skip    <- (HSpace / GeneralComment / EOL / LineComment)*
 Spacing <- Skip
-HSpace  <- [ \t\u000C]
+HSpace  <- [ \t\u{C}]
 EOL     <- '\r\n' / '\n' / '\r'
 LineComment <- '//' (![\r\n] .)*
 GeneralComment <- '/*' (GeneralComment / !'*/' .)* '*/'

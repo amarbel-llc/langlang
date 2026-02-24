@@ -35,7 +35,7 @@ Class       <- '[' #((!']' Range)* ']'^MissingClosingBracket)
 Range       <- #(Char '-' !']' Char^MissingRightRange) / Char
 Char        <- #(Escape / Unicode / .)
 Escape      <- '\\' [nrt'"\-\[\]\\]
-Unicode     <- #('\\' 'u' Hex^chrH1 Hex^chrH2 Hex^chrH3 Hex^chrH4)
+Unicode     <- #('\\' 'u' '{'^MissingUnicodeOpen (Hex+)^MissingUnicodeDigits '}'^MissingUnicodeClose)
 Hex         <- [0-9A-Fa-f]
 Any         <- "."
 Superscript <- [¹²³⁴⁵⁶⁷⁸⁹]
@@ -46,7 +46,7 @@ SLASH       <- '/' !'/'   // negation prevents collision with comments
 // rule, otherwise it becomes an unbounded recursion
 Spacing <- #(Comment / Space / EOL)*
 Comment <- #('//' (!EOL .)* EOL?)
-Space   <- [\t\u000C ]
+Space   <- [\t\u{C} ]
 EOL     <- [\n\r]
 EOF     <- !.
 
@@ -58,6 +58,9 @@ MissingClosingBracket  <-
 MissingClosingSQuote   <-
 MissingClosingDQuote   <-
 MissingLabel           <- (!Primary .)*
+MissingUnicodeOpen     <-
+MissingUnicodeDigits   <-
+MissingUnicodeClose    <-
 
 MissingImportName <- (!("from" / Literal) .)*
 MissingImportFrom <- (!Literal .)*

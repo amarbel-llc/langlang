@@ -148,6 +148,8 @@ func labelToErrorCode(label string) string {
 		return "invalid-import"
 	case "MissingRightRange":
 		return "invalid-range"
+	case "MissingUnicodeOpen", "MissingUnicodeDigits", "MissingUnicodeClose":
+		return "invalid-unicode-escape"
 	default:
 		return "syntax-error"
 	}

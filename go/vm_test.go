@@ -323,7 +323,7 @@ func TestVM(t *testing.T) {
 		// Unicode escape sequence test
 		{
 			Name:           "Unicode escape sequence",
-			Grammar:        "G <- '\\u2661'", // ♡
+			Grammar:        "G <- '\\u{2661}'", // ♡
 			Input:          "♡",
 			ExpectedCursor: 3,
 			ExpectedAST: `G (1..2)

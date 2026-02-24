@@ -262,7 +262,7 @@ Element <- Expression / LiteralValue
 // Lexical rules
 
 Identifier <- !Keyword Letter IdentCont* Spacing
-Letter <- [a-zA-Z_] / [\u0080-\uFFFF]
+Letter <- [a-zA-Z_] / [\u{80}-\u{FFFF}]
 IdentCont <- Letter / Digit
 Digit <- [0-9]
 
@@ -410,7 +410,7 @@ SHLEQU <- '<<=' Skip
 SHREQU <- '>>=' Skip
 ANDNOTEQU <- '&^=' Skip
 
-HSpace <- [ \t\u000C]
+HSpace <- [ \t\u{C}]
 EOL <- '\r\n' / '\n' / '\r'
 Spacing <- (HSpace / GeneralComment)*
 NL <- (EOL / (LineComment EOL?) / GeneralComment)+ HSpace*

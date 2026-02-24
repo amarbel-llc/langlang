@@ -32,6 +32,9 @@ var langlangLabelMsgs = bytecodeForGrammarParserBootstrap.CompileErrorLabels(map
 	"MissingClosingDQuote":  "Missing closing `\"`",
 	"MissingClosingBracket": "Missing closing `]`",
 	"MissingRightRange":     "Missing right side of range",
+	"MissingUnicodeOpen": "Missing `{` after `\\u` in Unicode escape",
+	"MissingUnicodeDigits":   "Missing hex digits in `\\u{...}`",
+	"MissingUnicodeClose":   "Missing `}` in Unicode escape",
 })
 
 func NewGrammarParserV2(grammar []byte) *GrammarParserV2 {
@@ -648,24 +651,56 @@ func unescapeChar(s string) (value rune, encode bool, tail string, err error) {
 	case '"':
 		value = '"'
 	case 'u':
-		n := 0
 		encode = true
-		n = 4
-		var v rune
-		if len(s) < n {
-			err = errors.New("unable to unescape string")
-			return
-		}
-		for j := 0; j < n; j++ {
-			x, ok := unhex(s[j])
-			if !ok {
+		if len(s) > 0 && s[0] == '{' {
+			s = s[1:]
+			var v rune
+			digits := 0
+			for len(s) > 0 && digits < 6 {
+				if s[0] == '}' {
+					break
+				}
+				x, ok := unhex(s[0])
+				if !ok {
+					err = errors.New("unable to unescape string: invalid hex in \\u{...}")
+					return
+				}
+				v = v<<4 | x
+				s = s[1:]
+				digits++
+			}
+			if digits == 0 {
+				err = errors.New("unable to unescape string: \\u{...} must have 1-6 hex digits")
+				return
+			}
+			if len(s) == 0 || s[0] != '}' {
+				err = errors.New("unable to unescape string: \\u{...} missing closing }")
+				return
+			}
+			s = s[1:]
+			if v > 0x10FFFF {
+				err = errors.New("unable to unescape string: code point > U+10FFFF")
+				return
+			}
+			value = v
+		} else {
+			n := 4
+			var v rune
+			if len(s) < n {
 				err = errors.New("unable to unescape string")
 				return
 			}
-			v = v<<4 | x
+			for j := 0; j < n; j++ {
+				x, ok := unhex(s[j])
+				if !ok {
+					err = errors.New("unable to unescape string")
+					return
+				}
+				v = v<<4 | x
+			}
+			s = s[n:]
+			value = v
 		}
-		s = s[n:]
-		value = v
 
 	default:
 		err = fmt.Errorf("unknown unescape sequence: %c", control)
