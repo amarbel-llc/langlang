@@ -32,8 +32,8 @@ var langlangLabelMsgs = bytecodeForGrammarParserBootstrap.CompileErrorLabels(map
 	"MissingClosingDQuote":  "Missing closing `\"`",
 	"MissingClosingBracket": "Missing closing `]`",
 	"MissingRightRange":     "Missing right side of range",
-	"MissingUnicodeOpen": "Missing `{` after `\\u` in Unicode escape",
-	"MissingUnicodeDigits":   "Missing hex digits in `\\u{...}`",
+	"MissingUnicodeOpen":    "Missing `{` after `\\u` in Unicode escape",
+	"MissingUnicodeDigits":  "Missing hex digits in `\\u{...}`",
 	"MissingUnicodeClose":   "Missing `}` in Unicode escape",
 })
 
