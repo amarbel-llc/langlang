@@ -3,7 +3,6 @@ package langlang
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"unsafe"
 )
 
@@ -272,11 +271,7 @@ func (t *tree) Text(id NodeID) string {
 		return string(t.input[n.start:n.end])
 
 	case NodeType_Sequence:
-		var b strings.Builder
-		for _, childID := range t.Children(id) {
-			b.WriteString(t.Text(childID))
-		}
-		return b.String()
+		return string(t.input[n.start:n.end])
 
 	case NodeType_Node:
 		if child, ok := t.Child(id); ok {
@@ -307,13 +302,8 @@ func (t *tree) UnsafeText(id NodeID) string {
 		return unsafe.String(unsafe.SliceData(b), len(b))
 
 	case NodeType_Sequence:
-		// For sequences we must concatenate children; fall back to
-		// allocating Text since there is no contiguous slice.
-		var buf strings.Builder
-		for _, childID := range t.Children(id) {
-			buf.WriteString(t.UnsafeText(childID))
-		}
-		return buf.String()
+		b := t.input[n.start:n.end]
+		return unsafe.String(unsafe.SliceData(b), len(b))
 
 	case NodeType_Node:
 		if child, ok := t.Child(id); ok {
