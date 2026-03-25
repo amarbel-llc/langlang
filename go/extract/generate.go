@@ -66,6 +66,29 @@ func collectNameIDs(structs []StructInfo, rules map[string]RuleInfo) []NameIDEnt
 	return entries
 }
 
+// GenerateViews produces zero-allocation view types from a grammar file.
+// Unlike Generate, it does not require a Go source file with struct definitions.
+// The output file is written as <basename>_views.go alongside the grammar.
+func GenerateViews(grammarPath, pkg, outDir, rootRule string) error {
+	rules, err := AnalyzeGrammar(grammarPath)
+	if err != nil {
+		return fmt.Errorf("analyze grammar: %w", err)
+	}
+
+	output, err := RenderViewsFile(pkg, grammarPath, rules, rootRule)
+	if err != nil {
+		return fmt.Errorf("render views: %w", err)
+	}
+
+	base := strings.TrimSuffix(filepath.Base(grammarPath), filepath.Ext(grammarPath))
+	outPath := filepath.Join(outDir, base+"_views.go")
+	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+		return fmt.Errorf("write %s: %w", outPath, err)
+	}
+
+	return nil
+}
+
 func detectPackageName(sourceFile string) string {
 	data, err := os.ReadFile(sourceFile)
 	if err != nil {

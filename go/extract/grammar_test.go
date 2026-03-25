@@ -56,4 +56,31 @@ func TestAnalyzeGrammar(t *testing.T) {
 	if len(mem.Children) < 2 {
 		t.Errorf("Member: expected at least 2 children, got %d", len(mem.Children))
 	}
+
+	// Array <- '[' (Value (',' Value)*)? ']' — Value must appear as a
+	// named child so views/extract can generate accessors for it.
+	arr := rules["Array"]
+	hasValue := false
+	for _, c := range arr.Children {
+		if c.RuleName == "Value" {
+			hasValue = true
+			break
+		}
+	}
+	if !hasValue {
+		t.Errorf("Array: Value not found in children; got %v", arr.Children)
+	}
+
+	// Object <- '{' (Member (',' Member)*)? '}' — same for Member.
+	obj := rules["Object"]
+	hasMember := false
+	for _, c := range obj.Children {
+		if c.RuleName == "Member" {
+			hasMember = true
+			break
+		}
+	}
+	if !hasMember {
+		t.Errorf("Object: Member not found in children; got %v", obj.Children)
+	}
 }
