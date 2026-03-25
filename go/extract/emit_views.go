@@ -393,6 +393,10 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 		if choice == "" {
 			continue
 		}
+		if litText, ok := IsChoiceLiteral(choice); ok {
+			emitLiteralChoiceAccessor(buf, viewName, litText)
+			continue
+		}
 		childRule, ok := rules[choice]
 		if !ok {
 			continue
@@ -425,6 +429,20 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 			fmt.Fprintf(buf, "}\n\n")
 		}
 	}
+}
+
+// emitLiteralChoiceAccessor generates an IsXxx() bool method that checks
+// whether the choice matched a specific literal string (e.g., 'true', 'null').
+func emitLiteralChoiceAccessor(buf *strings.Builder, viewName string, litText string) {
+	methName := "Is" + strings.ToUpper(litText[:1]) + litText[1:]
+	fmt.Fprintf(buf, "// %s reports whether this value is the literal %q.\n", methName, litText)
+	fmt.Fprintf(buf, "func (v %s) %s() bool {\n", viewName, methName)
+	fmt.Fprintf(buf, "\tchild, ok := v.t.Child(v.id)\n")
+	fmt.Fprintf(buf, "\tif !ok || v.t.Type(child) != NodeType_String {\n")
+	fmt.Fprintf(buf, "\t\treturn false\n")
+	fmt.Fprintf(buf, "\t}\n")
+	fmt.Fprintf(buf, "\treturn v.t.UnsafeText(child) == %q\n", litText)
+	fmt.Fprintf(buf, "}\n\n")
 }
 
 func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
@@ -521,18 +539,6 @@ func emitAliasView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo,
 
 func emitOptionalView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
 	emitAliasView(buf, ri, rules, exported)
-}
-
-// isRepeatedChild checks if a rule name appears more than once in a
-// sequence's classified children.
-func isRepeatedChild(ri RuleInfo, ruleName string) bool {
-	count := 0
-	for _, c := range ri.Children {
-		if c.RuleName == ruleName {
-			count++
-		}
-	}
-	return count > 1
 }
 
 // fieldName returns a lowercase version of a rule name for use as a struct

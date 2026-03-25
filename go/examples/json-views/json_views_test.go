@@ -187,6 +187,51 @@ func TestViewMemberFmtStringer(t *testing.T) {
 	}
 }
 
+func TestViewLiteralTrue(t *testing.T) {
+	json := parseJSON(t, `true`)
+	val, ok := json.Value()
+	if !ok {
+		t.Fatal("no Value child")
+	}
+	if !val.IsTrue() {
+		t.Error("expected IsTrue()")
+	}
+	if val.IsFalse() {
+		t.Error("unexpected IsFalse()")
+	}
+	if val.IsNull() {
+		t.Error("unexpected IsNull()")
+	}
+}
+
+func TestViewLiteralFalse(t *testing.T) {
+	json := parseJSON(t, `false`)
+	val, ok := json.Value()
+	if !ok {
+		t.Fatal("no Value child")
+	}
+	if !val.IsFalse() {
+		t.Error("expected IsFalse()")
+	}
+	if val.IsTrue() {
+		t.Error("unexpected IsTrue()")
+	}
+}
+
+func TestViewLiteralNull(t *testing.T) {
+	json := parseJSON(t, `null`)
+	val, ok := json.Value()
+	if !ok {
+		t.Fatal("no Value child")
+	}
+	if !val.IsNull() {
+		t.Error("expected IsNull()")
+	}
+	if val.IsTrue() {
+		t.Error("unexpected IsTrue()")
+	}
+}
+
 func TestViewText(t *testing.T) {
 	json := parseJSON(t, `{"a": 1}`)
 	if json.String() != `{"a": 1}` {

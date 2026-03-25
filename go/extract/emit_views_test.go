@@ -54,6 +54,31 @@ func TestEmitViewChoice(t *testing.T) {
 	}
 }
 
+func TestEmitViewChoiceLiterals(t *testing.T) {
+	rules := map[string]RuleInfo{
+		"Value": {Name: "Value", Kind: RuleChoice, NameID: 0,
+			Choices: []string{"Object", "lit:true", "lit:false", "lit:null"}},
+		"Object": {Name: "Object", Kind: RuleSequence, NameID: 1},
+	}
+
+	code := emitViewTypes(rules, "Value")
+
+	checks := []string{
+		"func (v Value) IsTrue() bool",
+		"func (v Value) IsFalse() bool",
+		"func (v Value) IsNull() bool",
+		"NodeType_String",
+		`UnsafeText(child) == "true"`,
+		`UnsafeText(child) == "false"`,
+		`UnsafeText(child) == "null"`,
+	}
+	for _, c := range checks {
+		if !strings.Contains(code, c) {
+			t.Errorf("missing %q in:\n%s", c, code)
+		}
+	}
+}
+
 func TestEmitViewSequence(t *testing.T) {
 	rules := map[string]RuleInfo{
 		"Member": {Name: "Member", Kind: RuleSequence, NameID: 0,
