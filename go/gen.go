@@ -71,6 +71,7 @@ func (g *goEvalEmitter) writePrelude() {
 		g.parser.writeil(`"strconv"`)
 		g.parser.writeil(`"strings"`)
 		g.parser.writeil(`"unicode/utf8"`)
+		g.parser.writeil(`"unsafe"`)
 		g.parser.unindent()
 		g.parser.writel(")\n")
 	}

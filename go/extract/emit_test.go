@@ -60,8 +60,8 @@ func TestEmitSequenceFunction(t *testing.T) {
 	if !strings.Contains(code, "NodeType_Node") {
 		t.Error("missing NodeType_Node check")
 	}
-	if !strings.Contains(code, "t.Text(") {
-		t.Error("missing t.Text() call for string field")
+	if !strings.Contains(code, "t.UnsafeText(") {
+		t.Error("missing t.UnsafeText() call for string field")
 	}
 	if !strings.Contains(code, "t.NameID(cid)") {
 		t.Error("missing t.NameID() call for arena-direct name matching")

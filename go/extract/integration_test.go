@@ -73,7 +73,7 @@ type JSONArray struct {
 		// tree operations
 		"NodeType_Node",
 		"NodeType_String",
-		"t.Text(",
+		"t.UnsafeText(",
 		"t.Child(",
 		"t.Visit(",
 	}
