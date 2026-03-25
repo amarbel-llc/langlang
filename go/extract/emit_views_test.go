@@ -196,6 +196,25 @@ func TestEmitViewSkipsNegativeNameID(t *testing.T) {
 	}
 }
 
+func TestEmitViewSkipsLowercaseRules(t *testing.T) {
+	rules := map[string]RuleInfo{
+		"arrayClose": {Name: "arrayClose", Kind: RuleLeaf, NameID: 5},
+		"eof":        {Name: "eof", Kind: RuleLeaf, NameID: 6},
+		"Value":      {Name: "Value", Kind: RuleLeaf, NameID: 0},
+	}
+
+	code := emitViewTypes(rules, "")
+	if strings.Contains(code, "arrayCloseView") {
+		t.Error("should skip lowercase rules")
+	}
+	if strings.Contains(code, "eofView") {
+		t.Error("should skip lowercase rules")
+	}
+	if !strings.Contains(code, "ValueView") {
+		t.Error("should include uppercase rules")
+	}
+}
+
 func TestEmitViewRootFirst(t *testing.T) {
 	rules := map[string]RuleInfo{
 		"Zebra": {Name: "Zebra", Kind: RuleLeaf, NameID: 0},

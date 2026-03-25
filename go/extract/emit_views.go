@@ -3,6 +3,7 @@ package extract
 import (
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 // emitViewTypes generates view types for all named rules in the grammar.
@@ -54,7 +55,7 @@ func orderRules(rules map[string]RuleInfo, rootRule string) []string {
 func emitViewType(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
 	viewName := ri.Name + "View"
 
-	if ri.NameID < 0 {
+	if ri.NameID < 0 || !unicode.IsUpper(rune(ri.Name[0])) {
 		return
 	}
 
