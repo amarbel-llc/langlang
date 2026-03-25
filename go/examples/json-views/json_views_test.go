@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func parseJSON(t *testing.T, input string) JSONView {
+func parseJSON(t *testing.T, input string) JSON {
 	t.Helper()
 	p := NewJSONParser()
 	p.SetInput([]byte(input))
@@ -16,7 +16,7 @@ func parseJSON(t *testing.T, input string) JSONView {
 	if !ok {
 		t.Fatalf("no root for %q", input)
 	}
-	return newJSONView(parsed.(*tree), root)
+	return newJSON(parsed.(*tree), root)
 }
 
 func TestViewString(t *testing.T) {
