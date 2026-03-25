@@ -1,0 +1,163 @@
+package extract
+
+import (
+	"fmt"
+
+	langlang "github.com/clarete/langlang/go"
+)
+
+// AnalyzeGrammar loads a PEG grammar and returns a map of rule names to
+// RuleInfo, describing each rule's structure for extraction codegen.
+func AnalyzeGrammar(grammarPath string) (map[string]RuleInfo, error) {
+	cfg := langlang.NewConfig()
+	loader := langlang.NewRelativeImportLoader()
+	db := langlang.NewDatabase(cfg, loader)
+
+	grammar, err := langlang.QueryAST(db, grammarPath)
+	if err != nil {
+		return nil, fmt.Errorf("query AST: %w", err)
+	}
+
+	program, err := langlang.QueryProgram(db, grammarPath)
+	if err != nil {
+		return nil, fmt.Errorf("query program: %w", err)
+	}
+
+	rules := make(map[string]RuleInfo, len(grammar.Definitions))
+	for _, def := range grammar.Definitions {
+		ri := classifyRule(def)
+		// Program.StringID returns 0 for unknown names, which is
+		// ambiguous with a valid ID. We use DefsByName to confirm the
+		// name exists in the grammar before trusting the ID.
+		if _, exists := grammar.DefsByName[def.Name]; exists {
+			ri.NameID = int32(program.StringID(def.Name))
+		} else {
+			ri.NameID = -1
+		}
+		rules[def.Name] = ri
+	}
+
+	return rules, nil
+}
+
+func classifyRule(def *langlang.DefinitionNode) RuleInfo {
+	ri := RuleInfo{Name: def.Name}
+	expr := unwrapTransparent(def.Expr)
+
+	switch e := expr.(type) {
+	case *langlang.SequenceNode:
+		ri.Kind = RuleSequence
+		ri.Children = classifySequenceChildren(e)
+
+	case *langlang.ChoiceNode:
+		ri.Kind = RuleChoice
+		ri.Choices = flattenChoices(e)
+
+	case *langlang.ZeroOrMoreNode:
+		ri.Kind = RuleRepeat
+		if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
+			ri.Inner = id.Value
+		}
+
+	case *langlang.OneOrMoreNode:
+		ri.Kind = RuleRepeat
+		if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
+			ri.Inner = id.Value
+		}
+
+	case *langlang.OptionalNode:
+		ri.Kind = RuleOptional
+		if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
+			ri.Inner = id.Value
+		}
+
+	case *langlang.IdentifierNode:
+		ri.Kind = RuleAlias
+		ri.Inner = e.Value
+
+	default:
+		ri.Kind = RuleLeaf
+	}
+
+	return ri
+}
+
+// unwrapTransparent strips AST wrappers that don't affect tree structure.
+func unwrapTransparent(n langlang.AstNode) langlang.AstNode {
+	for {
+		switch e := n.(type) {
+		case *langlang.LexNode:
+			n = e.Expr
+		case *langlang.LabeledNode:
+			n = e.Expr
+		case *langlang.CaptureNode:
+			n = e.Expr
+		default:
+			return n
+		}
+	}
+}
+
+func classifySequenceChildren(seq *langlang.SequenceNode) []RuleChild {
+	var children []RuleChild
+	for i, item := range seq.Items {
+		child := RuleChild{Index: i}
+		inner := unwrapTransparent(item)
+
+		switch e := inner.(type) {
+		case *langlang.IdentifierNode:
+			child.RuleName = e.Value
+		case *langlang.LiteralNode:
+			child.IsLiteral = true
+		case *langlang.OptionalNode:
+			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
+				child.RuleName = id.Value
+			} else {
+				child.IsLiteral = true
+			}
+		case *langlang.ZeroOrMoreNode:
+			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
+				child.RuleName = id.Value
+			} else if seq2, ok := unwrapTransparent(e.Expr).(*langlang.SequenceNode); ok {
+				// Pattern like (Value (',' Value)*) — extract named refs
+				for _, seqItem := range seq2.Items {
+					if id, ok := unwrapTransparent(seqItem).(*langlang.IdentifierNode); ok {
+						child.RuleName = id.Value
+						break
+					}
+				}
+			}
+		case *langlang.OneOrMoreNode:
+			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
+				child.RuleName = id.Value
+			}
+		default:
+			child.IsLiteral = true
+		}
+
+		children = append(children, child)
+	}
+	return children
+}
+
+// flattenChoices collects all alternatives from a binary right-associative
+// ChoiceNode tree into a flat list of names. Non-identifier alternatives
+// (like literals 'true', 'false', 'null') are included as empty strings.
+func flattenChoices(c *langlang.ChoiceNode) []string {
+	var choices []string
+	flattenChoicesInto(c, &choices)
+	return choices
+}
+
+func flattenChoicesInto(node langlang.AstNode, out *[]string) {
+	inner := unwrapTransparent(node)
+	switch e := inner.(type) {
+	case *langlang.ChoiceNode:
+		flattenChoicesInto(e.Left, out)
+		flattenChoicesInto(e.Right, out)
+	case *langlang.IdentifierNode:
+		*out = append(*out, e.Value)
+	default:
+		*out = append(*out, "")
+	}
+}
