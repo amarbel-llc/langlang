@@ -2,6 +2,7 @@ package extract
 
 import (
 	"fmt"
+	"strings"
 
 	langlang "github.com/clarete/langlang/go"
 )
@@ -170,7 +171,21 @@ func flattenChoicesInto(node langlang.AstNode, out *[]string) {
 		flattenChoicesInto(e.Right, out)
 	case *langlang.IdentifierNode:
 		*out = append(*out, e.Value)
+	case *langlang.LiteralNode:
+		*out = append(*out, ChoiceLiteralPrefix+e.Value)
 	default:
 		*out = append(*out, "")
 	}
+}
+
+// ChoiceLiteralPrefix marks a choice alternative as a literal string match
+// rather than a rule reference. Used in RuleInfo.Choices.
+const ChoiceLiteralPrefix = "lit:"
+
+// IsChoiceLiteral reports whether a choice entry is a literal and returns its text.
+func IsChoiceLiteral(choice string) (string, bool) {
+	if strings.HasPrefix(choice, ChoiceLiteralPrefix) {
+		return choice[len(ChoiceLiteralPrefix):], true
+	}
+	return "", false
 }

@@ -126,6 +126,10 @@ func TestIntegrationJSONViews(t *testing.T) {
 		"func (v Value) Object() (Object, bool)",
 		"func (v Value) StringNode() (String, bool)",
 		"func (v Value) Number() (Number, bool)",
+		// literal choice accessors
+		"func (v Value) IsTrue() bool",
+		"func (v Value) IsFalse() bool",
+		"func (v Value) IsNull() bool",
 		// tree operations
 		"*tree",
 		"NodeID",

@@ -702,6 +702,33 @@ func (v Value) Number() (Number, bool) {
 	return newNumber(v.t, child), true
 }
 
+// IsTrue reports whether this value is the literal "true".
+func (v Value) IsTrue() bool {
+	child, ok := v.t.Child(v.id)
+	if !ok || v.t.Type(child) != NodeType_String {
+		return false
+	}
+	return v.t.UnsafeText(child) == "true"
+}
+
+// IsFalse reports whether this value is the literal "false".
+func (v Value) IsFalse() bool {
+	child, ok := v.t.Child(v.id)
+	if !ok || v.t.Type(child) != NodeType_String {
+		return false
+	}
+	return v.t.UnsafeText(child) == "false"
+}
+
+// IsNull reports whether this value is the literal "null".
+func (v Value) IsNull() bool {
+	child, ok := v.t.Child(v.id)
+	if !ok || v.t.Type(child) != NodeType_String {
+		return false
+	}
+	return v.t.UnsafeText(child) == "null"
+}
+
 // NewJSON creates a JSON view from a parsed tree.
 func NewJSON(t Tree) JSON {
 	root, ok := t.Root()

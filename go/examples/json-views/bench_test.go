@@ -67,6 +67,8 @@ func walkValue(v Value) int {
 		_ = str.String()
 	} else if num, ok := v.Number(); ok {
 		_ = num.String()
+	} else {
+		_ = v.IsTrue() || v.IsFalse() || v.IsNull()
 	}
 	return count
 }
