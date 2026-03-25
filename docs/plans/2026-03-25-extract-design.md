@@ -174,25 +174,28 @@ type RuleChild struct {
 
 ### Cross-validation rules
 
-  --------------------------------------------------------------------------------------------
-  Go type            Rule kind                           Result           Error if
-  ------------------ ----------------------------------- ---------------- --------------------
-  `string`           RuleLeaf or RuleAlias-\>leaf        FieldText        rule is
-                                                                          sequence/choice
+  ---------------------------------------------------------------------------------------
+  Go type          Rule kind                           Result           Error if
+  ---------------- ----------------------------------- ---------------- -----------------
+  `string`         RuleLeaf or RuleAlias-\>leaf        FieldText        rule is
+                                                                        sequence/choice
 
-  `SomeStruct` (with RuleSequence/RuleChoice/RuleAlias   FieldNamedRule   rule is leaf
-  `ll:` fields)                                                           
+  `SomeStruct`     RuleSequence/RuleChoice/RuleAlias   FieldNamedRule   rule is leaf
+  (with `ll:`                                                           
+  fields)                                                               
 
-  `*SomeStruct`      any                                 FieldOptional    --
+  `*SomeStruct`    any                                 FieldOptional    --
 
-  `[]SomeStruct`     RuleRepeat                          FieldSlice       rule is not repeat
+  `[]SomeStruct`   RuleRepeat                          FieldSlice       rule is not
+                                                                        repeat
 
-  struct with        RuleChoice                          FieldChoice      arity mismatch
-  all-pointer `ll:`                                                       
-  fields                                                                  
+  struct with      RuleChoice                          FieldChoice      arity mismatch
+  all-pointer                                                           
+  `ll:` fields                                                          
 
-  unknown rule name  --                                  --               hard error
-  --------------------------------------------------------------------------------------------
+  unknown rule     --                                  --               hard error
+  name                                                                  
+  ---------------------------------------------------------------------------------------
 
 ## Tree Structure Findings
 
@@ -378,43 +381,43 @@ No new external dependencies.
 
 ## Decisions
 
-  -----------------------------------------------------------------------------------
-  Decision                              Rationale
-  ------------------------------------- ---------------------------------------------
-  Tag name: `ll`                        Mirrors tommy's `toml` convention;
-                                        langlang-specific. Easy to rename later.
+  --------------------------------------------------------------------------------
+  Decision                           Rationale
+  ---------------------------------- ---------------------------------------------
+  Tag name: `ll`                     Mirrors tommy's `toml` convention;
+                                     langlang-specific. Easy to rename later.
 
-  Concrete tree access: type assertion  `result.(*tree)` in generated extract entry
-                                        point. Zero changes to gen.go. Ideally
-                                        `MatchRule`/`parseFn` would return concrete
-                                        types directly; flagged for future cleanup so
-                                        no type assertions are needed.
+  Concrete tree access: type         `result.(*tree)` in generated extract entry
+  assertion                          point. Zero changes to gen.go. Ideally
+                                     `MatchRule`/`parseFn` would return concrete
+                                     types directly; flagged for future cleanup so
+                                     no type assertions are needed.
 
-  Sequence child mapping: name-based    `ll:"String"` matches child by rule name.
-                                        Sufficient for JSON and likely TOML.
-                                        Index-based escape hatch deferred for
-                                        grammars with duplicate rule names in
-                                        sequences (e.g., `Expr Op Expr`). A more
-                                        ergonomic mapping strategy beyond raw
-                                        indexing should also be explored.
+  Sequence child mapping: name-based `ll:"String"` matches child by rule name.
+                                     Sufficient for JSON and likely TOML.
+                                     Index-based escape hatch deferred for
+                                     grammars with duplicate rule names in
+                                     sequences (e.g., `Expr Op Expr`). A more
+                                     ergonomic mapping strategy beyond raw
+                                     indexing should also be explored.
 
-  Struct analysis: `go/ast` only        Lightweight, no `go/packages` dependency.
-                                        **Pivot path:** if single-file resolution
-                                        proves limiting (struct field references type
-                                        in another file), add
-                                        `golang.org/x/tools/go/packages` and replace
-                                        the `go/ast` parse with `packages.Load` using
-                                        `packages.NeedTypes \| packages.NeedSyntax`
-                                        mode. The rest of the pipeline stays the
-                                        same.
+  Struct analysis: `go/ast` only     Lightweight, no `go/packages` dependency.
+                                     **Pivot path:** if single-file resolution
+                                     proves limiting (struct field references type
+                                     in another file), add
+                                     `golang.org/x/tools/go/packages` and replace
+                                     the `go/ast` parse with `packages.Load` using
+                                     `packages.NeedTypes \| packages.NeedSyntax`
+                                     mode. The rest of the pipeline stays the
+                                     same.
 
-  Same-package extraction only          Extract code and parser live in same
-                                        generated package. Cross-package deferred.
+  Same-package extraction only       Extract code and parser live in same
+                                     generated package. Cross-package deferred.
 
-  Proof-of-concept grammar: JSON        Well-known, exercises
-                                        choice/sequence/repetition/optional. Next
-                                        target: TOML.
-  -----------------------------------------------------------------------------------
+  Proof-of-concept grammar: JSON     Well-known, exercises
+                                     choice/sequence/repetition/optional. Next
+                                     target: TOML.
+  --------------------------------------------------------------------------------
 
 ## Rollback
 
@@ -422,27 +425,105 @@ Purely additive. Delete `_extract.go` files and remove
 `//go:generate langlang extract` directives. The `Tree` interface path remains
 fully functional. No existing consumer is affected.
 
-## Future Work
+## Implemented Optimizations
 
-### Next step: grammar-specific public tree types
+### `UnsafeText` (zero-copy string extraction)
 
-Instead of a generic `*tree` with extract functions layered on top, generate
-public typed accessors per grammar. Example for JSON:
+`tree.UnsafeText(id) string` returns a string pointing directly into the parse
+input buffer via `unsafe.String`, avoiding the `string([]byte)` copy in
+`Text()`. Generated extract code uses `UnsafeText` instead of `Text`.
+
+**Why it's safe despite using `unsafe`:**
+
+1.  `t.input` is never mutated after parsing --- the VM writes it once during
+    `bindInput()`, then the tree is read-only.
+2.  The returned string cannot outlive the tree --- extract functions take
+    `*tree` as a parameter, so the caller holds a reference.
+3.  The input buffer is caller-owned and retained by the tree.
+
+The compiler can't see through the `*tree` abstraction to prove these
+invariants, so `string([]byte)` conservatively copies. `UnsafeText` makes the
+programmer's knowledge explicit. The safe `Text()` method remains for callers
+who need strings that outlive the tree.
+
+**Impact (TOML benchmarks):** 20% fewer allocations in arena-direct extraction.
+Combined with nameID constants, arena-direct eliminates 52-53% of allocations vs
+the Tree interface approach.
+
+## Generation Modes
+
+The extract tool supports (or will support) multiple generation modes for
+different consumer needs:
+
+### `-mode=structs` (current, default)
+
+Generates owned, mutable Go structs populated by walking the arena. Structs are
+independent of the tree after extraction --- callers can modify fields,
+serialize, or pass them across API boundaries.
+
+**Best for:** read-write document editing (tommy), data transformation,
+serialization, any case where the extracted data outlives the parse tree.
+
+**Cost:** allocation per struct + per string field (mitigated by `UnsafeText`
+for strings, but struct/slice allocations remain).
+
+### `-mode=views` (planned)
+
+Generates zero-allocation view types that wrap `*tree` + `NodeID`. Views provide
+typed, read-only access to the parse tree without copying any data. Method calls
+navigate the arena directly.
 
 ``` go
-type JSONTree struct { /* arena internals */ }
-type JSONMemberNode struct { tree *JSONTree; id NodeID }
-func (n JSONMemberNode) String() JSONStringNode { ... }
-func (n JSONMemberNode) Value() JSONValueNode   { ... }
+// Generated from grammar
+type ValueView struct { t *tree; id NodeID }
+
+func (v ValueView) Object() (ObjectView, bool) {
+    child, ok := v.t.Child(v.id)
+    if !ok || !v.t.IsNamed(child, _nameID_Object) {
+        return ObjectView{}, false
+    }
+    return ObjectView{t: v.t, id: child}, true
+}
+
+func (v ValueView) String() (string, bool) {
+    child, ok := v.t.Child(v.id)
+    if !ok || !v.t.IsNamed(child, _nameID_String) {
+        return "", false
+    }
+    return v.t.UnsafeText(child), true
+}
 ```
 
-**Benefits:** - Eliminates cross-package limitation (everything is public) -
-Provides IDE autocomplete for tree navigation - Makes `TreeExtractor` interface
-unnecessary - Consumers get compile-time guarantees on node relationships
+**Best for:** read-only consumers (config parsing, query evaluation, validation,
+tree-sitter-style navigation), performance-critical paths where allocation
+pressure matters.
 
-This is a larger change that replaces the tree representation itself --
-complementary to extract but independent. Extract proves the grammar analysis
-and codegen pipeline; grammar-specific trees build on that foundation.
+**Cost:** views are only valid while the tree is alive. No mutation, no
+serialization without copying first.
+
+**Design notes:**
+
+- Choice rules return `(XxxView, bool)` per alternative --- caller checks which
+  matched
+- Sequence rules expose named children as methods
+- Repetition rules return an iterator or `Visit`-style callback
+- Leaf rules return `(string, bool)` via `UnsafeText`
+- View types are value types (2 words: pointer + int) --- free to copy, compare,
+  pass by value
+
+### Full parser generation (future)
+
+A mode where the parser emits typed structs directly during parsing, with no
+intermediate generic arena. The grammar + struct definitions are known at
+generation time, so the parser can write directly into typed fields.
+
+**Challenges:** repetition (unknown count upfront requires growing slices or
+slab allocation), sequences (must handle partial parse failures and
+backtracking).
+
+**Deferred** until the extract pipeline and view mode are proven.
+
+## Future Work
 
 ### TOML phase
 
