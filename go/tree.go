@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unsafe"
 )
 
 type FormatToken int
@@ -286,6 +287,43 @@ func (t *tree) Text(id NodeID) string {
 	case NodeType_Error:
 		if child, ok := t.Child(id); ok {
 			return t.Text(child)
+		}
+		return fmt.Sprintf("error[%s]", t.Name(id))
+	default:
+		panic(fmt.Sprintf("Unknown node type: %T", n.typ))
+	}
+}
+
+// UnsafeText returns the text of a node without copying. The returned
+// string points directly into the parse input buffer. It is valid for
+// the lifetime of the tree; callers must not retain it after the tree
+// is garbage collected.
+func (t *tree) UnsafeText(id NodeID) string {
+	n := &t.nodes[id]
+
+	switch n.typ {
+	case NodeType_String:
+		b := t.input[n.start:n.end]
+		return unsafe.String(unsafe.SliceData(b), len(b))
+
+	case NodeType_Sequence:
+		// For sequences we must concatenate children; fall back to
+		// allocating Text since there is no contiguous slice.
+		var buf strings.Builder
+		for _, childID := range t.Children(id) {
+			buf.WriteString(t.UnsafeText(childID))
+		}
+		return buf.String()
+
+	case NodeType_Node:
+		if child, ok := t.Child(id); ok {
+			return t.UnsafeText(child)
+		}
+		return ""
+
+	case NodeType_Error:
+		if child, ok := t.Child(id); ok {
+			return t.UnsafeText(child)
 		}
 		return fmt.Sprintf("error[%s]", t.Name(id))
 	default:
