@@ -10,18 +10,70 @@ import (
 // Views wrap *tree + NodeID and provide typed, read-only access to the parse
 // tree. Sequence views pre-resolve child NodeIDs at construction time so
 // accessors are O(1) field reads.
+//
+// Rules reachable from rootRule through view accessors are exported (uppercase).
+// Unreachable rules get unexported (lowercase) type names.
 func emitViewTypes(rules map[string]RuleInfo, rootRule string) string {
 	var buf strings.Builder
 
+	exported := reachableFromRoot(rules, rootRule)
 	ordered := orderRules(rules, rootRule)
 
 	for _, name := range ordered {
 		ri := rules[name]
-		emitViewType(&buf, ri, rules)
+		emitViewType(&buf, ri, rules, exported)
 		buf.WriteString("\n")
 	}
 
 	return buf.String()
+}
+
+// reachableFromRoot computes the set of rule names reachable from the root
+// rule through view accessor return types. These rules get exported type names.
+func reachableFromRoot(rules map[string]RuleInfo, rootRule string) map[string]bool {
+	reachable := map[string]bool{}
+	if rootRule == "" {
+		// No root specified — export everything uppercase.
+		for name := range rules {
+			if unicode.IsUpper(rune(name[0])) {
+				reachable[name] = true
+			}
+		}
+		return reachable
+	}
+
+	var walk func(string)
+	walk = func(name string) {
+		if reachable[name] {
+			return
+		}
+		ri, ok := rules[name]
+		if !ok || ri.NameID < 0 || !unicode.IsUpper(rune(name[0])) {
+			return
+		}
+		reachable[name] = true
+
+		switch ri.Kind {
+		case RuleSequence:
+			for _, nc := range sequenceNamedChildren(ri, rules) {
+				if nc.rule.Kind != RuleLeaf {
+					walk(nc.ruleName)
+				}
+			}
+		case RuleChoice:
+			for _, choice := range ri.Choices {
+				if choice != "" {
+					walk(choice)
+				}
+			}
+		case RuleRepeat, RuleAlias, RuleOptional:
+			if ri.Inner != "" {
+				walk(ri.Inner)
+			}
+		}
+	}
+	walk(rootRule)
+	return reachable
 }
 
 func orderRules(rules map[string]RuleInfo, rootRule string) []string {
@@ -52,26 +104,25 @@ func orderRules(rules map[string]RuleInfo, rootRule string) []string {
 	return ordered
 }
 
-func emitViewType(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
-	viewName := ri.Name + "View"
-
+func emitViewType(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
 	if ri.NameID < 0 || !unicode.IsUpper(rune(ri.Name[0])) {
 		return
 	}
 
+	viewName := viewTypeName(ri.Name, exported)
+
 	switch ri.Kind {
 	case RuleSequence:
-		emitSequenceView(buf, ri, rules)
+		emitSequenceView(buf, ri, rules, exported)
 	case RuleChoice:
-		emitChoiceView(buf, ri, rules)
+		emitChoiceView(buf, ri, rules, exported)
 	case RuleRepeat:
-		emitRepeatView(buf, ri, rules)
+		emitRepeatView(buf, ri, rules, exported)
 	case RuleAlias:
-		emitAliasView(buf, ri, rules)
+		emitAliasView(buf, ri, rules, exported)
 	case RuleOptional:
-		emitOptionalView(buf, ri, rules)
+		emitOptionalView(buf, ri, rules, exported)
 	case RuleLeaf:
-		// Leaf: thin wrapper, just Text()
 		fmt.Fprintf(buf, "// %s is a read-only view over a %s node.\n", viewName, ri.Name)
 		fmt.Fprintf(buf, "type %s struct {\n", viewName)
 		fmt.Fprintf(buf, "\tt *tree\n")
@@ -80,6 +131,17 @@ func emitViewType(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) 
 		emitTextMethod(buf, viewName)
 	}
 }
+
+// viewTypeName returns the view type name, exported or unexported based on
+// reachability from the root rule.
+func viewTypeName(ruleName string, exported map[string]bool) string {
+	if exported[ruleName] {
+		return ruleName + "View"
+	}
+	return fieldName(ruleName) + "View"
+}
+
+
 
 func emitTextMethod(buf *strings.Builder, viewName string) {
 	fmt.Fprintf(buf, "// Text returns the full matched text of this node.\n")
@@ -133,8 +195,8 @@ func sequenceNamedChildren(ri RuleInfo, rules map[string]RuleInfo) []namedChild 
 // emitSequenceView generates a struct with pre-resolved NodeID fields for
 // each named child, a constructor that walks the sequence once, and O(1)
 // accessor methods.
-func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
-	viewName := ri.Name + "View"
+func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
+	viewName := viewTypeName(ri.Name, exported)
 	children := sequenceNamedChildren(ri, rules)
 
 	// --- struct definition ---
@@ -157,7 +219,7 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 	emitTextMethod(buf, viewName)
 
 	// --- constructor ---
-	fmt.Fprintf(buf, "func new%s(t *tree, id NodeID) %s {\n", viewName, viewName)
+	fmt.Fprintf(buf, "func new%sView(t *tree, id NodeID) %s {\n", ri.Name, viewName)
 	fmt.Fprintf(buf, "\tv := %s{t: t, id: id}\n", viewName)
 	fmt.Fprintf(buf, "\tchild, ok := t.Child(id)\n")
 	fmt.Fprintf(buf, "\tif !ok {\n")
@@ -207,11 +269,11 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 	// --- accessors ---
 	for _, nc := range children {
 		if nc.repeated {
-			emitRepeatedAccessor(buf, viewName, nc, rules)
+			emitRepeatedAccessor(buf, viewName, nc, rules, exported)
 		} else if nc.rule.Kind == RuleLeaf {
 			emitLeafAccessor(buf, viewName, nc)
 		} else {
-			emitSingleAccessor(buf, viewName, nc, rules)
+			emitSingleAccessor(buf, viewName, nc, rules, exported)
 		}
 	}
 }
@@ -226,8 +288,8 @@ func emitLeafAccessor(buf *strings.Builder, viewName string, nc namedChild) {
 	fmt.Fprintf(buf, "}\n\n")
 }
 
-func emitSingleAccessor(buf *strings.Builder, viewName string, nc namedChild, rules map[string]RuleInfo) {
-	childViewName := nc.ruleName + "View"
+func emitSingleAccessor(buf *strings.Builder, viewName string, nc namedChild, rules map[string]RuleInfo, exported map[string]bool) {
+	childViewName := viewTypeName(nc.ruleName, exported)
 	isSeq := nc.rule.Kind == RuleSequence
 	fmt.Fprintf(buf, "// %s returns a view over the %s child.\n", nc.ruleName, nc.ruleName)
 	fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, nc.ruleName, childViewName)
@@ -235,15 +297,15 @@ func emitSingleAccessor(buf *strings.Builder, viewName string, nc namedChild, ru
 	fmt.Fprintf(buf, "\t\treturn %s{}, false\n", childViewName)
 	fmt.Fprintf(buf, "\t}\n")
 	if isSeq {
-		fmt.Fprintf(buf, "\treturn new%s(v.t, v._%s), true\n", childViewName, fieldName(nc.ruleName))
+		fmt.Fprintf(buf, "\treturn new%sView(v.t, v._%s), true\n", nc.ruleName, fieldName(nc.ruleName))
 	} else {
 		fmt.Fprintf(buf, "\treturn %s{t: v.t, id: v._%s}, true\n", childViewName, fieldName(nc.ruleName))
 	}
 	fmt.Fprintf(buf, "}\n\n")
 }
 
-func emitRepeatedAccessor(buf *strings.Builder, viewName string, nc namedChild, rules map[string]RuleInfo) {
-	childViewName := nc.ruleName + "View"
+func emitRepeatedAccessor(buf *strings.Builder, viewName string, nc namedChild, rules map[string]RuleInfo, exported map[string]bool) {
+	childViewName := viewTypeName(nc.ruleName, exported)
 	isSeq := nc.rule.Kind == RuleSequence
 
 	if nc.rule.Kind == RuleLeaf {
@@ -265,7 +327,7 @@ func emitRepeatedAccessor(buf *strings.Builder, viewName string, nc namedChild, 
 		fmt.Fprintf(buf, "// %sAt returns a view over the i-th %s child.\n", nc.ruleName, nc.ruleName)
 		fmt.Fprintf(buf, "func (v %s) %sAt(i int) %s {\n", viewName, nc.ruleName, childViewName)
 		if isSeq {
-			fmt.Fprintf(buf, "\treturn new%s(v.t, v._%s[i])\n", childViewName, fieldName(nc.ruleName))
+			fmt.Fprintf(buf, "\treturn new%sView(v.t, v._%s[i])\n", nc.ruleName, fieldName(nc.ruleName))
 		} else {
 			fmt.Fprintf(buf, "\treturn %s{t: v.t, id: v._%s[i]}\n", childViewName, fieldName(nc.ruleName))
 		}
@@ -275,8 +337,8 @@ func emitRepeatedAccessor(buf *strings.Builder, viewName string, nc namedChild, 
 
 // emitChoiceView generates a thin wrapper. Choices inspect their single child
 // on each accessor call (O(1) — just one Child() + nameID check).
-func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
-	viewName := ri.Name + "View"
+func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
+	viewName := viewTypeName(ri.Name, exported)
 
 	fmt.Fprintf(buf, "// %s is a read-only view over a %s node.\n", viewName, ri.Name)
 	fmt.Fprintf(buf, "type %s struct {\n", viewName)
@@ -305,7 +367,7 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 			fmt.Fprintf(buf, "\treturn v.t.UnsafeText(child), true\n")
 			fmt.Fprintf(buf, "}\n\n")
 		} else {
-			childViewName := choice + "View"
+			childViewName := viewTypeName(choice, exported)
 			fmt.Fprintf(buf, "// %s returns a %s if this alternative matched.\n", choice, childViewName)
 			fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, choice, childViewName)
 			fmt.Fprintf(buf, "\tchild, ok := v.t.Child(v.id)\n")
@@ -313,7 +375,7 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 			fmt.Fprintf(buf, "\t\treturn %s{}, false\n", childViewName)
 			fmt.Fprintf(buf, "\t}\n")
 			if isSeq {
-				fmt.Fprintf(buf, "\treturn new%s(v.t, child), true\n", childViewName)
+				fmt.Fprintf(buf, "\treturn new%sView(v.t, child), true\n", choice)
 			} else {
 				fmt.Fprintf(buf, "\treturn %s{t: v.t, id: child}, true\n", childViewName)
 			}
@@ -322,8 +384,8 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 	}
 }
 
-func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
-	viewName := ri.Name + "View"
+func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
+	viewName := viewTypeName(ri.Name, exported)
 
 	fmt.Fprintf(buf, "// %s is a read-only view over a %s node.\n", viewName, ri.Name)
 	fmt.Fprintf(buf, "type %s struct {\n", viewName)
@@ -341,9 +403,7 @@ func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 	}
 
 	nc := namedChild{ruleName: ri.Inner, rule: innerRule, repeated: true}
-	// For repeat views, emit a Visit-style accessor that iterates direct
-	// sequence children without pre-resolving into a slice.
-	childViewName := nc.ruleName + "View"
+	childViewName := viewTypeName(nc.ruleName, exported)
 	isSeq := nc.rule.Kind == RuleSequence
 
 	if nc.rule.Kind == RuleLeaf {
@@ -367,7 +427,7 @@ func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 	if nc.rule.Kind == RuleLeaf {
 		fmt.Fprintf(buf, "\t\t\tif !fn(v.t.UnsafeText(cid)) {\n")
 	} else if isSeq {
-		fmt.Fprintf(buf, "\t\t\tif !fn(new%s(v.t, cid)) {\n", childViewName)
+		fmt.Fprintf(buf, "\t\t\tif !fn(new%sView(v.t, cid)) {\n", nc.ruleName)
 	} else {
 		fmt.Fprintf(buf, "\t\t\tif !fn(%s{t: v.t, id: cid}) {\n", childViewName)
 	}
@@ -378,8 +438,8 @@ func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 	fmt.Fprintf(buf, "}\n\n")
 }
 
-func emitAliasView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
-	viewName := ri.Name + "View"
+func emitAliasView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
+	viewName := viewTypeName(ri.Name, exported)
 
 	fmt.Fprintf(buf, "// %s is a read-only view over a %s node.\n", viewName, ri.Name)
 	fmt.Fprintf(buf, "type %s struct {\n", viewName)
@@ -399,7 +459,7 @@ func emitAliasView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo)
 		return
 	}
 
-	childViewName := ri.Inner + "View"
+	childViewName := viewTypeName(ri.Inner, exported)
 	isSeq := innerRule.Kind == RuleSequence
 	fmt.Fprintf(buf, "// %s returns a view over the aliased %s rule.\n", ri.Inner, ri.Inner)
 	fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, ri.Inner, childViewName)
@@ -408,15 +468,15 @@ func emitAliasView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo)
 	fmt.Fprintf(buf, "\t\treturn %s{}, false\n", childViewName)
 	fmt.Fprintf(buf, "\t}\n")
 	if isSeq {
-		fmt.Fprintf(buf, "\treturn new%s(v.t, child), true\n", childViewName)
+		fmt.Fprintf(buf, "\treturn new%sView(v.t, child), true\n", ri.Inner)
 	} else {
 		fmt.Fprintf(buf, "\treturn %s{t: v.t, id: child}, true\n", childViewName)
 	}
 	fmt.Fprintf(buf, "}\n\n")
 }
 
-func emitOptionalView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo) {
-	emitAliasView(buf, ri, rules)
+func emitOptionalView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo, exported map[string]bool) {
+	emitAliasView(buf, ri, rules, exported)
 }
 
 // isRepeatedChild checks if a rule name appears more than once in a
