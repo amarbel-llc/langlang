@@ -119,19 +119,31 @@ func classifySequenceChildren(seq *langlang.SequenceNode) []RuleChild {
 		case *langlang.ZeroOrMoreNode:
 			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
 				child.RuleName = id.Value
+				child.Repeated = true
 			} else if seq2, ok := unwrapTransparent(e.Expr).(*langlang.SequenceNode); ok {
 				nested := classifySequenceChildren(seq2)
+				for j := range nested {
+					nested[j].Repeated = true
+				}
 				children = append(children, nested...)
 				continue
 			}
 		case *langlang.OneOrMoreNode:
 			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
 				child.RuleName = id.Value
+				child.Repeated = true
 			} else if seq2, ok := unwrapTransparent(e.Expr).(*langlang.SequenceNode); ok {
 				nested := classifySequenceChildren(seq2)
+				for j := range nested {
+					nested[j].Repeated = true
+				}
 				children = append(children, nested...)
 				continue
 			}
+		case *langlang.SequenceNode:
+			nested := classifySequenceChildren(e)
+			children = append(children, nested...)
+			continue
 		default:
 			child.IsLiteral = true
 		}

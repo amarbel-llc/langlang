@@ -31,6 +31,12 @@ func emitViewTypes(rules map[string]RuleInfo, rootRule string) string {
 		buf.WriteString("\n")
 	}
 
+	if rootRule != "" {
+		if ri, ok := rules[rootRule]; ok && exported[rootRule] {
+			emitPublicConstructor(&buf, ri)
+		}
+	}
+
 	return buf.String()
 }
 
@@ -150,11 +156,33 @@ func viewTypeName(ruleName string, exported map[string]bool) string {
 
 
 
+func emitPublicConstructor(buf *strings.Builder, ri RuleInfo) {
+	typeName := ri.Name
+	fmt.Fprintf(buf, "// New%s creates a %s view from a parsed tree.\n", typeName, typeName)
+	fmt.Fprintf(buf, "func New%s(t Tree) %s {\n", typeName, typeName)
+	fmt.Fprintf(buf, "\troot, ok := t.Root()\n")
+	fmt.Fprintf(buf, "\tif !ok {\n")
+	fmt.Fprintf(buf, "\t\treturn %s{}\n", typeName)
+	fmt.Fprintf(buf, "\t}\n")
+	fmt.Fprintf(buf, "\treturn new%s(t.(*tree), root)\n", typeName)
+	fmt.Fprintf(buf, "}\n\n")
+}
+
 func emitTextMethod(buf *strings.Builder, viewName string) {
-	fmt.Fprintf(buf, "// Text returns the full matched text of this node.\n")
-	fmt.Fprintf(buf, "func (v %s) Text() string {\n", viewName)
+	fmt.Fprintf(buf, "// String returns the full matched text of this node.\n")
+	fmt.Fprintf(buf, "func (v %s) String() string {\n", viewName)
 	fmt.Fprintf(buf, "\treturn v.t.UnsafeText(v.id)\n")
 	fmt.Fprintf(buf, "}\n\n")
+}
+
+// accessorName returns the method name for a child accessor. If the name
+// would be "String", it's renamed to "StringNode" to avoid colliding with
+// the fmt.Stringer interface.
+func accessorName(ruleName string) string {
+	if ruleName == "String" {
+		return "StringNode"
+	}
+	return ruleName
 }
 
 // namedChild describes a non-literal, non-Spacing child in a sequence that
@@ -170,9 +198,13 @@ type namedChild struct {
 func sequenceNamedChildren(ri RuleInfo, rules map[string]RuleInfo) []namedChild {
 	seen := map[string]bool{}
 	counts := map[string]int{}
+	anyRepeated := map[string]bool{}
 	for _, c := range ri.Children {
 		if !c.IsLiteral && c.RuleName != "" {
 			counts[c.RuleName]++
+			if c.Repeated {
+				anyRepeated[c.RuleName] = true
+			}
 		}
 	}
 
@@ -193,7 +225,7 @@ func sequenceNamedChildren(ri RuleInfo, rules map[string]RuleInfo) []namedChild 
 		out = append(out, namedChild{
 			ruleName: c.RuleName,
 			rule:     childRule,
-			repeated: counts[c.RuleName] > 1,
+			repeated: counts[c.RuleName] > 1 || anyRepeated[c.RuleName],
 		})
 	}
 	return out
@@ -286,8 +318,9 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 }
 
 func emitLeafAccessor(buf *strings.Builder, viewName string, nc namedChild) {
-	fmt.Fprintf(buf, "// %s returns the %s text.\n", nc.ruleName, nc.ruleName)
-	fmt.Fprintf(buf, "func (v %s) %s() string {\n", viewName, nc.ruleName)
+	methName := accessorName(nc.ruleName)
+	fmt.Fprintf(buf, "// %s returns the %s text.\n", methName, nc.ruleName)
+	fmt.Fprintf(buf, "func (v %s) %s() string {\n", viewName, methName)
 	fmt.Fprintf(buf, "\tif !v._has%s {\n", nc.ruleName)
 	fmt.Fprintf(buf, "\t\treturn \"\"\n")
 	fmt.Fprintf(buf, "\t}\n")
@@ -298,8 +331,9 @@ func emitLeafAccessor(buf *strings.Builder, viewName string, nc namedChild) {
 func emitSingleAccessor(buf *strings.Builder, viewName string, nc namedChild, rules map[string]RuleInfo, exported map[string]bool) {
 	childViewName := viewTypeName(nc.ruleName, exported)
 	isSeq := nc.rule.Kind == RuleSequence
-	fmt.Fprintf(buf, "// %s returns a view over the %s child.\n", nc.ruleName, nc.ruleName)
-	fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, nc.ruleName, childViewName)
+	methName := accessorName(nc.ruleName)
+	fmt.Fprintf(buf, "// %s returns a view over the %s child.\n", methName, nc.ruleName)
+	fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, methName, childViewName)
 	fmt.Fprintf(buf, "\tif !v._has%s {\n", nc.ruleName)
 	fmt.Fprintf(buf, "\t\treturn %s{}, false\n", childViewName)
 	fmt.Fprintf(buf, "\t}\n")
@@ -314,25 +348,26 @@ func emitSingleAccessor(buf *strings.Builder, viewName string, nc namedChild, ru
 func emitRepeatedAccessor(buf *strings.Builder, viewName string, nc namedChild, rules map[string]RuleInfo, exported map[string]bool) {
 	childViewName := viewTypeName(nc.ruleName, exported)
 	isSeq := nc.rule.Kind == RuleSequence
+	methName := accessorName(nc.ruleName)
 
 	if nc.rule.Kind == RuleLeaf {
-		fmt.Fprintf(buf, "// %sCount returns the number of %s children.\n", nc.ruleName, nc.ruleName)
-		fmt.Fprintf(buf, "func (v %s) %sCount() int {\n", viewName, nc.ruleName)
+		fmt.Fprintf(buf, "// %sCount returns the number of %s children.\n", methName, nc.ruleName)
+		fmt.Fprintf(buf, "func (v %s) %sCount() int {\n", viewName, methName)
 		fmt.Fprintf(buf, "\treturn len(v._%s)\n", fieldName(nc.ruleName))
 		fmt.Fprintf(buf, "}\n\n")
 
-		fmt.Fprintf(buf, "// %sAt returns the text of the i-th %s child.\n", nc.ruleName, nc.ruleName)
-		fmt.Fprintf(buf, "func (v %s) %sAt(i int) string {\n", viewName, nc.ruleName)
+		fmt.Fprintf(buf, "// %sAt returns the text of the i-th %s child.\n", methName, nc.ruleName)
+		fmt.Fprintf(buf, "func (v %s) %sAt(i int) string {\n", viewName, methName)
 		fmt.Fprintf(buf, "\treturn v.t.UnsafeText(v._%s[i])\n", fieldName(nc.ruleName))
 		fmt.Fprintf(buf, "}\n\n")
 	} else {
-		fmt.Fprintf(buf, "// %sCount returns the number of %s children.\n", nc.ruleName, nc.ruleName)
-		fmt.Fprintf(buf, "func (v %s) %sCount() int {\n", viewName, nc.ruleName)
+		fmt.Fprintf(buf, "// %sCount returns the number of %s children.\n", methName, nc.ruleName)
+		fmt.Fprintf(buf, "func (v %s) %sCount() int {\n", viewName, methName)
 		fmt.Fprintf(buf, "\treturn len(v._%s)\n", fieldName(nc.ruleName))
 		fmt.Fprintf(buf, "}\n\n")
 
-		fmt.Fprintf(buf, "// %sAt returns a view over the i-th %s child.\n", nc.ruleName, nc.ruleName)
-		fmt.Fprintf(buf, "func (v %s) %sAt(i int) %s {\n", viewName, nc.ruleName, childViewName)
+		fmt.Fprintf(buf, "// %sAt returns a view over the i-th %s child.\n", methName, nc.ruleName)
+		fmt.Fprintf(buf, "func (v %s) %sAt(i int) %s {\n", viewName, methName, childViewName)
 		if isSeq {
 			fmt.Fprintf(buf, "\treturn new%s(v.t, v._%s[i])\n", nc.ruleName, fieldName(nc.ruleName))
 		} else {
@@ -364,9 +399,10 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 		}
 		isSeq := childRule.Kind == RuleSequence
 
+		methName := accessorName(choice)
 		if childRule.Kind == RuleLeaf {
-			fmt.Fprintf(buf, "// %s returns the %s text if this alternative matched.\n", choice, choice)
-			fmt.Fprintf(buf, "func (v %s) %s() (string, bool) {\n", viewName, choice)
+			fmt.Fprintf(buf, "// %s returns the %s text if this alternative matched.\n", methName, choice)
+			fmt.Fprintf(buf, "func (v %s) %s() (string, bool) {\n", viewName, methName)
 			fmt.Fprintf(buf, "\tchild, ok := v.t.Child(v.id)\n")
 			fmt.Fprintf(buf, "\tif !ok || !v.t.IsNamed(child, _nameID_%s) {\n", choice)
 			fmt.Fprintf(buf, "\t\treturn \"\", false\n")
@@ -375,8 +411,8 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 			fmt.Fprintf(buf, "}\n\n")
 		} else {
 			childViewName := viewTypeName(choice, exported)
-			fmt.Fprintf(buf, "// %s returns a %s if this alternative matched.\n", choice, childViewName)
-			fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, choice, childViewName)
+			fmt.Fprintf(buf, "// %s returns a %s if this alternative matched.\n", methName, childViewName)
+			fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, methName, childViewName)
 			fmt.Fprintf(buf, "\tchild, ok := v.t.Child(v.id)\n")
 			fmt.Fprintf(buf, "\tif !ok || !v.t.IsNamed(child, _nameID_%s) {\n", choice)
 			fmt.Fprintf(buf, "\t\treturn %s{}, false\n", childViewName)
@@ -468,8 +504,9 @@ func emitAliasView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo,
 
 	childViewName := viewTypeName(ri.Inner, exported)
 	isSeq := innerRule.Kind == RuleSequence
-	fmt.Fprintf(buf, "// %s returns a view over the aliased %s rule.\n", ri.Inner, ri.Inner)
-	fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, ri.Inner, childViewName)
+	methName := accessorName(ri.Inner)
+	fmt.Fprintf(buf, "// %s returns a view over the aliased %s rule.\n", methName, ri.Inner)
+	fmt.Fprintf(buf, "func (v %s) %s() (%s, bool) {\n", viewName, methName, childViewName)
 	fmt.Fprintf(buf, "\tchild, ok := v.t.Child(v.id)\n")
 	fmt.Fprintf(buf, "\tif !ok {\n")
 	fmt.Fprintf(buf, "\t\treturn %s{}, false\n", childViewName)

@@ -35,8 +35,8 @@ type JSON struct {
 	_hasEOF   bool
 }
 
-// Text returns the full matched text of this node.
-func (v JSON) Text() string {
+// String returns the full matched text of this node.
+func (v JSON) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -98,14 +98,13 @@ func (v JSON) EOF() string {
 // Array is a read-only view over a Array node.
 // Child references are resolved once at construction time.
 type Array struct {
-	t         *tree
-	id        NodeID
-	_value    NodeID
-	_hasValue bool
+	t      *tree
+	id     NodeID
+	_value []NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v Array) Text() string {
+// String returns the full matched text of this node.
+func (v Array) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -124,55 +123,53 @@ func newArray(t *tree, id NodeID) Array {
 			}
 			switch t.NameID(cid) {
 			case _nameID_Value:
-				if !v._hasValue {
-					v._value = cid
-					v._hasValue = true
-				}
+				v._value = append(v._value, cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
 		case _nameID_Value:
-			v._value = child
-			v._hasValue = true
+			v._value = append(v._value, child)
 		}
 	}
 	return v
 }
 
-// Value returns a view over the Value child.
-func (v Array) Value() (Value, bool) {
-	if !v._hasValue {
-		return Value{}, false
-	}
-	return Value{t: v.t, id: v._value}, true
+// ValueCount returns the number of Value children.
+func (v Array) ValueCount() int {
+	return len(v._value)
 }
 
-// char_view is a read-only view over a Char node.
-type char_view struct {
+// ValueAt returns a view over the i-th Value child.
+func (v Array) ValueAt(i int) Value {
+	return Value{t: v.t, id: v._value[i]}
+}
+
+// Char is a read-only view over a Char node.
+type Char struct {
 	t  *tree
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v char_view) Text() string {
+// String returns the full matched text of this node.
+func (v Char) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// Escape returns a escape_view if this alternative matched.
-func (v char_view) Escape() (escape_view, bool) {
+// Escape returns a Escape if this alternative matched.
+func (v Char) Escape() (Escape, bool) {
 	child, ok := v.t.Child(v.id)
 	if !ok || !v.t.IsNamed(child, _nameID_Escape) {
-		return escape_view{}, false
+		return Escape{}, false
 	}
 	return newEscape(v.t, child), true
 }
 
-// Unicode returns a unicode_view if this alternative matched.
-func (v char_view) Unicode() (unicode_view, bool) {
+// Unicode returns a Unicode if this alternative matched.
+func (v Char) Unicode() (Unicode, bool) {
 	child, ok := v.t.Child(v.id)
 	if !ok || !v.t.IsNamed(child, _nameID_Unicode) {
-		return unicode_view{}, false
+		return Unicode{}, false
 	}
 	return newUnicode(v.t, child), true
 }
@@ -183,8 +180,8 @@ type eOF_view struct {
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v eOF_view) Text() string {
+// String returns the full matched text of this node.
+func (v eOF_view) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -194,25 +191,25 @@ type eOL_view struct {
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v eOL_view) Text() string {
+// String returns the full matched text of this node.
+func (v eOL_view) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// escape_view is a read-only view over a Escape node.
+// Escape is a read-only view over a Escape node.
 // Child references are resolved once at construction time.
-type escape_view struct {
+type Escape struct {
 	t  *tree
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v escape_view) Text() string {
+// String returns the full matched text of this node.
+func (v Escape) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newEscape(t *tree, id NodeID) escape_view {
-	v := escape_view{t: t, id: id}
+func newEscape(t *tree, id NodeID) Escape {
+	v := Escape{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -234,20 +231,20 @@ func newEscape(t *tree, id NodeID) escape_view {
 	return v
 }
 
-// exp_view is a read-only view over a Exp node.
+// Exp is a read-only view over a Exp node.
 // Child references are resolved once at construction time.
-type exp_view struct {
+type Exp struct {
 	t  *tree
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v exp_view) Text() string {
+// String returns the full matched text of this node.
+func (v Exp) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newExp(t *tree, id NodeID) exp_view {
-	v := exp_view{t: t, id: id}
+func newExp(t *tree, id NodeID) Exp {
+	v := Exp{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -269,20 +266,20 @@ func newExp(t *tree, id NodeID) exp_view {
 	return v
 }
 
-// frac_view is a read-only view over a Frac node.
+// Frac is a read-only view over a Frac node.
 // Child references are resolved once at construction time.
-type frac_view struct {
+type Frac struct {
 	t  *tree
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v frac_view) Text() string {
+// String returns the full matched text of this node.
+func (v Frac) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newFrac(t *tree, id NodeID) frac_view {
-	v := frac_view{t: t, id: id}
+func newFrac(t *tree, id NodeID) Frac {
+	v := Frac{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -310,19 +307,19 @@ type hex_view struct {
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v hex_view) Text() string {
+// String returns the full matched text of this node.
+func (v hex_view) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// int_view is a read-only view over a Int node.
-type int_view struct {
+// Int is a read-only view over a Int node.
+type Int struct {
 	t  *tree
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v int_view) Text() string {
+// String returns the full matched text of this node.
+func (v Int) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -337,8 +334,8 @@ type Member struct {
 	_hasValue  bool
 }
 
-// Text returns the full matched text of this node.
-func (v Member) Text() string {
+// String returns the full matched text of this node.
+func (v Member) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -381,8 +378,8 @@ func newMember(t *tree, id NodeID) Member {
 	return v
 }
 
-// String returns a view over the String child.
-func (v Member) String() (String, bool) {
+// StringNode returns a view over the String child.
+func (v Member) StringNode() (String, bool) {
 	if !v._hasString {
 		return String{}, false
 	}
@@ -400,12 +397,18 @@ func (v Member) Value() (Value, bool) {
 // Number is a read-only view over a Number node.
 // Child references are resolved once at construction time.
 type Number struct {
-	t  *tree
-	id NodeID
+	t        *tree
+	id       NodeID
+	_int     NodeID
+	_hasInt  bool
+	_frac    NodeID
+	_hasFrac bool
+	_exp     NodeID
+	_hasExp  bool
 }
 
-// Text returns the full matched text of this node.
-func (v Number) Text() string {
+// String returns the full matched text of this node.
+func (v Number) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -423,26 +426,73 @@ func newNumber(t *tree, id NodeID) Number {
 				continue
 			}
 			switch t.NameID(cid) {
+			case _nameID_Int:
+				if !v._hasInt {
+					v._int = cid
+					v._hasInt = true
+				}
+			case _nameID_Frac:
+				if !v._hasFrac {
+					v._frac = cid
+					v._hasFrac = true
+				}
+			case _nameID_Exp:
+				if !v._hasExp {
+					v._exp = cid
+					v._hasExp = true
+				}
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
+		case _nameID_Int:
+			v._int = child
+			v._hasInt = true
+		case _nameID_Frac:
+			v._frac = child
+			v._hasFrac = true
+		case _nameID_Exp:
+			v._exp = child
+			v._hasExp = true
 		}
 	}
 	return v
 }
 
+// Int returns a view over the Int child.
+func (v Number) Int() (Int, bool) {
+	if !v._hasInt {
+		return Int{}, false
+	}
+	return Int{t: v.t, id: v._int}, true
+}
+
+// Frac returns a view over the Frac child.
+func (v Number) Frac() (Frac, bool) {
+	if !v._hasFrac {
+		return Frac{}, false
+	}
+	return newFrac(v.t, v._frac), true
+}
+
+// Exp returns a view over the Exp child.
+func (v Number) Exp() (Exp, bool) {
+	if !v._hasExp {
+		return Exp{}, false
+	}
+	return newExp(v.t, v._exp), true
+}
+
 // Object is a read-only view over a Object node.
 // Child references are resolved once at construction time.
 type Object struct {
-	t          *tree
-	id         NodeID
-	_member    NodeID
-	_hasMember bool
+	t       *tree
+	id      NodeID
+	_member []NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v Object) Text() string {
+// String returns the full matched text of this node.
+func (v Object) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -461,28 +511,26 @@ func newObject(t *tree, id NodeID) Object {
 			}
 			switch t.NameID(cid) {
 			case _nameID_Member:
-				if !v._hasMember {
-					v._member = cid
-					v._hasMember = true
-				}
+				v._member = append(v._member, cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
 		case _nameID_Member:
-			v._member = child
-			v._hasMember = true
+			v._member = append(v._member, child)
 		}
 	}
 	return v
 }
 
-// Member returns a view over the Member child.
-func (v Object) Member() (Member, bool) {
-	if !v._hasMember {
-		return Member{}, false
-	}
-	return newMember(v.t, v._member), true
+// MemberCount returns the number of Member children.
+func (v Object) MemberCount() int {
+	return len(v._member)
+}
+
+// MemberAt returns a view over the i-th Member child.
+func (v Object) MemberAt(i int) Member {
+	return newMember(v.t, v._member[i])
 }
 
 // space_view is a read-only view over a Space node.
@@ -491,8 +539,8 @@ type space_view struct {
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v space_view) Text() string {
+// String returns the full matched text of this node.
+func (v space_view) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -502,20 +550,21 @@ type spacing_view struct {
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v spacing_view) Text() string {
+// String returns the full matched text of this node.
+func (v spacing_view) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
 // String is a read-only view over a String node.
 // Child references are resolved once at construction time.
 type String struct {
-	t  *tree
-	id NodeID
+	t     *tree
+	id    NodeID
+	_char []NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v String) Text() string {
+// String returns the full matched text of this node.
+func (v String) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -533,30 +582,44 @@ func newString(t *tree, id NodeID) String {
 				continue
 			}
 			switch t.NameID(cid) {
+			case _nameID_Char:
+				v._char = append(v._char, cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
+		case _nameID_Char:
+			v._char = append(v._char, child)
 		}
 	}
 	return v
 }
 
-// unicode_view is a read-only view over a Unicode node.
+// CharCount returns the number of Char children.
+func (v String) CharCount() int {
+	return len(v._char)
+}
+
+// CharAt returns a view over the i-th Char child.
+func (v String) CharAt(i int) Char {
+	return Char{t: v.t, id: v._char[i]}
+}
+
+// Unicode is a read-only view over a Unicode node.
 // Child references are resolved once at construction time.
-type unicode_view struct {
+type Unicode struct {
 	t    *tree
 	id   NodeID
 	_hex []NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v unicode_view) Text() string {
+// String returns the full matched text of this node.
+func (v Unicode) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newUnicode(t *tree, id NodeID) unicode_view {
-	v := unicode_view{t: t, id: id}
+func newUnicode(t *tree, id NodeID) Unicode {
+	v := Unicode{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -583,12 +646,12 @@ func newUnicode(t *tree, id NodeID) unicode_view {
 }
 
 // HexCount returns the number of Hex children.
-func (v unicode_view) HexCount() int {
+func (v Unicode) HexCount() int {
 	return len(v._hex)
 }
 
 // HexAt returns the text of the i-th Hex child.
-func (v unicode_view) HexAt(i int) string {
+func (v Unicode) HexAt(i int) string {
 	return v.t.UnsafeText(v._hex[i])
 }
 
@@ -598,8 +661,8 @@ type Value struct {
 	id NodeID
 }
 
-// Text returns the full matched text of this node.
-func (v Value) Text() string {
+// String returns the full matched text of this node.
+func (v Value) String() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -621,8 +684,8 @@ func (v Value) Array() (Array, bool) {
 	return newArray(v.t, child), true
 }
 
-// String returns a String if this alternative matched.
-func (v Value) String() (String, bool) {
+// StringNode returns a String if this alternative matched.
+func (v Value) StringNode() (String, bool) {
 	child, ok := v.t.Child(v.id)
 	if !ok || !v.t.IsNamed(child, _nameID_String) {
 		return String{}, false
@@ -637,4 +700,13 @@ func (v Value) Number() (Number, bool) {
 		return Number{}, false
 	}
 	return newNumber(v.t, child), true
+}
+
+// NewJSON creates a JSON view from a parsed tree.
+func NewJSON(t Tree) JSON {
+	root, ok := t.Root()
+	if !ok {
+		return JSON{}
+	}
+	return newJSON(t.(*tree), root)
 }

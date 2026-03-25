@@ -52,22 +52,21 @@ func BenchmarkParseOnly(b *testing.B) {
 func walkValue(v Value) int {
 	count := 1
 	if obj, ok := v.Object(); ok {
-		mem, ok := obj.Member()
-		if ok {
-			_ = mem.Text()
+		for i := 0; i < obj.MemberCount(); i++ {
+			mem := obj.MemberAt(i)
+			_ = mem.String()
 			if val, ok := mem.Value(); ok {
 				count += walkValue(val)
 			}
 		}
 	} else if arr, ok := v.Array(); ok {
-		val, ok := arr.Value()
-		if ok {
-			count += walkValue(val)
+		for i := 0; i < arr.ValueCount(); i++ {
+			count += walkValue(arr.ValueAt(i))
 		}
-	} else if str, ok := v.String(); ok {
-		_ = str.Text()
+	} else if str, ok := v.StringNode(); ok {
+		_ = str.String()
 	} else if num, ok := v.Number(); ok {
-		_ = num.Text()
+		_ = num.String()
 	}
 	return count
 }

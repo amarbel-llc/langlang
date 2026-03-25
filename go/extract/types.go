@@ -59,6 +59,7 @@ type RuleInfo struct {
 type RuleChild struct {
 	RuleName  string // rule or capture name; empty for literals
 	IsLiteral bool   // true for structural punctuation (dead child)
+	Repeated  bool   // true when child comes from a ZeroOrMore or OneOrMore
 	Index     int    // position in SequenceNode.Items
 }
 
