@@ -4,33 +4,24 @@
 package jsonviews
 
 const (
-	_nameID_Array            int32 = 21
-	_nameID_Char             int32 = 24
-	_nameID_EOF              int32 = 19
-	_nameID_EOL              int32 = 34
-	_nameID_Escape           int32 = 25
-	_nameID_Exp              int32 = 31
-	_nameID_Frac             int32 = 30
-	_nameID_Hex              int32 = 27
-	_nameID_Int              int32 = 29
-	_nameID_JSON             int32 = 16
-	_nameID_Member           int32 = 32
-	_nameID_Number           int32 = 28
-	_nameID_Object           int32 = 20
-	_nameID_Space            int32 = 33
-	_nameID_Spacing          int32 = 17
-	_nameID_String           int32 = 22
-	_nameID_Unicode          int32 = 26
-	_nameID_Value            int32 = 18
-	_nameID_arrayClose       int32 = 4
-	_nameID_eof              int32 = 2
-	_nameID_itemAfterComma   int32 = 3
-	_nameID_jsonValue        int32 = 1
-	_nameID_memberAfterComma int32 = 5
-	_nameID_memberColon      int32 = 7
-	_nameID_memberValue      int32 = 8
-	_nameID_objectClose      int32 = 6
-	_nameID_strClose         int32 = 11
+	_nameID_Array   int32 = 21
+	_nameID_Char    int32 = 24
+	_nameID_EOF     int32 = 19
+	_nameID_EOL     int32 = 34
+	_nameID_Escape  int32 = 25
+	_nameID_Exp     int32 = 31
+	_nameID_Frac    int32 = 30
+	_nameID_Hex     int32 = 27
+	_nameID_Int     int32 = 29
+	_nameID_JSON    int32 = 16
+	_nameID_Member  int32 = 32
+	_nameID_Number  int32 = 28
+	_nameID_Object  int32 = 20
+	_nameID_Space   int32 = 33
+	_nameID_Spacing int32 = 17
+	_nameID_String  int32 = 22
+	_nameID_Unicode int32 = 26
+	_nameID_Value   int32 = 18
 )
 
 // JSONView is a read-only view over a JSON node.
@@ -646,223 +637,4 @@ func (v ValueView) Number() (NumberView, bool) {
 		return NumberView{}, false
 	}
 	return newNumberView(v.t, child), true
-}
-
-// arrayCloseView is a read-only view over a arrayClose node.
-// Child references are resolved once at construction time.
-type arrayCloseView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v arrayCloseView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-func newarrayCloseView(t *tree, id NodeID) arrayCloseView {
-	v := arrayCloseView{t: t, id: id}
-	child, ok := t.Child(id)
-	if !ok {
-		return v
-	}
-	if t.Type(child) == NodeType_Sequence {
-		cr := t.childRanges[t.nodes[child].childID]
-		for i := cr.start; i < cr.end; i++ {
-			cid := t.children[i]
-			if t.Type(cid) != NodeType_Node {
-				continue
-			}
-			switch t.NameID(cid) {
-			}
-		}
-	} else if t.Type(child) == NodeType_Node {
-		switch t.NameID(child) {
-		}
-	}
-	return v
-}
-
-// eofView is a read-only view over a eof node.
-type eofView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v eofView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-// itemAfterCommaView is a read-only view over a itemAfterComma node.
-type itemAfterCommaView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v itemAfterCommaView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-// jsonValueView is a read-only view over a jsonValue node.
-// Child references are resolved once at construction time.
-type jsonValueView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v jsonValueView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-func newjsonValueView(t *tree, id NodeID) jsonValueView {
-	v := jsonValueView{t: t, id: id}
-	child, ok := t.Child(id)
-	if !ok {
-		return v
-	}
-	if t.Type(child) == NodeType_Sequence {
-		cr := t.childRanges[t.nodes[child].childID]
-		for i := cr.start; i < cr.end; i++ {
-			cid := t.children[i]
-			if t.Type(cid) != NodeType_Node {
-				continue
-			}
-			switch t.NameID(cid) {
-			}
-		}
-	} else if t.Type(child) == NodeType_Node {
-		switch t.NameID(child) {
-		}
-	}
-	return v
-}
-
-// memberAfterCommaView is a read-only view over a memberAfterComma node.
-type memberAfterCommaView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v memberAfterCommaView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-// memberColonView is a read-only view over a memberColon node.
-// Child references are resolved once at construction time.
-type memberColonView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v memberColonView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-func newmemberColonView(t *tree, id NodeID) memberColonView {
-	v := memberColonView{t: t, id: id}
-	child, ok := t.Child(id)
-	if !ok {
-		return v
-	}
-	if t.Type(child) == NodeType_Sequence {
-		cr := t.childRanges[t.nodes[child].childID]
-		for i := cr.start; i < cr.end; i++ {
-			cid := t.children[i]
-			if t.Type(cid) != NodeType_Node {
-				continue
-			}
-			switch t.NameID(cid) {
-			}
-		}
-	} else if t.Type(child) == NodeType_Node {
-		switch t.NameID(child) {
-		}
-	}
-	return v
-}
-
-// memberValueView is a read-only view over a memberValue node.
-type memberValueView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v memberValueView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-// objectCloseView is a read-only view over a objectClose node.
-// Child references are resolved once at construction time.
-type objectCloseView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v objectCloseView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-func newobjectCloseView(t *tree, id NodeID) objectCloseView {
-	v := objectCloseView{t: t, id: id}
-	child, ok := t.Child(id)
-	if !ok {
-		return v
-	}
-	if t.Type(child) == NodeType_Sequence {
-		cr := t.childRanges[t.nodes[child].childID]
-		for i := cr.start; i < cr.end; i++ {
-			cid := t.children[i]
-			if t.Type(cid) != NodeType_Node {
-				continue
-			}
-			switch t.NameID(cid) {
-			}
-		}
-	} else if t.Type(child) == NodeType_Node {
-		switch t.NameID(child) {
-		}
-	}
-	return v
-}
-
-// strCloseView is a read-only view over a strClose node.
-// Child references are resolved once at construction time.
-type strCloseView struct {
-	t  *tree
-	id NodeID
-}
-
-// Text returns the full matched text of this node.
-func (v strCloseView) Text() string {
-	return v.t.UnsafeText(v.id)
-}
-
-func newstrCloseView(t *tree, id NodeID) strCloseView {
-	v := strCloseView{t: t, id: id}
-	child, ok := t.Child(id)
-	if !ok {
-		return v
-	}
-	if t.Type(child) == NodeType_Sequence {
-		cr := t.childRanges[t.nodes[child].childID]
-		for i := cr.start; i < cr.end; i++ {
-			cid := t.children[i]
-			if t.Type(cid) != NodeType_Node {
-				continue
-			}
-			switch t.NameID(cid) {
-			}
-		}
-	} else if t.Type(child) == NodeType_Node {
-		switch t.NameID(child) {
-		}
-	}
-	return v
 }
