@@ -48,8 +48,8 @@ func BenchmarkParseOnly(b *testing.B) {
 	}
 }
 
-// walkValue recursively walks a ValueView, touching every leaf via views.
-func walkValue(v ValueView) int {
+// walkValue recursively walks a Value, touching every leaf via views.
+func walkValue(v Value) int {
 	count := 1
 	if obj, ok := v.Object(); ok {
 		mem, ok := obj.Member()
@@ -94,7 +94,7 @@ func BenchmarkParseAndWalkViews(b *testing.B) {
 				if !ok {
 					b.Fatal("no root")
 				}
-				json := newJSONView(tr, root)
+				json := newJSON(tr, root)
 				val, ok := json.Value()
 				if !ok {
 					b.Fatal("no Value")

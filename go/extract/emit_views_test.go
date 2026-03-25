@@ -13,10 +13,10 @@ func TestEmitViewLeaf(t *testing.T) {
 	code := emitViewTypes(rules, "Ident")
 
 	checks := []string{
-		"type IdentView struct",
+		"type Ident struct",
 		"t *tree",
 		"id NodeID",
-		"func (v IdentView) Text() string",
+		"func (v Ident) Text() string",
 		"v.t.UnsafeText(v.id)",
 	}
 	for _, c := range checks {
@@ -37,15 +37,15 @@ func TestEmitViewChoice(t *testing.T) {
 	code := emitViewTypes(rules, "Value")
 
 	checks := []string{
-		"type ValueView struct",
-		"func (v ValueView) Object() (ObjectView, bool)",
-		"func (v ValueView) String() (string, bool)",
+		"type Value struct",
+		"func (v Value) Object() (Object, bool)",
+		"func (v Value) String() (string, bool)",
 		"_nameID_Object",
 		"_nameID_String",
 		"t.IsNamed(child,",
 		"UnsafeText",
 		// Choice for sequence child should use constructor
-		"newObjectView(v.t, child)",
+		"newObject(v.t, child)",
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -69,24 +69,24 @@ func TestEmitViewSequence(t *testing.T) {
 	code := emitViewTypes(rules, "Member")
 
 	checks := []string{
-		"type MemberView struct",
+		"type Member struct",
 		// Pre-resolved fields
 		"_key NodeID",
 		"_hasKey bool",
 		"_value NodeID",
 		"_hasValue bool",
 		// Constructor
-		"func newMemberView(t *tree, id NodeID) MemberView",
+		"func newMember(t *tree, id NodeID) Member",
 		"t.childRanges",
 		"t.children[i]",
 		"case _nameID_Key:",
 		"case _nameID_Value:",
 		// Leaf accessor is O(1)
-		"func (v MemberView) Key() string",
+		"func (v Member) Key() string",
 		"v._hasKey",
 		"v.t.UnsafeText(v._key)",
 		// Non-leaf accessor is O(1)
-		"func (v MemberView) Value() (ValueView, bool)",
+		"func (v Member) Value() (Value, bool)",
 		"v._hasValue",
 	}
 	for _, c := range checks {
@@ -110,8 +110,8 @@ func TestEmitViewSequenceRepeated(t *testing.T) {
 
 	checks := []string{
 		"_value []NodeID",
-		"func (v ArrayView) ValueCount() int",
-		"func (v ArrayView) ValueAt(i int) ValueView",
+		"func (v Array) ValueCount() int",
+		"func (v Array) ValueAt(i int) Value",
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -129,14 +129,14 @@ func TestEmitViewRepeat(t *testing.T) {
 	code := emitViewTypes(rules, "Items")
 
 	checks := []string{
-		"type ItemsView struct",
-		"func (v ItemsView) VisitItem(fn func(ItemView) bool)",
+		"type Items struct",
+		"func (v Items) VisitItem(fn func(Item) bool)",
 		"_nameID_Item",
 		// Direct iteration, no Visit
 		"t.childRanges",
 		"t.children[i]",
 		// Sequence child uses constructor
-		"newItemView(v.t, cid)",
+		"newItem(v.t, cid)",
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -154,10 +154,10 @@ func TestEmitViewAlias(t *testing.T) {
 	code := emitViewTypes(rules, "Expr")
 
 	checks := []string{
-		"type ExprView struct",
-		"func (v ExprView) Term() (TermView, bool)",
+		"type Expr struct",
+		"func (v Expr) Term() (Term, bool)",
 		// Sequence child uses constructor
-		"newTermView(v.t, child)",
+		"newTerm(v.t, child)",
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -175,8 +175,8 @@ func TestEmitViewOptional(t *testing.T) {
 	code := emitViewTypes(rules, "MaybeVal")
 
 	checks := []string{
-		"type MaybeValView struct",
-		"func (v MaybeValView) Val() (ValView, bool)",
+		"type MaybeVal struct",
+		"func (v MaybeVal) Val() (Val, bool)",
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -191,7 +191,7 @@ func TestEmitViewSkipsNegativeNameID(t *testing.T) {
 	}
 
 	code := emitViewTypes(rules, "")
-	if strings.Contains(code, "RecoveryView") {
+	if strings.Contains(code, "Recovery") {
 		t.Error("should skip rules with NameID < 0")
 	}
 }
@@ -204,13 +204,13 @@ func TestEmitViewSkipsLowercaseRules(t *testing.T) {
 	}
 
 	code := emitViewTypes(rules, "")
-	if strings.Contains(code, "arrayCloseView") {
+	if strings.Contains(code, "arrayClose") {
 		t.Error("should skip lowercase rules")
 	}
-	if strings.Contains(code, "eofView") {
+	if strings.Contains(code, "eof") {
 		t.Error("should skip lowercase rules")
 	}
-	if !strings.Contains(code, "ValueView") {
+	if !strings.Contains(code, "Value") {
 		t.Error("should include uppercase rules")
 	}
 }
@@ -223,11 +223,11 @@ func TestEmitViewRootFirst(t *testing.T) {
 	}
 
 	code := emitViewTypes(rules, "Root")
-	// Root is reachable → exported "RootView".
-	// Alpha and Zebra are unreachable → unexported "alphaView", "zebraView".
-	rootIdx := strings.Index(code, "RootView")
-	alphaIdx := strings.Index(code, "alphaView")
-	zebraIdx := strings.Index(code, "zebraView")
+	// Root is reachable → exported "Root".
+	// Alpha and Zebra are unreachable → unexported "alpha_view", "zebra_view".
+	rootIdx := strings.Index(code, "type Root struct")
+	alphaIdx := strings.Index(code, "type alpha_view struct")
+	zebraIdx := strings.Index(code, "type zebra_view struct")
 
 	if rootIdx < 0 || alphaIdx < 0 || zebraIdx < 0 {
 		t.Fatalf("missing view types in:\n%s", code)
@@ -256,8 +256,8 @@ func TestRenderViewsFile(t *testing.T) {
 		"DO NOT EDIT",
 		"_nameID_Root",
 		"_nameID_Item",
-		"type RootView struct",
-		"type itemView struct",
+		"type Root struct",
+		"type item_view struct",
 	}
 	for _, c := range checks {
 		if !strings.Contains(output, c) {
