@@ -32,9 +32,10 @@ func Generate(sourceFile, grammarPath string) error {
 		return fmt.Errorf("validation errors:\n  %s", strings.Join(msgs, "\n  "))
 	}
 
+	nameIDs := collectNameIDs(structs, rules)
 	pkg := detectPackageName(sourceFile)
 
-	output, err := RenderFile(pkg, grammarPath, structs, rules)
+	output, err := RenderFile(pkg, grammarPath, nameIDs, structs, rules)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}
@@ -46,6 +47,23 @@ func Generate(sourceFile, grammarPath string) error {
 	}
 
 	return nil
+}
+
+func collectNameIDs(structs []StructInfo, rules map[string]RuleInfo) []NameIDEntry {
+	seen := map[string]bool{}
+	var entries []NameIDEntry
+	for _, si := range structs {
+		for _, f := range si.Fields {
+			if seen[f.LLTag] {
+				continue
+			}
+			seen[f.LLTag] = true
+			if rule, ok := rules[f.LLTag]; ok {
+				entries = append(entries, NameIDEntry{Name: f.LLTag, ID: rule.NameID})
+			}
+		}
+	}
+	return entries
 }
 
 func detectPackageName(sourceFile string) string {
