@@ -16,7 +16,7 @@ func TestEmitViewLeaf(t *testing.T) {
 		"type Ident struct",
 		"t *tree",
 		"id NodeID",
-		"func (v Ident) Text() string",
+		"func (v Ident) String() string",
 		"v.t.UnsafeText(v.id)",
 	}
 	for _, c := range checks {
@@ -39,7 +39,7 @@ func TestEmitViewChoice(t *testing.T) {
 	checks := []string{
 		"type Value struct",
 		"func (v Value) Object() (Object, bool)",
-		"func (v Value) String() (string, bool)",
+		"func (v Value) StringNode() (string, bool)",
 		"_nameID_Object",
 		"_nameID_String",
 		"t.IsNamed(child,",

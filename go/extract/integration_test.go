@@ -124,7 +124,7 @@ func TestIntegrationJSONViews(t *testing.T) {
 		"type String struct",
 		// accessor patterns
 		"func (v Value) Object() (Object, bool)",
-		"func (v Value) String() (String, bool)",
+		"func (v Value) StringNode() (String, bool)",
 		"func (v Value) Number() (Number, bool)",
 		// tree operations
 		"*tree",
