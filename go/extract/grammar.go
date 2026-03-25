@@ -109,6 +109,10 @@ func classifySequenceChildren(seq *langlang.SequenceNode) []RuleChild {
 		case *langlang.OptionalNode:
 			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
 				child.RuleName = id.Value
+			} else if seq2, ok := unwrapTransparent(e.Expr).(*langlang.SequenceNode); ok {
+				nested := classifySequenceChildren(seq2)
+				children = append(children, nested...)
+				continue
 			} else {
 				child.IsLiteral = true
 			}
@@ -116,17 +120,17 @@ func classifySequenceChildren(seq *langlang.SequenceNode) []RuleChild {
 			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
 				child.RuleName = id.Value
 			} else if seq2, ok := unwrapTransparent(e.Expr).(*langlang.SequenceNode); ok {
-				// Pattern like (Value (',' Value)*) — extract named refs
-				for _, seqItem := range seq2.Items {
-					if id, ok := unwrapTransparent(seqItem).(*langlang.IdentifierNode); ok {
-						child.RuleName = id.Value
-						break
-					}
-				}
+				nested := classifySequenceChildren(seq2)
+				children = append(children, nested...)
+				continue
 			}
 		case *langlang.OneOrMoreNode:
 			if id, ok := unwrapTransparent(e.Expr).(*langlang.IdentifierNode); ok {
 				child.RuleName = id.Value
+			} else if seq2, ok := unwrapTransparent(e.Expr).(*langlang.SequenceNode); ok {
+				nested := classifySequenceChildren(seq2)
+				children = append(children, nested...)
+				continue
 			}
 		default:
 			child.IsLiteral = true

@@ -85,3 +85,57 @@ type JSONArray struct {
 
 	t.Logf("Generated output:\n%s", output)
 }
+
+func TestIntegrationJSONViews(t *testing.T) {
+	dir := t.TempDir()
+	grammarPath := jsonGrammarPath()
+
+	err := GenerateViews(grammarPath, "jsonviews", dir, "JSON")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outPath := filepath.Join(dir, "json_views.go")
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("output file not created: %v", err)
+	}
+
+	output := string(data)
+
+	checks := []string{
+		"DO NOT EDIT",
+		"package jsonviews",
+		"-mode=views",
+		// nameID constants for rules
+		"_nameID_JSON",
+		"_nameID_Value",
+		"_nameID_Object",
+		"_nameID_Array",
+		"_nameID_String",
+		"_nameID_Number",
+		"_nameID_Member",
+		// view types
+		"type JSONView struct",
+		"type ValueView struct",
+		"type ObjectView struct",
+		"type MemberView struct",
+		"type ArrayView struct",
+		"type StringView struct",
+		// accessor patterns
+		"func (v ValueView) Object() (ObjectView, bool)",
+		"func (v ValueView) String() (StringView, bool)",
+		"func (v ValueView) Number() (NumberView, bool)",
+		// tree operations
+		"*tree",
+		"NodeID",
+		"UnsafeText",
+	}
+	for _, check := range checks {
+		if !strings.Contains(output, check) {
+			t.Errorf("output missing %q", check)
+		}
+	}
+
+	t.Logf("Generated views output:\n%s", output)
+}
