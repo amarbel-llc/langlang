@@ -11,12 +11,6 @@ import (
 // tree. Sequence views pre-resolve child NodeIDs at construction time so
 // accessors are O(1) field reads.
 //
-// Performance: views add ~1.5% overhead above parse-only with essentially
-// zero allocations (9 allocs for 30KB JSON), compared to struct extraction
-// which allocates per-node (4,713 allocs for the same input). This makes
-// views suitable for hot paths where parse results are selectively accessed
-// rather than fully materialized.
-//
 // Rules reachable from rootRule through view accessors are exported (uppercase).
 // Unreachable rules get unexported (lowercase) type names.
 func emitViewTypes(rules map[string]RuleInfo, rootRule string) string {
