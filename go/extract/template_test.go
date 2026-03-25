@@ -6,6 +6,10 @@ import (
 )
 
 func TestRenderFile(t *testing.T) {
+	nameIDs := []NameIDEntry{
+		{Name: "Value", ID: 0},
+		{Name: "Object", ID: 1},
+	}
 	structs := []StructInfo{{
 		Name: "JSONValue",
 		Fields: []FieldInfo{
@@ -18,7 +22,7 @@ func TestRenderFile(t *testing.T) {
 		"Object": {Kind: RuleSequence},
 	}
 
-	output, err := RenderFile("example", "test.peg", structs, rules)
+	output, err := RenderFile("example", "test.peg", nameIDs, structs, rules)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,6 +32,12 @@ func TestRenderFile(t *testing.T) {
 	}
 	if !strings.Contains(output, "DO NOT EDIT") {
 		t.Error("missing generated code header")
+	}
+	if !strings.Contains(output, "_nameID_Value") {
+		t.Error("missing nameID constant for Value")
+	}
+	if !strings.Contains(output, "_nameID_Object") {
+		t.Error("missing nameID constant for Object")
 	}
 	if !strings.Contains(output, "ExtractJSONValue") {
 		t.Error("missing ExtractJSONValue function")

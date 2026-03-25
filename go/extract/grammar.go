@@ -18,19 +18,16 @@ func AnalyzeGrammar(grammarPath string) (map[string]RuleInfo, error) {
 		return nil, fmt.Errorf("query AST: %w", err)
 	}
 
-	program, err := langlang.QueryProgram(db, grammarPath)
+	bytecode, err := langlang.QueryBytecode(db, grammarPath)
 	if err != nil {
-		return nil, fmt.Errorf("query program: %w", err)
+		return nil, fmt.Errorf("query bytecode: %w", err)
 	}
 
 	rules := make(map[string]RuleInfo, len(grammar.Definitions))
 	for _, def := range grammar.Definitions {
 		ri := classifyRule(def)
-		// Program.StringID returns 0 for unknown names, which is
-		// ambiguous with a valid ID. We use DefsByName to confirm the
-		// name exists in the grammar before trusting the ID.
-		if _, exists := grammar.DefsByName[def.Name]; exists {
-			ri.NameID = int32(program.StringID(def.Name))
+		if id, ok := bytecode.StringID(def.Name); ok {
+			ri.NameID = int32(id)
 		} else {
 			ri.NameID = -1
 		}

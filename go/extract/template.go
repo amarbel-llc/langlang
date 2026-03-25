@@ -8,9 +8,16 @@ import (
 	"text/template"
 )
 
+// NameIDEntry maps a rule name to its integer nameID from the bytecode.
+type NameIDEntry struct {
+	Name string
+	ID   int32
+}
+
 type renderData struct {
 	Package     string
 	GrammarPath string
+	NameIDs     []NameIDEntry
 	Functions   string
 }
 
@@ -23,12 +30,20 @@ import "fmt"
 
 var _ = fmt.Errorf
 
+const (
+{{- range .NameIDs}}
+	_nameID_{{.Name}} int32 = {{.ID}}
+{{- end}}
+)
+
 {{.Functions}}
 `
 
-// RenderFile produces a formatted Go source file containing extraction functions.
+// RenderFile produces a formatted Go source file containing nameID constants
+// and arena-direct extraction functions.
 func RenderFile(
 	pkg, grammarPath string,
+	nameIDs []NameIDEntry,
 	structs []StructInfo,
 	rules map[string]RuleInfo,
 ) (string, error) {
@@ -47,6 +62,7 @@ func RenderFile(
 	err = tmpl.Execute(&buf, renderData{
 		Package:     pkg,
 		GrammarPath: grammarPath,
+		NameIDs:     nameIDs,
 		Functions:   funcs.String(),
 	})
 	if err != nil {

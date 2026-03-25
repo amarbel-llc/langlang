@@ -54,14 +54,25 @@ type JSONArray struct {
 	checks := []string{
 		"DO NOT EDIT",
 		"package json",
+		// nameID constants
+		"_nameID_Object",
+		"_nameID_Array",
+		"_nameID_String",
+		"_nameID_Number",
+		"_nameID_Member",
+		"_nameID_Value",
+		// arena-direct access patterns
+		"*tree",
+		"t.IsNamed(",
+		"t.NameID(cid)",
+		// extraction functions
 		"ExtractJSONValue",
 		"ExtractJSONObject",
 		"ExtractJSONMember",
 		"ExtractJSONArray",
+		// tree operations
 		"NodeType_Node",
 		"NodeType_String",
-		"t.Name(",
-		"t.Type(",
 		"t.Text(",
 		"t.Child(",
 		"t.Visit(",

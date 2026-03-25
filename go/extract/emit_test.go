@@ -21,18 +21,20 @@ func TestEmitChoiceFunction(t *testing.T) {
 
 	code := emitExtractFunction(si, rules, true)
 
-	// Should match by name string
-	if !strings.Contains(code, `"Object"`) {
-		t.Error("missing Object name match")
+	if !strings.Contains(code, "_nameID_Object") {
+		t.Error("missing _nameID_Object reference")
 	}
-	if !strings.Contains(code, `"String"`) {
-		t.Error("missing String name match")
+	if !strings.Contains(code, "_nameID_String") {
+		t.Error("missing _nameID_String reference")
 	}
 	if !strings.Contains(code, "ExtractJSONValue") {
 		t.Error("missing ExtractJSONValue function")
 	}
-	if !strings.Contains(code, "NodeType_Node") {
-		t.Error("missing NodeType_Node check")
+	if !strings.Contains(code, "t.IsNamed(") {
+		t.Error("missing t.IsNamed() call for arena-direct access")
+	}
+	if !strings.Contains(code, "*tree") {
+		t.Error("missing *tree parameter type")
 	}
 }
 
@@ -61,7 +63,10 @@ func TestEmitSequenceFunction(t *testing.T) {
 	if !strings.Contains(code, "t.Text(") {
 		t.Error("missing t.Text() call for string field")
 	}
-	if !strings.Contains(code, "t.Name(cid)") {
-		t.Error("missing t.Name() call for name matching")
+	if !strings.Contains(code, "t.NameID(cid)") {
+		t.Error("missing t.NameID() call for arena-direct name matching")
+	}
+	if !strings.Contains(code, "_nameID_String") {
+		t.Error("missing _nameID_String constant reference")
 	}
 }
