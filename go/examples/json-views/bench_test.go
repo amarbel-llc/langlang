@@ -1,13 +1,14 @@
 package jsonviews
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 )
 
-var inputNames = []string{"30kb", "500kb"}
+var inputNames = []string{"30kb", "500kb", "2000kb"}
 
 func benchInputs(b *testing.B) map[string][]byte {
 	b.Helper()
@@ -71,6 +72,63 @@ func walkValue(v Value) int {
 		_ = v.IsTrue() || v.IsFalse() || v.IsNull()
 	}
 	return count
+}
+
+func buildNestedJSON(depth int) []byte {
+	var b []byte
+	for i := 0; i < depth; i++ {
+		b = append(b, `{"k": `...)
+	}
+	b = append(b, `[1, true, null, "x"]`...)
+	for i := 0; i < depth; i++ {
+		b = append(b, '}')
+	}
+	return b
+}
+
+// BenchmarkNestedParseOnly measures parsing deeply nested documents.
+func BenchmarkNestedParseOnly(b *testing.B) {
+	p := NewJSONParser()
+	p.SetShowFails(false)
+
+	for _, depth := range []int{10, 50, 200} {
+		input := buildNestedJSON(depth)
+		b.Run(fmt.Sprintf("depth%d", depth), func(b *testing.B) {
+			b.SetBytes(int64(len(input)))
+			p.SetInput(input)
+			for n := 0; n < b.N; n++ {
+				if _, err := p.ParseJSON(); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkNestedParseAndWalkViews measures parsing + walking deeply nested documents.
+func BenchmarkNestedParseAndWalkViews(b *testing.B) {
+	p := NewJSONParser()
+	p.SetShowFails(false)
+
+	for _, depth := range []int{10, 50, 200} {
+		input := buildNestedJSON(depth)
+		b.Run(fmt.Sprintf("depth%d", depth), func(b *testing.B) {
+			b.SetBytes(int64(len(input)))
+			p.SetInput(input)
+			for n := 0; n < b.N; n++ {
+				parsed, err := p.ParseJSON()
+				if err != nil {
+					b.Fatal(err)
+				}
+				json := NewJSON(parsed)
+				val, ok := json.Value()
+				if !ok {
+					b.Fatal("no Value")
+				}
+				walkValue(val)
+			}
+		})
+	}
 }
 
 // BenchmarkParseAndWalkViews measures parsing + view-based tree traversal.
