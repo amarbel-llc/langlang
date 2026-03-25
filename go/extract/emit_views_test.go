@@ -223,12 +223,14 @@ func TestEmitViewRootFirst(t *testing.T) {
 	}
 
 	code := emitViewTypes(rules, "Root")
+	// Root is reachable → exported "RootView".
+	// Alpha and Zebra are unreachable → unexported "alphaView", "zebraView".
 	rootIdx := strings.Index(code, "RootView")
-	alphaIdx := strings.Index(code, "AlphaView")
-	zebraIdx := strings.Index(code, "ZebraView")
+	alphaIdx := strings.Index(code, "alphaView")
+	zebraIdx := strings.Index(code, "zebraView")
 
 	if rootIdx < 0 || alphaIdx < 0 || zebraIdx < 0 {
-		t.Fatal("missing view types")
+		t.Fatalf("missing view types in:\n%s", code)
 	}
 	if rootIdx > alphaIdx {
 		t.Error("root should appear before alpha")
@@ -255,7 +257,7 @@ func TestRenderViewsFile(t *testing.T) {
 		"_nameID_Root",
 		"_nameID_Item",
 		"type RootView struct",
-		"type ItemView struct",
+		"type itemView struct",
 	}
 	for _, c := range checks {
 		if !strings.Contains(output, c) {

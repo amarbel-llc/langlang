@@ -148,71 +148,71 @@ func (v ArrayView) Value() (ValueView, bool) {
 	return ValueView{t: v.t, id: v._value}, true
 }
 
-// CharView is a read-only view over a Char node.
-type CharView struct {
+// charView is a read-only view over a Char node.
+type charView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v CharView) Text() string {
+func (v charView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// Escape returns a EscapeView if this alternative matched.
-func (v CharView) Escape() (EscapeView, bool) {
+// Escape returns a escapeView if this alternative matched.
+func (v charView) Escape() (escapeView, bool) {
 	child, ok := v.t.Child(v.id)
 	if !ok || !v.t.IsNamed(child, _nameID_Escape) {
-		return EscapeView{}, false
+		return escapeView{}, false
 	}
 	return newEscapeView(v.t, child), true
 }
 
-// Unicode returns a UnicodeView if this alternative matched.
-func (v CharView) Unicode() (UnicodeView, bool) {
+// Unicode returns a unicodeView if this alternative matched.
+func (v charView) Unicode() (unicodeView, bool) {
 	child, ok := v.t.Child(v.id)
 	if !ok || !v.t.IsNamed(child, _nameID_Unicode) {
-		return UnicodeView{}, false
+		return unicodeView{}, false
 	}
 	return newUnicodeView(v.t, child), true
 }
 
-// EOFView is a read-only view over a EOF node.
-type EOFView struct {
+// eOFView is a read-only view over a EOF node.
+type eOFView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v EOFView) Text() string {
+func (v eOFView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// EOLView is a read-only view over a EOL node.
-type EOLView struct {
+// eOLView is a read-only view over a EOL node.
+type eOLView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v EOLView) Text() string {
+func (v eOLView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// EscapeView is a read-only view over a Escape node.
+// escapeView is a read-only view over a Escape node.
 // Child references are resolved once at construction time.
-type EscapeView struct {
+type escapeView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v EscapeView) Text() string {
+func (v escapeView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newEscapeView(t *tree, id NodeID) EscapeView {
-	v := EscapeView{t: t, id: id}
+func newEscapeView(t *tree, id NodeID) escapeView {
+	v := escapeView{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -234,20 +234,20 @@ func newEscapeView(t *tree, id NodeID) EscapeView {
 	return v
 }
 
-// ExpView is a read-only view over a Exp node.
+// expView is a read-only view over a Exp node.
 // Child references are resolved once at construction time.
-type ExpView struct {
+type expView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v ExpView) Text() string {
+func (v expView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newExpView(t *tree, id NodeID) ExpView {
-	v := ExpView{t: t, id: id}
+func newExpView(t *tree, id NodeID) expView {
+	v := expView{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -269,20 +269,20 @@ func newExpView(t *tree, id NodeID) ExpView {
 	return v
 }
 
-// FracView is a read-only view over a Frac node.
+// fracView is a read-only view over a Frac node.
 // Child references are resolved once at construction time.
-type FracView struct {
+type fracView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v FracView) Text() string {
+func (v fracView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newFracView(t *tree, id NodeID) FracView {
-	v := FracView{t: t, id: id}
+func newFracView(t *tree, id NodeID) fracView {
+	v := fracView{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -304,25 +304,25 @@ func newFracView(t *tree, id NodeID) FracView {
 	return v
 }
 
-// HexView is a read-only view over a Hex node.
-type HexView struct {
+// hexView is a read-only view over a Hex node.
+type hexView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v HexView) Text() string {
+func (v hexView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// IntView is a read-only view over a Int node.
-type IntView struct {
+// intView is a read-only view over a Int node.
+type intView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v IntView) Text() string {
+func (v intView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -485,25 +485,25 @@ func (v ObjectView) Member() (MemberView, bool) {
 	return newMemberView(v.t, v._member), true
 }
 
-// SpaceView is a read-only view over a Space node.
-type SpaceView struct {
+// spaceView is a read-only view over a Space node.
+type spaceView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v SpaceView) Text() string {
+func (v spaceView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-// SpacingView is a read-only view over a Spacing node.
-type SpacingView struct {
+// spacingView is a read-only view over a Spacing node.
+type spacingView struct {
 	t  *tree
 	id NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v SpacingView) Text() string {
+func (v spacingView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
@@ -542,21 +542,21 @@ func newStringView(t *tree, id NodeID) StringView {
 	return v
 }
 
-// UnicodeView is a read-only view over a Unicode node.
+// unicodeView is a read-only view over a Unicode node.
 // Child references are resolved once at construction time.
-type UnicodeView struct {
+type unicodeView struct {
 	t    *tree
 	id   NodeID
 	_hex []NodeID
 }
 
 // Text returns the full matched text of this node.
-func (v UnicodeView) Text() string {
+func (v unicodeView) Text() string {
 	return v.t.UnsafeText(v.id)
 }
 
-func newUnicodeView(t *tree, id NodeID) UnicodeView {
-	v := UnicodeView{t: t, id: id}
+func newUnicodeView(t *tree, id NodeID) unicodeView {
+	v := unicodeView{t: t, id: id}
 	child, ok := t.Child(id)
 	if !ok {
 		return v
@@ -583,12 +583,12 @@ func newUnicodeView(t *tree, id NodeID) UnicodeView {
 }
 
 // HexCount returns the number of Hex children.
-func (v UnicodeView) HexCount() int {
+func (v unicodeView) HexCount() int {
 	return len(v._hex)
 }
 
 // HexAt returns the text of the i-th Hex child.
-func (v UnicodeView) HexAt(i int) string {
+func (v unicodeView) HexAt(i int) string {
 	return v.t.UnsafeText(v._hex[i])
 }
 
