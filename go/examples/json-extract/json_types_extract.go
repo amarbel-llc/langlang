@@ -37,10 +37,10 @@ func ExtractJSONValue(t *tree, id NodeID) (JSONValue, error) {
 		}
 		out.Array = &val
 	case t.IsNamed(child, _nameID_String):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.String = &s
 	case t.IsNamed(child, _nameID_Number):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.Number = &s
 	case t.Type(child) == NodeType_String:
 		// literal alternative (e.g., 'true', 'false', 'null')
@@ -81,7 +81,7 @@ func ExtractJSONMember(t *tree, id NodeID) (JSONMember, error) {
 		}
 		switch t.NameID(cid) {
 		case _nameID_String:
-			out.Key = t.UnsafeText(cid)
+			out.Key = t.Text(cid)
 			return false
 		case _nameID_Value:
 			val, err := ExtractJSONValue(t, cid)

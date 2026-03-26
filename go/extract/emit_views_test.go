@@ -17,7 +17,7 @@ func TestEmitViewLeaf(t *testing.T) {
 		"t *tree",
 		"id NodeID",
 		"func (v Ident) String() string",
-		"v.t.UnsafeText(v.id)",
+		"v.t.Text(v.id)",
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -43,7 +43,7 @@ func TestEmitViewChoice(t *testing.T) {
 		"_nameID_Object",
 		"_nameID_String",
 		"t.IsNamed(child,",
-		"UnsafeText",
+		"Text",
 		// Choice for sequence child should use constructor
 		"newObject(v.t, child)",
 	}
@@ -68,9 +68,9 @@ func TestEmitViewChoiceLiterals(t *testing.T) {
 		"func (v Value) IsFalse() bool",
 		"func (v Value) IsNull() bool",
 		"NodeType_String",
-		`UnsafeText(child) == "true"`,
-		`UnsafeText(child) == "false"`,
-		`UnsafeText(child) == "null"`,
+		`Text(child) == "true"`,
+		`Text(child) == "false"`,
+		`Text(child) == "null"`,
 	}
 	for _, c := range checks {
 		if !strings.Contains(code, c) {
@@ -109,7 +109,7 @@ func TestEmitViewSequence(t *testing.T) {
 		// Leaf accessor is O(1)
 		"func (v Member) Key() string",
 		"v._hasKey",
-		"v.t.UnsafeText(v._key)",
+		"v.t.Text(v._key)",
 		// Non-leaf accessor is O(1)
 		"func (v Member) Value() (Value, bool)",
 		"v._hasValue",

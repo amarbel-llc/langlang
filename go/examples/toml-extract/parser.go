@@ -690,56 +690,19 @@ func (t *tree) Text(id NodeID) string {
 	n := &t.nodes[id]
 
 	switch n.typ {
-	case NodeType_String:
-		return string(t.input[n.start:n.end])
-
-	case NodeType_Sequence:
-		var b strings.Builder
-		for _, childID := range t.Children(id) {
-			b.WriteString(t.Text(childID))
-		}
-		return b.String()
-
-	case NodeType_Node:
-		if child, ok := t.Child(id); ok {
-			return t.Text(child)
-		}
-		return ""
-
-	case NodeType_Error:
-		if child, ok := t.Child(id); ok {
-			return t.Text(child)
-		}
-		return fmt.Sprintf("error[%s]", t.Name(id))
-	default:
-		panic(fmt.Sprintf("Unknown node type: %T", n.typ))
-	}
-}
-func (t *tree) UnsafeText(id NodeID) string {
-	n := &t.nodes[id]
-
-	switch n.typ {
-	case NodeType_String:
+	case NodeType_String, NodeType_Sequence:
 		b := t.input[n.start:n.end]
 		return unsafe.String(unsafe.SliceData(b), len(b))
 
-	case NodeType_Sequence:
-
-		var buf strings.Builder
-		for _, childID := range t.Children(id) {
-			buf.WriteString(t.UnsafeText(childID))
-		}
-		return buf.String()
-
 	case NodeType_Node:
 		if child, ok := t.Child(id); ok {
-			return t.UnsafeText(child)
+			return t.Text(child)
 		}
 		return ""
 
 	case NodeType_Error:
 		if child, ok := t.Child(id); ok {
-			return t.UnsafeText(child)
+			return t.Text(child)
 		}
 		return fmt.Sprintf("error[%s]", t.Name(id))
 	default:

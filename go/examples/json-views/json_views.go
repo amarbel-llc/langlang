@@ -37,7 +37,7 @@ type JSON struct {
 
 // String returns the full matched text of this node.
 func (v JSON) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newJSON(t *tree, id NodeID) JSON {
@@ -92,7 +92,7 @@ func (v JSON) EOF() string {
 	if !v._hasEOF {
 		return ""
 	}
-	return v.t.UnsafeText(v._eOF)
+	return v.t.Text(v._eOF)
 }
 
 // Array is a read-only view over a Array node.
@@ -105,7 +105,7 @@ type Array struct {
 
 // String returns the full matched text of this node.
 func (v Array) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newArray(t *tree, id NodeID) Array {
@@ -114,6 +114,7 @@ func newArray(t *tree, id NodeID) Array {
 	if !ok {
 		return v
 	}
+	mark_value := t.viewMark()
 	if t.Type(child) == NodeType_Sequence {
 		cr := t.childRanges[t.nodes[child].childID]
 		for i := cr.start; i < cr.end; i++ {
@@ -123,15 +124,16 @@ func newArray(t *tree, id NodeID) Array {
 			}
 			switch t.NameID(cid) {
 			case _nameID_Value:
-				v._value = append(v._value, cid)
+				t.viewAppend(cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
 		case _nameID_Value:
-			v._value = append(v._value, child)
+			t.viewAppend(child)
 		}
 	}
+	v._value = t.viewSlice(mark_value)
 	return v
 }
 
@@ -153,7 +155,7 @@ type Char struct {
 
 // String returns the full matched text of this node.
 func (v Char) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // Escape returns a Escape if this alternative matched.
@@ -182,7 +184,7 @@ type eOF_view struct {
 
 // String returns the full matched text of this node.
 func (v eOF_view) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // eOL_view is a read-only view over a EOL node.
@@ -193,7 +195,7 @@ type eOL_view struct {
 
 // String returns the full matched text of this node.
 func (v eOL_view) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // Escape is a read-only view over a Escape node.
@@ -205,7 +207,7 @@ type Escape struct {
 
 // String returns the full matched text of this node.
 func (v Escape) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newEscape(t *tree, id NodeID) Escape {
@@ -240,7 +242,7 @@ type Exp struct {
 
 // String returns the full matched text of this node.
 func (v Exp) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newExp(t *tree, id NodeID) Exp {
@@ -275,7 +277,7 @@ type Frac struct {
 
 // String returns the full matched text of this node.
 func (v Frac) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newFrac(t *tree, id NodeID) Frac {
@@ -309,7 +311,7 @@ type hex_view struct {
 
 // String returns the full matched text of this node.
 func (v hex_view) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // Int is a read-only view over a Int node.
@@ -320,7 +322,7 @@ type Int struct {
 
 // String returns the full matched text of this node.
 func (v Int) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // Member is a read-only view over a Member node.
@@ -336,7 +338,7 @@ type Member struct {
 
 // String returns the full matched text of this node.
 func (v Member) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newMember(t *tree, id NodeID) Member {
@@ -409,7 +411,7 @@ type Number struct {
 
 // String returns the full matched text of this node.
 func (v Number) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newNumber(t *tree, id NodeID) Number {
@@ -493,7 +495,7 @@ type Object struct {
 
 // String returns the full matched text of this node.
 func (v Object) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newObject(t *tree, id NodeID) Object {
@@ -502,6 +504,7 @@ func newObject(t *tree, id NodeID) Object {
 	if !ok {
 		return v
 	}
+	mark_member := t.viewMark()
 	if t.Type(child) == NodeType_Sequence {
 		cr := t.childRanges[t.nodes[child].childID]
 		for i := cr.start; i < cr.end; i++ {
@@ -511,15 +514,16 @@ func newObject(t *tree, id NodeID) Object {
 			}
 			switch t.NameID(cid) {
 			case _nameID_Member:
-				v._member = append(v._member, cid)
+				t.viewAppend(cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
 		case _nameID_Member:
-			v._member = append(v._member, child)
+			t.viewAppend(child)
 		}
 	}
+	v._member = t.viewSlice(mark_member)
 	return v
 }
 
@@ -541,7 +545,7 @@ type space_view struct {
 
 // String returns the full matched text of this node.
 func (v space_view) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // spacing_view is a read-only view over a Spacing node.
@@ -552,7 +556,7 @@ type spacing_view struct {
 
 // String returns the full matched text of this node.
 func (v spacing_view) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // String is a read-only view over a String node.
@@ -565,7 +569,7 @@ type String struct {
 
 // String returns the full matched text of this node.
 func (v String) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newString(t *tree, id NodeID) String {
@@ -574,6 +578,7 @@ func newString(t *tree, id NodeID) String {
 	if !ok {
 		return v
 	}
+	mark_char := t.viewMark()
 	if t.Type(child) == NodeType_Sequence {
 		cr := t.childRanges[t.nodes[child].childID]
 		for i := cr.start; i < cr.end; i++ {
@@ -583,15 +588,16 @@ func newString(t *tree, id NodeID) String {
 			}
 			switch t.NameID(cid) {
 			case _nameID_Char:
-				v._char = append(v._char, cid)
+				t.viewAppend(cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
 		case _nameID_Char:
-			v._char = append(v._char, child)
+			t.viewAppend(child)
 		}
 	}
+	v._char = t.viewSlice(mark_char)
 	return v
 }
 
@@ -615,7 +621,7 @@ type Unicode struct {
 
 // String returns the full matched text of this node.
 func (v Unicode) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 func newUnicode(t *tree, id NodeID) Unicode {
@@ -624,6 +630,7 @@ func newUnicode(t *tree, id NodeID) Unicode {
 	if !ok {
 		return v
 	}
+	mark_hex := t.viewMark()
 	if t.Type(child) == NodeType_Sequence {
 		cr := t.childRanges[t.nodes[child].childID]
 		for i := cr.start; i < cr.end; i++ {
@@ -633,15 +640,16 @@ func newUnicode(t *tree, id NodeID) Unicode {
 			}
 			switch t.NameID(cid) {
 			case _nameID_Hex:
-				v._hex = append(v._hex, cid)
+				t.viewAppend(cid)
 			}
 		}
 	} else if t.Type(child) == NodeType_Node {
 		switch t.NameID(child) {
 		case _nameID_Hex:
-			v._hex = append(v._hex, child)
+			t.viewAppend(child)
 		}
 	}
+	v._hex = t.viewSlice(mark_hex)
 	return v
 }
 
@@ -652,7 +660,7 @@ func (v Unicode) HexCount() int {
 
 // HexAt returns the text of the i-th Hex child.
 func (v Unicode) HexAt(i int) string {
-	return v.t.UnsafeText(v._hex[i])
+	return v.t.Text(v._hex[i])
 }
 
 // Value is a read-only view over a Value node.
@@ -663,7 +671,7 @@ type Value struct {
 
 // String returns the full matched text of this node.
 func (v Value) String() string {
-	return v.t.UnsafeText(v.id)
+	return v.t.Text(v.id)
 }
 
 // Object returns a Object if this alternative matched.
@@ -708,7 +716,7 @@ func (v Value) IsTrue() bool {
 	if !ok || v.t.Type(child) != NodeType_String {
 		return false
 	}
-	return v.t.UnsafeText(child) == "true"
+	return v.t.Text(child) == "true"
 }
 
 // IsFalse reports whether this value is the literal "false".
@@ -717,7 +725,7 @@ func (v Value) IsFalse() bool {
 	if !ok || v.t.Type(child) != NodeType_String {
 		return false
 	}
-	return v.t.UnsafeText(child) == "false"
+	return v.t.Text(child) == "false"
 }
 
 // IsNull reports whether this value is the literal "null".
@@ -726,7 +734,7 @@ func (v Value) IsNull() bool {
 	if !ok || v.t.Type(child) != NodeType_String {
 		return false
 	}
-	return v.t.UnsafeText(child) == "null"
+	return v.t.Text(child) == "null"
 }
 
 // NewJSON creates a JSON view from a parsed tree.

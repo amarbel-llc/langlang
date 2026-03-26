@@ -498,6 +498,17 @@ type tree struct {
 	input       []byte
 	root        NodeID
 	posView     *posIndex
+	viewArena   []NodeID
+}
+
+func (t *tree) viewSlice(mark int) []NodeID {
+	return t.viewArena[mark:len(t.viewArena)]
+}
+func (t *tree) viewMark() int {
+	return len(t.viewArena)
+}
+func (t *tree) viewAppend(id NodeID) {
+	t.viewArena = append(t.viewArena, id)
 }
 
 func (t *tree) bindInput(input []byte)    { t.input = input }
@@ -692,11 +703,9 @@ func (t *tree) Text(id NodeID) string {
 	n := &t.nodes[id]
 
 	switch n.typ {
-	case NodeType_String:
-		return string(t.input[n.start:n.end])
-
-	case NodeType_Sequence:
-		return string(t.input[n.start:n.end])
+	case NodeType_String, NodeType_Sequence:
+		b := t.input[n.start:n.end]
+		return unsafe.String(unsafe.SliceData(b), len(b))
 
 	case NodeType_Node:
 		if child, ok := t.Child(id); ok {
@@ -707,33 +716,6 @@ func (t *tree) Text(id NodeID) string {
 	case NodeType_Error:
 		if child, ok := t.Child(id); ok {
 			return t.Text(child)
-		}
-		return fmt.Sprintf("error[%s]", t.Name(id))
-	default:
-		panic(fmt.Sprintf("Unknown node type: %T", n.typ))
-	}
-}
-func (t *tree) UnsafeText(id NodeID) string {
-	n := &t.nodes[id]
-
-	switch n.typ {
-	case NodeType_String:
-		b := t.input[n.start:n.end]
-		return unsafe.String(unsafe.SliceData(b), len(b))
-
-	case NodeType_Sequence:
-		b := t.input[n.start:n.end]
-		return unsafe.String(unsafe.SliceData(b), len(b))
-
-	case NodeType_Node:
-		if child, ok := t.Child(id); ok {
-			return t.UnsafeText(child)
-		}
-		return ""
-
-	case NodeType_Error:
-		if child, ok := t.Child(id); ok {
-			return t.UnsafeText(child)
 		}
 		return fmt.Sprintf("error[%s]", t.Name(id))
 	default:
