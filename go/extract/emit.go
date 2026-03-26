@@ -44,7 +44,7 @@ func emitChoiceBody(buf *strings.Builder, si StructInfo, rules map[string]RuleIn
 		innerType := strings.TrimPrefix(f.GoType, "*")
 		if innerType == "string" {
 			fmt.Fprintf(buf, "\tcase t.IsNamed(child, _nameID_%s):\n", f.LLTag)
-			fmt.Fprintf(buf, "\t\ts := t.UnsafeText(child)\n")
+			fmt.Fprintf(buf, "\t\ts := t.Text(child)\n")
 			fmt.Fprintf(buf, "\t\tout.%s = &s\n", f.GoName)
 		} else {
 			fmt.Fprintf(buf, "\tcase t.IsNamed(child, _nameID_%s):\n", f.LLTag)
@@ -76,7 +76,7 @@ func emitSequenceBody(buf *strings.Builder, si StructInfo, rules map[string]Rule
 		switch f.Kind {
 		case FieldText:
 			fmt.Fprintf(buf, "\t\tcase _nameID_%s:\n", f.LLTag)
-			fmt.Fprintf(buf, "\t\t\tout.%s = t.UnsafeText(cid)\n", f.GoName)
+			fmt.Fprintf(buf, "\t\t\tout.%s = t.Text(cid)\n", f.GoName)
 			fmt.Fprintf(buf, "\t\t\treturn false\n")
 
 		case FieldNamedRule:
@@ -99,7 +99,7 @@ func emitSequenceBody(buf *strings.Builder, si StructInfo, rules map[string]Rule
 			innerType := strings.TrimPrefix(f.GoType, "*")
 			fmt.Fprintf(buf, "\t\tcase _nameID_%s:\n", f.LLTag)
 			if innerType == "string" {
-				fmt.Fprintf(buf, "\t\t\ts := t.UnsafeText(cid)\n")
+				fmt.Fprintf(buf, "\t\t\ts := t.Text(cid)\n")
 				fmt.Fprintf(buf, "\t\t\tout.%s = &s\n", f.GoName)
 			} else {
 				fmt.Fprintf(buf, "\t\t\tval, err := Extract%s(t, cid)\n", innerType)

@@ -171,7 +171,7 @@ func emitPublicConstructor(buf *strings.Builder, ri RuleInfo) {
 func emitTextMethod(buf *strings.Builder, viewName string) {
 	fmt.Fprintf(buf, "// String returns the full matched text of this node.\n")
 	fmt.Fprintf(buf, "func (v %s) String() string {\n", viewName)
-	fmt.Fprintf(buf, "\treturn v.t.UnsafeText(v.id)\n")
+	fmt.Fprintf(buf, "\treturn v.t.Text(v.id)\n")
 	fmt.Fprintf(buf, "}\n\n")
 }
 
@@ -264,6 +264,12 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 	fmt.Fprintf(buf, "\tif !ok {\n")
 	fmt.Fprintf(buf, "\t\treturn v\n")
 	fmt.Fprintf(buf, "\t}\n")
+	// Emit arena marks for repeated children.
+	for _, nc := range children {
+		if nc.repeated {
+			fmt.Fprintf(buf, "\tmark_%s := t.viewMark()\n", fieldName(nc.ruleName))
+		}
+	}
 	// The child may be a Sequence (multiple children) or a single Node
 	// (parser optimizes single-child sequences away).
 	fmt.Fprintf(buf, "\tif t.Type(child) == NodeType_Sequence {\n")
@@ -277,8 +283,7 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 	for _, nc := range children {
 		fmt.Fprintf(buf, "\t\t\tcase _nameID_%s:\n", nc.ruleName)
 		if nc.repeated {
-			fmt.Fprintf(buf, "\t\t\t\tv._%s = append(v._%s, cid)\n",
-				fieldName(nc.ruleName), fieldName(nc.ruleName))
+			fmt.Fprintf(buf, "\t\t\t\tt.viewAppend(cid)\n")
 		} else {
 			fmt.Fprintf(buf, "\t\t\t\tif !v._has%s {\n", nc.ruleName)
 			fmt.Fprintf(buf, "\t\t\t\t\tv._%s = cid\n", fieldName(nc.ruleName))
@@ -293,8 +298,7 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 	for _, nc := range children {
 		fmt.Fprintf(buf, "\t\tcase _nameID_%s:\n", nc.ruleName)
 		if nc.repeated {
-			fmt.Fprintf(buf, "\t\t\tv._%s = append(v._%s, child)\n",
-				fieldName(nc.ruleName), fieldName(nc.ruleName))
+			fmt.Fprintf(buf, "\t\t\tt.viewAppend(child)\n")
 		} else {
 			fmt.Fprintf(buf, "\t\t\tv._%s = child\n", fieldName(nc.ruleName))
 			fmt.Fprintf(buf, "\t\t\tv._has%s = true\n", nc.ruleName)
@@ -302,6 +306,13 @@ func emitSequenceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleIn
 	}
 	fmt.Fprintf(buf, "\t\t}\n")
 	fmt.Fprintf(buf, "\t}\n")
+	// Assign arena slices for repeated children.
+	for _, nc := range children {
+		if nc.repeated {
+			fmt.Fprintf(buf, "\tv._%s = t.viewSlice(mark_%s)\n",
+				fieldName(nc.ruleName), fieldName(nc.ruleName))
+		}
+	}
 	fmt.Fprintf(buf, "\treturn v\n")
 	fmt.Fprintf(buf, "}\n\n")
 
@@ -324,7 +335,7 @@ func emitLeafAccessor(buf *strings.Builder, viewName string, nc namedChild) {
 	fmt.Fprintf(buf, "\tif !v._has%s {\n", nc.ruleName)
 	fmt.Fprintf(buf, "\t\treturn \"\"\n")
 	fmt.Fprintf(buf, "\t}\n")
-	fmt.Fprintf(buf, "\treturn v.t.UnsafeText(v._%s)\n", fieldName(nc.ruleName))
+	fmt.Fprintf(buf, "\treturn v.t.Text(v._%s)\n", fieldName(nc.ruleName))
 	fmt.Fprintf(buf, "}\n\n")
 }
 
@@ -358,7 +369,7 @@ func emitRepeatedAccessor(buf *strings.Builder, viewName string, nc namedChild, 
 
 		fmt.Fprintf(buf, "// %sAt returns the text of the i-th %s child.\n", methName, nc.ruleName)
 		fmt.Fprintf(buf, "func (v %s) %sAt(i int) string {\n", viewName, methName)
-		fmt.Fprintf(buf, "\treturn v.t.UnsafeText(v._%s[i])\n", fieldName(nc.ruleName))
+		fmt.Fprintf(buf, "\treturn v.t.Text(v._%s[i])\n", fieldName(nc.ruleName))
 		fmt.Fprintf(buf, "}\n\n")
 	} else {
 		fmt.Fprintf(buf, "// %sCount returns the number of %s children.\n", methName, nc.ruleName)
@@ -411,7 +422,7 @@ func emitChoiceView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 			fmt.Fprintf(buf, "\tif !ok || !v.t.IsNamed(child, _nameID_%s) {\n", choice)
 			fmt.Fprintf(buf, "\t\treturn \"\", false\n")
 			fmt.Fprintf(buf, "\t}\n")
-			fmt.Fprintf(buf, "\treturn v.t.UnsafeText(child), true\n")
+			fmt.Fprintf(buf, "\treturn v.t.Text(child), true\n")
 			fmt.Fprintf(buf, "}\n\n")
 		} else {
 			childViewName := viewTypeName(choice, exported)
@@ -441,7 +452,7 @@ func emitLiteralChoiceAccessor(buf *strings.Builder, viewName string, litText st
 	fmt.Fprintf(buf, "\tif !ok || v.t.Type(child) != NodeType_String {\n")
 	fmt.Fprintf(buf, "\t\treturn false\n")
 	fmt.Fprintf(buf, "\t}\n")
-	fmt.Fprintf(buf, "\treturn v.t.UnsafeText(child) == %q\n", litText)
+	fmt.Fprintf(buf, "\treturn v.t.Text(child) == %q\n", litText)
 	fmt.Fprintf(buf, "}\n\n")
 }
 
@@ -486,7 +497,7 @@ func emitRepeatView(buf *strings.Builder, ri RuleInfo, rules map[string]RuleInfo
 	fmt.Fprintf(buf, "\t\tcid := v.t.children[i]\n")
 	fmt.Fprintf(buf, "\t\tif v.t.IsNamed(cid, _nameID_%s) {\n", nc.ruleName)
 	if nc.rule.Kind == RuleLeaf {
-		fmt.Fprintf(buf, "\t\t\tif !fn(v.t.UnsafeText(cid)) {\n")
+		fmt.Fprintf(buf, "\t\t\tif !fn(v.t.Text(cid)) {\n")
 	} else if isSeq {
 		fmt.Fprintf(buf, "\t\t\tif !fn(new%s(v.t, cid)) {\n", nc.ruleName)
 	} else {

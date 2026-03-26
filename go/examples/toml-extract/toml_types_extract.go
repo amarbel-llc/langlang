@@ -159,10 +159,10 @@ func ExtractTOMLSimpleKey(t *tree, id NodeID) (TOMLSimpleKey, error) {
 
 	switch {
 	case t.IsNamed(child, _nameID_BareKey):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.BareKey = &s
 	case t.IsNamed(child, _nameID_BasicString):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.QuotedKey = &s
 	case t.Type(child) == NodeType_String:
 		// literal alternative (e.g., 'true', 'false', 'null')
@@ -191,16 +191,16 @@ func ExtractTOMLVal(t *tree, id NodeID) (TOMLVal, error) {
 		}
 		out.Array = &val
 	case t.IsNamed(child, _nameID_BasicString):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.String = &s
 	case t.IsNamed(child, _nameID_Number):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.Number = &s
 	case t.IsNamed(child, _nameID_Boolean):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.Boolean = &s
 	case t.IsNamed(child, _nameID_DateTime):
-		s := t.UnsafeText(child)
+		s := t.Text(child)
 		out.DateTime = &s
 	case t.Type(child) == NodeType_String:
 		// literal alternative (e.g., 'true', 'false', 'null')

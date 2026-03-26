@@ -73,7 +73,7 @@ type JSONArray struct {
 		// tree operations
 		"NodeType_Node",
 		"NodeType_String",
-		"t.UnsafeText(",
+		"t.Text(",
 		"t.Child(",
 		"t.Visit(",
 	}
@@ -133,7 +133,7 @@ func TestIntegrationJSONViews(t *testing.T) {
 		// tree operations
 		"*tree",
 		"NodeID",
-		"UnsafeText",
+		"Text",
 	}
 	for _, check := range checks {
 		if !strings.Contains(output, check) {
