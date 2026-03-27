@@ -58,12 +58,34 @@ All values in MB/s. Parallel speedup vs full parse: 3.3x (30kb), 4.4x (500kb),
 4.9x (2000kb). Scales with input size because larger documents produce more
 depth-1 partitions for parallel work distribution.
 
+#### TOML (Apple M2 Pro, 12 cores)
+
+Scanner phases:
+
+  Phase              30kb   500kb
+  ---------------- ------ -------
+  ScanOnly            573     567
+  Scan+Partition      446     423
+
+Parse comparison:
+
+  Approach                    30kb   500kb
+  ------------------------- ------ -------
+  Full PEG parse              37.4    38.6
+  **Parallel partitions**     66.6    85.4
+
+All values in MB/s. Parallel speedup: 1.8x (30kb), 2.2x (500kb). Lower than JSON
+because TOML partitions are only inline tables and arrays --- a small fraction
+of the file. Table header disambiguation (see future work) would enable treating
+`[table]...[next_table]` sections as independent parse units for much better
+parallelism.
+
 ### Limitations
 
-The parallel parse currently only covers depth-1 child partitions (nested
-containers within the root). Flat content between partitions (key-value pairs at
-depth 0) is not yet parsed in the parallel pipeline. A complete solution needs
-to handle inter-partition regions to produce a full parse tree.
+The parallel parse currently only covers child partitions (nested containers).
+Flat content between partitions (key-value pairs, table headers) is not yet
+parsed in the parallel pipeline. A complete solution needs to handle
+inter-partition regions to produce a full parse tree.
 
 ## Future work
 
@@ -92,7 +114,19 @@ Parallel parsing produces independent per-partition trees. Merging them into a
 single tree requires either arena concatenation (fast, requires offset fixup) or
 a copy pass. The arena approach aligns with the existing tree architecture.
 
+### Lookahead disambiguation for overloaded delimiters
+
+TOML uses `[]` for both table headers (`[server]`) and arrays (`[1, 2, 3]`). The
+scanner currently treats both as open/close junctions, producing spurious
+partitions for table headers. A single-byte lookahead after `[` could
+disambiguate: if the next byte is a letter or `"` (start of a key), it's a table
+header and should be skipped; otherwise it's an array.
+
+This generalizes to any grammar where the same delimiter byte has multiple
+roles. The `ScannerSpec` could include optional lookahead predicates per
+junction byte.
+
 ### Generalization beyond JSON
 
 The grammar analyzer should work for any PEG grammar with structural delimiters.
-Needs validation against additional grammars (XML, CSV, TOML, etc.).
+Validated against JSON and TOML so far. Needs testing with XML, CSV, etc.
