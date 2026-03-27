@@ -87,21 +87,20 @@ func TestAnalyzeForJunctions(t *testing.T) {
 		},
 		{
 			// Go grammar uses indirect delimiter references (LBRACE <- '{' Skip).
-			// Currently {/} are classified as Separator because the
-			// analyzer doesn't fully resolve indirection in bracket
-			// detection. Pin current output as regression baseline.
+			// The analyzer resolves through one level of identifier
+			// indirection and handles pipeline-injected Spacing nodes.
 			name:        "Go",
 			grammarPath: goGrammarPath(),
 			junctions: map[byte]JunctionKind{
 				'`':  JunctionOpen,
 				'"':  JunctionOpen,
 				',':  JunctionSeparator,
-				'{':  JunctionSeparator,
-				'}':  JunctionSeparator,
-				'(':  JunctionSeparator,
-				')':  JunctionSeparator,
+				'{':  JunctionOpen,
+				'}':  JunctionClose,
+				'(':  JunctionOpen,
+				')':  JunctionClose,
 				'|':  JunctionSeparator,
-				';':  JunctionSeparator,
+				';':  JunctionOpen,
 				':':  JunctionSeparator,
 			},
 			quoting: []QuotingContext{
