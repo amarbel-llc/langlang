@@ -24,8 +24,30 @@ func AnalyzeForJunctions(grammarPath string) (ScannerSpec, error) {
 		seen: make(map[byte]bool),
 	}
 
+	// Pass 1: identify open/close bracket pairs from sequences with
+	// the pattern `open rep close`. This runs first so that bracket
+	// bytes are not misclassified as separators when they appear
+	// inside referenced rules reached from repetition contexts.
 	for _, def := range grammar.Definitions {
-		a.analyzeDefinition(def)
+		if isLexWrapped(def.Expr) {
+			continue
+		}
+		expr := unwrapTransparent(def.Expr)
+		if seq, ok := expr.(*langlang.SequenceNode); ok {
+			a.analyzeSequenceForBrackets(seq)
+		}
+	}
+
+	// Pass 2: identify separators inside repetitions and quoting contexts.
+	for _, def := range grammar.Definitions {
+		if isLexWrapped(def.Expr) {
+			continue
+		}
+		expr := unwrapTransparent(def.Expr)
+		if seq, ok := expr.(*langlang.SequenceNode); ok {
+			a.analyzeSequenceForSeparators(seq)
+			a.analyzeSequenceForQuoting(seq)
+		}
 	}
 
 	return a.spec, nil
@@ -35,22 +57,6 @@ type analyzer struct {
 	defs map[string]*langlang.DefinitionNode
 	spec ScannerSpec
 	seen map[byte]bool
-}
-
-func (a *analyzer) analyzeDefinition(def *langlang.DefinitionNode) {
-	// Skip definitions whose body is lex-wrapped (#(...)) — these are
-	// lexical rules and should not produce structural junctions.
-	if isLexWrapped(def.Expr) {
-		return
-	}
-
-	expr := unwrapTransparent(def.Expr)
-
-	switch e := expr.(type) {
-	case *langlang.SequenceNode:
-		a.analyzeSequenceForJunctions(e)
-		a.analyzeSequenceForQuoting(e)
-	}
 }
 
 // isLexWrapped returns true if the node is a LexNode or is wrapped in
@@ -70,30 +76,23 @@ func isLexWrapped(n langlang.AstNode) bool {
 	}
 }
 
-// analyzeSequenceForJunctions classifies literal children of a sequence
-// as Open, Close, or Separator junctions based on their position relative
-// to repetition nodes. Only sequences with at least two single-byte
-// literals bracketing a repetition are considered (to avoid treating
-// prefix literals like '.' in Frac as junctions).
-func (a *analyzer) analyzeSequenceForJunctions(seq *langlang.SequenceNode) {
+// analyzeSequenceForBrackets (pass 1) identifies open/close bracket pairs
+// from sequences with the pattern `open rep close`. Only sequences with at
+// least two single-byte literals bracketing a repetition are considered.
+func (a *analyzer) analyzeSequenceForBrackets(seq *langlang.SequenceNode) {
 	if !a.sequenceHasRepetition(seq) {
 		return
 	}
 
-	// Count single-byte literals in this sequence.
+	// Count single-byte literals (including through identifier indirection).
 	var literalIndices []int
 	for i, item := range seq.Items {
-		if _, ok := singleByteFromNode(unwrapTransparent(item)); ok {
+		if _, ok := a.singleByteFromItem(unwrapTransparent(item)); ok {
 			literalIndices = append(literalIndices, i)
 		}
 	}
 
-	// Need at least 2 literals to form an open/close pair.
 	if len(literalIndices) < 2 {
-		// Even without open/close, look for separators inside repetitions.
-		for _, item := range seq.Items {
-			a.findSeparatorsInRepetition(unwrapTransparent(item))
-		}
 		return
 	}
 
@@ -102,7 +101,7 @@ func (a *analyzer) analyzeSequenceForJunctions(seq *langlang.SequenceNode) {
 
 	for _, i := range literalIndices {
 		inner := unwrapTransparent(seq.Items[i])
-		b, _ := singleByteFromNode(inner)
+		b, _ := a.singleByteFromItem(inner)
 
 		if a.seen[b] {
 			continue
@@ -115,14 +114,22 @@ func (a *analyzer) analyzeSequenceForJunctions(seq *langlang.SequenceNode) {
 		case i == lastIdx:
 			kind = JunctionClose
 		default:
+			// Middle literals in bracket sequences are separators too.
 			kind = JunctionSeparator
 		}
 
 		a.seen[b] = true
 		a.spec.Junctions = append(a.spec.Junctions, JunctionByte{Byte: b, Kind: kind})
 	}
+}
 
-	// Also look for separators inside repetition children.
+// analyzeSequenceForSeparators (pass 2) finds separator literals inside
+// repetition children. Bytes already classified as open/close in pass 1
+// are skipped via the seen map.
+func (a *analyzer) analyzeSequenceForSeparators(seq *langlang.SequenceNode) {
+	if !a.sequenceHasRepetition(seq) {
+		return
+	}
 	for _, item := range seq.Items {
 		a.findSeparatorsInRepetition(unwrapTransparent(item))
 	}
@@ -279,6 +286,38 @@ func (a *analyzer) findEscapePrefix(node langlang.AstNode, depth int) byte {
 		}
 	}
 	return 0
+}
+
+// singleByteFromItem extracts a single byte from a node, following one
+// level of identifier indirection. For example, if the node is an
+// IdentifierNode referencing a rule like `LBRACE <- '{' Skip`, this
+// returns '{'.
+func (a *analyzer) singleByteFromItem(node langlang.AstNode) (byte, bool) {
+	if b, ok := singleByteFromNode(node); ok {
+		return b, true
+	}
+	id, ok := node.(*langlang.IdentifierNode)
+	if !ok {
+		return 0, false
+	}
+	def, ok := a.defs[id.Value]
+	if !ok {
+		return 0, false
+	}
+	expr := unwrapTransparent(def.Expr)
+	seq, ok := expr.(*langlang.SequenceNode)
+	if !ok {
+		return singleByteFromNode(expr)
+	}
+	// Find the first single-byte literal in the sequence. The PEG
+	// pipeline may inject Spacing identifiers before the literal
+	// (e.g., LBRACE becomes [Spacing, [{], Spacing, Skip]).
+	for _, item := range seq.Items {
+		if b, ok := singleByteFromNode(unwrapTransparent(item)); ok {
+			return b, true
+		}
+	}
+	return 0, false
 }
 
 // singleByteFromNode extracts a single byte from a LiteralNode or a
