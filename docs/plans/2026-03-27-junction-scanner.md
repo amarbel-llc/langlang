@@ -126,7 +126,44 @@ This generalizes to any grammar where the same delimiter byte has multiple
 roles. The `ScannerSpec` could include optional lookahead predicates per
 junction byte.
 
+### Multi-byte junction delimiters
+
+XML uses multi-byte sequences for structural delimiting (`</`, `/>`, `<?`, `?>`,
+`<![CDATA[`, `]]>`). The single-byte junction model cannot capture XML's nesting
+structure --- `<` can be an open tag, close tag prefix, CDATA prefix, or comment
+prefix depending on what follows. Supporting XML and similar grammars requires
+extending `JunctionByte` to `JunctionSequence` with multi-byte patterns, or a
+two-pass approach where single-byte candidates are refined by context.
+
+### Indirect delimiter references in grammars
+
+Go's grammar abstracts delimiters behind named rules (`LBRACE <- '{' Skip`,
+`RBRACE <- '}' Spacing`). The analyzer currently requires open/close literals to
+appear directly in the same sequence as a repetition (`'{' rep '}'`). When
+delimiters are referenced via identifiers (`LBRACE StatementList? RBRACE`), the
+analyzer classifies them as separators instead of open/close pairs. Fix: follow
+identifier references when identifying bracket pairs, resolving through one
+level of indirection.
+
+### SIMD-accelerated scanning
+
+The junction scanner's inner loop is a byte-at-a-time table lookup with branch-
+heavy quoting state. SIMD instructions (NEON on ARM, SSE/AVX on x86) could
+accelerate the non-quoted fast path: use vector comparison to find the next
+junction or quote byte in 16/32-byte chunks, then fall back to scalar for
+quoting regions. Similar to simdjson's structural character identification pass.
+
 ### Generalization beyond JSON
 
-The grammar analyzer should work for any PEG grammar with structural delimiters.
-Validated against JSON and TOML so far. Needs testing with XML, CSV, etc.
+The grammar analyzer works for grammars with single-byte structural delimiters
+appearing directly in sequences with repetitions. Validated:
+
+  Grammar   Status       Notes
+  --------- ------------ ---------------------------------------------------------
+  JSON      Works well   3.3-4.9x parallel speedup
+  TOML      Works        1.8-2.2x; needs table header disambiguation
+  XML       Poor fit     Multi-byte delimiters; no open/close pairs detected
+  Go        Partial      Delimiters behind named rules; classified as separators
+
+C-family languages (Java, JS, TS, Rust) likely have similar issues to Go if
+their grammars use named token rules for delimiters.
