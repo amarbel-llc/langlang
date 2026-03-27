@@ -17,6 +17,16 @@ func tomlGrammarPath() string {
 	return filepath.Join(filepath.Dir(thisFile), "..", "examples", "toml-extract", "toml.peg")
 }
 
+func xmlGrammarPath() string {
+	_, thisFile, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "docs", "live", "assets", "examples", "xml", "xml.peg")
+}
+
+func goGrammarPath() string {
+	_, thisFile, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "grammars", "go.peg")
+}
+
 
 func TestAnalyzeForJunctionsJSON(t *testing.T) {
 	spec, err := AnalyzeForJunctions(jsonGrammarPath())
@@ -121,5 +131,57 @@ func TestAnalyzeForJunctionsTOML(t *testing.T) {
 	if spec.Quoting[0].Delimiter != '"' || spec.Quoting[0].EscapePrefix != '\\' {
 		t.Errorf("quoting = {delim=%q escape=%q}, want {delim='\"' escape='\\\\'}",
 			spec.Quoting[0].Delimiter, spec.Quoting[0].EscapePrefix)
+	}
+}
+
+func TestAnalyzeForJunctionsXML(t *testing.T) {
+	spec, err := AnalyzeForJunctions(xmlGrammarPath())
+	if err != nil {
+		t.Fatalf("AnalyzeForJunctions: %v", err)
+	}
+
+	t.Logf("junctions (%d):", len(spec.Junctions))
+	for _, jb := range spec.Junctions {
+		kind := "?"
+		switch jb.Kind {
+		case JunctionOpen:
+			kind = "Open"
+		case JunctionClose:
+			kind = "Close"
+		case JunctionSeparator:
+			kind = "Separator"
+		}
+		t.Logf("  %q -> %s", jb.Byte, kind)
+	}
+
+	t.Logf("quoting (%d):", len(spec.Quoting))
+	for _, qc := range spec.Quoting {
+		t.Logf("  delim=%q escape=%q", qc.Delimiter, qc.EscapePrefix)
+	}
+}
+
+func TestAnalyzeForJunctionsGo(t *testing.T) {
+	spec, err := AnalyzeForJunctions(goGrammarPath())
+	if err != nil {
+		t.Fatalf("AnalyzeForJunctions: %v", err)
+	}
+
+	t.Logf("junctions (%d):", len(spec.Junctions))
+	for _, jb := range spec.Junctions {
+		kind := "?"
+		switch jb.Kind {
+		case JunctionOpen:
+			kind = "Open"
+		case JunctionClose:
+			kind = "Close"
+		case JunctionSeparator:
+			kind = "Separator"
+		}
+		t.Logf("  %q -> %s", jb.Byte, kind)
+	}
+
+	t.Logf("quoting (%d):", len(spec.Quoting))
+	for _, qc := range spec.Quoting {
+		t.Logf("  delim=%q escape=%q", qc.Delimiter, qc.EscapePrefix)
 	}
 }
