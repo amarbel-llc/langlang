@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	goviews "github.com/clarete/langlang/go/examples/go-views"
 	jsonviews "github.com/clarete/langlang/go/examples/json-views"
 	tomlextract "github.com/clarete/langlang/go/examples/toml-extract"
 )
@@ -295,6 +296,147 @@ func BenchmarkTOMLParallelPartitionParse(b *testing.B) {
 				}
 				collect(root)
 				ParsePartitions(input, parts, parseFn)
+			}
+		})
+	}
+}
+
+// Go benchmarks
+
+var goInputNames = []string{"30kb", "500kb"}
+
+var goSpec ScannerSpec
+
+func init() {
+	var err error
+	goSpec, err = AnalyzeForJunctions(goGrammarPath())
+	if err != nil {
+		panic("AnalyzeForJunctions(go): " + err.Error())
+	}
+}
+
+func goBenchInputs(b *testing.B) map[string][]byte {
+	b.Helper()
+	goroot := runtime.GOROOT()
+	if goroot == "" {
+		b.Skip("GOROOT not available")
+	}
+
+	files := map[string]string{
+		"30kb":  filepath.Join(goroot, "src", "encoding", "json", "decode.go"),
+		"500kb": filepath.Join(goroot, "src", "net", "http", "h2_bundle.go"),
+	}
+
+	inputs := make(map[string][]byte, len(goInputNames))
+	for _, name := range goInputNames {
+		data, err := os.ReadFile(files[name])
+		if err != nil {
+			b.Skipf("skip %s: %v", name, err)
+		}
+		inputs[name] = data
+	}
+	return inputs
+}
+
+func BenchmarkGoScanOnly(b *testing.B) {
+	inputs := goBenchInputs(b)
+
+	for _, name := range goInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			for n := 0; n < b.N; n++ {
+				ScanJunctions(input, goSpec)
+			}
+		})
+	}
+}
+
+func BenchmarkGoScanAndPartition(b *testing.B) {
+	inputs := goBenchInputs(b)
+
+	for _, name := range goInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			for n := 0; n < b.N; n++ {
+				hits := ScanJunctions(input, goSpec)
+				BuildPartitions(hits, int32(len(input)))
+			}
+		})
+	}
+}
+
+func BenchmarkGoFullParse(b *testing.B) {
+	inputs := goBenchInputs(b)
+
+	for _, name := range goInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			parser := goviews.NewGoParser()
+			parser.SetShowFails(false)
+
+			for n := 0; n < b.N; n++ {
+				parser.SetInput(input)
+				_, err := parser.ParseSourceFile()
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkGoParallelPartitionParse(b *testing.B) {
+	inputs := goBenchInputs(b)
+
+	for _, name := range goInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			pool := &sync.Pool{
+				New: func() any {
+					p := goviews.NewGoParser()
+					p.SetShowFails(false)
+					return p
+				},
+			}
+
+			// Go partitions are blocks ({...}), parameter lists ((...)),
+			// etc. ParseBlock() handles the most common container type.
+			parseFn := func(slice []byte) (any, error) {
+				p := pool.Get().(*goviews.GoParser)
+				defer pool.Put(p)
+				p.SetInput(slice)
+				return p.ParseBlock()
+			}
+
+			for n := 0; n < b.N; n++ {
+				hits := ScanJunctions(input, goSpec)
+				root := BuildPartitions(hits, int32(len(input)))
+
+				// Collect block partitions ({...}) with valid bounds.
+				var parts []Partition
+				var collect func(p Partition)
+				collect = func(p Partition) {
+					for _, c := range p.Children {
+						if c.Start >= 0 && c.End > c.Start &&
+							c.Start < int32(len(input)) && c.End <= int32(len(input)) &&
+							input[c.Start] == '{' {
+							parts = append(parts, c)
+						}
+						collect(c)
+					}
+				}
+				collect(root)
+				if len(parts) > 0 {
+					ParsePartitions(input, parts, parseFn)
+				}
 			}
 		})
 	}
