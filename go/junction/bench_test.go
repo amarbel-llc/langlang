@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	jsonviews "github.com/clarete/langlang/go/examples/json-views"
+	tomlextract "github.com/clarete/langlang/go/examples/toml-extract"
 )
 
 var inputNames = []string{"30kb", "500kb", "2000kb"}
@@ -165,6 +166,134 @@ func BenchmarkParallelPartitionParse(b *testing.B) {
 				} else {
 					parts = root.Children
 				}
+				ParsePartitions(input, parts, parseFn)
+			}
+		})
+	}
+}
+
+// TOML benchmarks
+
+var tomlInputNames = []string{"30kb", "500kb"}
+
+var tomlSpec ScannerSpec
+
+func init() {
+	var err error
+	tomlSpec, err = AnalyzeForJunctions(tomlGrammarPath())
+	if err != nil {
+		panic("AnalyzeForJunctions(toml): " + err.Error())
+	}
+}
+
+func tomlBenchInputs(b *testing.B) map[string][]byte {
+	b.Helper()
+	_, thisFile, _, _ := runtime.Caller(0)
+	base := filepath.Join(filepath.Dir(thisFile), "..", "..",
+		"testdata", "toml")
+
+	inputs := make(map[string][]byte, len(tomlInputNames))
+	for _, name := range tomlInputNames {
+		data, err := os.ReadFile(filepath.Join(base, "input_"+name+".toml"))
+		if err != nil {
+			b.Fatalf("read %s: %v", name, err)
+		}
+		inputs[name] = data
+	}
+	return inputs
+}
+
+func BenchmarkTOMLScanOnly(b *testing.B) {
+	inputs := tomlBenchInputs(b)
+
+	for _, name := range tomlInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			for n := 0; n < b.N; n++ {
+				ScanJunctions(input, tomlSpec)
+			}
+		})
+	}
+}
+
+func BenchmarkTOMLScanAndPartition(b *testing.B) {
+	inputs := tomlBenchInputs(b)
+
+	for _, name := range tomlInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			for n := 0; n < b.N; n++ {
+				hits := ScanJunctions(input, tomlSpec)
+				BuildPartitions(hits, int32(len(input)))
+			}
+		})
+	}
+}
+
+func BenchmarkTOMLFullParse(b *testing.B) {
+	inputs := tomlBenchInputs(b)
+
+	for _, name := range tomlInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			parser := tomlextract.NewTOMLParser()
+			parser.SetShowFails(false)
+
+			for n := 0; n < b.N; n++ {
+				parser.SetInput(input)
+				_, err := parser.ParseTOML()
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkTOMLParallelPartitionParse(b *testing.B) {
+	inputs := tomlBenchInputs(b)
+
+	for _, name := range tomlInputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			pool := &sync.Pool{
+				New: func() any {
+					p := tomlextract.NewTOMLParser()
+					p.SetShowFails(false)
+					return p
+				},
+			}
+
+			parseFn := func(slice []byte) (any, error) {
+				p := pool.Get().(*tomlextract.TOMLParser)
+				defer pool.Put(p)
+				p.SetInput(slice)
+				return p.ParseVal()
+			}
+
+			for n := 0; n < b.N; n++ {
+				hits := ScanJunctions(input, tomlSpec)
+				root := BuildPartitions(hits, int32(len(input)))
+
+				// TOML partitions are arrays and inline tables.
+				// Collect all partitions at any depth.
+				var parts []Partition
+				var collect func(p Partition)
+				collect = func(p Partition) {
+					for _, c := range p.Children {
+						parts = append(parts, c)
+						collect(c)
+					}
+				}
+				collect(root)
 				ParsePartitions(input, parts, parseFn)
 			}
 		})
