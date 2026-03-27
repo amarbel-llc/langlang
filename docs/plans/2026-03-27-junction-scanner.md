@@ -25,15 +25,45 @@ A two-phase approach:
 3.  **Parallel parse**: Parse partitions concurrently across goroutines, then
     merge results.
 
-## Current state (MVP)
+## Current state
 
 - Grammar analyzer (`analyze.go`) derives `ScannerSpec` from PEG AST
 - Scanner (`scan.go`) finds junctions with quoting/escape awareness
 - Partition builder (`partition.go`) produces hierarchical partition tree
+- Parallel parser (`parallel.go`) dispatches partitions across GOMAXPROCS
+  workers with `sync.Pool`-based parser instance reuse
 - Verification tests prove each partition parses independently to the same
-  result as the full sequential parse
-- Sequential partition parsing runs at \~93% of full parse throughput (overhead
-  from scan + partition allocation)
+  result as the full sequential parse, both sequentially and in parallel
+
+### Benchmarks (Apple M2 Pro, 12 cores)
+
+Scanner phases:
+
+  Phase              30kb   500kb   2000kb
+  ---------------- ------ ------- --------
+  ScanOnly            636     604      598
+  Scan+Partition      566     532      527
+
+All values in MB/s.
+
+Parse comparison:
+
+  Approach                     30kb   500kb   2000kb
+  ------------------------- ------- ------- --------
+  Full PEG parse               31.3    35.2     34.5
+  Sequential partitions        29.4    32.8     31.8
+  **Parallel partitions**     104.4   155.1    170.4
+
+All values in MB/s. Parallel speedup vs full parse: 3.3x (30kb), 4.4x (500kb),
+4.9x (2000kb). Scales with input size because larger documents produce more
+depth-1 partitions for parallel work distribution.
+
+### Limitations
+
+The parallel parse currently only covers depth-1 child partitions (nested
+containers within the root). Flat content between partitions (key-value pairs at
+depth 0) is not yet parsed in the parallel pipeline. A complete solution needs
+to handle inter-partition regions to produce a full parse tree.
 
 ## Future work
 
@@ -45,15 +75,22 @@ approach (similar to the tree node arena) for `JunctionHit` slices and
 `Partition.Children` would reduce GC pressure, especially important when
 scanning feeds a parallel parse pipeline.
 
-### Parallel partition parsing
+### Complete parallel parse tree
 
-Parse independent partitions across goroutines. The scan+partition phase is
-\~15x faster than PEG parsing, so even with synchronization overhead, parallel
-parsing should scale well on multi-core machines. Key design questions:
+Handle flat content between partitions (e.g., string keys, scalar values at the
+root depth) so the parallel pipeline produces a complete parse tree equivalent
+to the full sequential parse. Options:
 
-- Goroutine pool size vs. partition count
-- Tree merging strategy (arena concatenation vs. copy)
-- Parser instance pooling (each goroutine needs its own parser)
+- Parse inter-partition regions on the main goroutine while workers handle
+  containers
+- Extend the partition model to include separator-delimited regions as parse
+  units
+
+### Tree merging
+
+Parallel parsing produces independent per-partition trees. Merging them into a
+single tree requires either arena concatenation (fast, requires offset fixup) or
+a copy pass. The arena approach aligns with the existing tree architecture.
 
 ### Generalization beyond JSON
 
