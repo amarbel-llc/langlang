@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 
 	jsonviews "github.com/clarete/langlang/go/examples/json-views"
@@ -122,6 +123,49 @@ func BenchmarkPartitionParse(b *testing.B) {
 						b.Fatal(err)
 					}
 				}
+			}
+		})
+	}
+}
+
+// BenchmarkParallelPartitionParse measures scan + partition + parallel PEG parse
+// of the depth-1 child partitions (nested containers within the root).
+func BenchmarkParallelPartitionParse(b *testing.B) {
+	inputs := benchInputs(b)
+
+	for _, name := range inputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+
+			pool := &sync.Pool{
+				New: func() any {
+					p := jsonviews.NewJSONParser()
+					p.SetShowFails(false)
+					return p
+				},
+			}
+
+			parseFn := func(slice []byte) (any, error) {
+				p := pool.Get().(*jsonviews.JSONParser)
+				defer pool.Put(p)
+				p.SetInput(slice)
+				return p.ParseValue()
+			}
+
+			for n := 0; n < b.N; n++ {
+				hits := ScanJunctions(input, jsonSpec)
+				root := BuildPartitions(hits, int32(len(input)))
+
+				// The test data is a single root array/object. Parallelize
+				// across its child partitions (depth-1 containers).
+				var parts []Partition
+				if len(root.Children) == 1 {
+					parts = root.Children[0].Children
+				} else {
+					parts = root.Children
+				}
+				ParsePartitions(input, parts, parseFn)
 			}
 		})
 	}
