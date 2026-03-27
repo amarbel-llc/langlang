@@ -80,3 +80,5 @@ independently.
   (extraction of parsed regions)
 - Extended by: [FDR-0005 SIMD Junction Scanner](0005-simd-junction-scanner.md)
   (SIMD acceleration of the scanner)
+- Extended by: [FDR-0007 Scanner-Guided Parsing](0007-scanner-guided-parsing.md)
+  (feed scanner results into the parser to skip speculative matching)
