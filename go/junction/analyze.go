@@ -38,6 +38,12 @@ type analyzer struct {
 }
 
 func (a *analyzer) analyzeDefinition(def *langlang.DefinitionNode) {
+	// Skip definitions whose body is lex-wrapped (#(...)) — these are
+	// lexical rules and should not produce structural junctions.
+	if isLexWrapped(def.Expr) {
+		return
+	}
+
 	expr := unwrapTransparent(def.Expr)
 
 	switch e := expr.(type) {
@@ -47,13 +53,30 @@ func (a *analyzer) analyzeDefinition(def *langlang.DefinitionNode) {
 	}
 }
 
+// isLexWrapped returns true if the node is a LexNode or is wrapped in
+// transparent nodes (Label, Capture) around a LexNode.
+func isLexWrapped(n langlang.AstNode) bool {
+	for {
+		switch e := n.(type) {
+		case *langlang.LexNode:
+			return true
+		case *langlang.LabeledNode:
+			n = e.Expr
+		case *langlang.CaptureNode:
+			n = e.Expr
+		default:
+			return false
+		}
+	}
+}
+
 // analyzeSequenceForJunctions classifies literal children of a sequence
 // as Open, Close, or Separator junctions based on their position relative
 // to repetition nodes. Only sequences with at least two single-byte
 // literals bracketing a repetition are considered (to avoid treating
 // prefix literals like '.' in Frac as junctions).
 func (a *analyzer) analyzeSequenceForJunctions(seq *langlang.SequenceNode) {
-	if !sequenceHasRepetition(seq) {
+	if !a.sequenceHasRepetition(seq) {
 		return
 	}
 
@@ -336,14 +359,14 @@ func containsByte(node langlang.AstNode, target byte) bool {
 	return false
 }
 
-func sequenceHasRepetition(seq *langlang.SequenceNode) bool {
+func (a *analyzer) sequenceHasRepetition(seq *langlang.SequenceNode) bool {
 	for _, item := range seq.Items {
 		inner := unwrapTransparent(item)
 		switch inner.(type) {
 		case *langlang.ZeroOrMoreNode, *langlang.OneOrMoreNode:
 			return true
 		case *langlang.OptionalNode:
-			if optionalHasRepetition(inner.(*langlang.OptionalNode)) {
+			if a.optionalHasRepetition(inner.(*langlang.OptionalNode)) {
 				return true
 			}
 		}
@@ -351,11 +374,25 @@ func sequenceHasRepetition(seq *langlang.SequenceNode) bool {
 	return false
 }
 
-func optionalHasRepetition(opt *langlang.OptionalNode) bool {
+func (a *analyzer) optionalHasRepetition(opt *langlang.OptionalNode) bool {
 	inner := unwrapTransparent(opt.Expr)
 	switch e := inner.(type) {
 	case *langlang.SequenceNode:
-		return sequenceHasRepetition(e)
+		return a.sequenceHasRepetition(e)
+	case *langlang.ZeroOrMoreNode, *langlang.OneOrMoreNode:
+		return true
+	case *langlang.IdentifierNode:
+		if def, ok := a.defs[e.Value]; ok {
+			return a.referencedRuleHasRepetition(unwrapTransparent(def.Expr))
+		}
+	}
+	return false
+}
+
+func (a *analyzer) referencedRuleHasRepetition(node langlang.AstNode) bool {
+	switch e := node.(type) {
+	case *langlang.SequenceNode:
+		return a.sequenceHasRepetition(e)
 	case *langlang.ZeroOrMoreNode, *langlang.OneOrMoreNode:
 		return true
 	}
