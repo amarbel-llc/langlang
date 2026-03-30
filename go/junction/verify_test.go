@@ -250,6 +250,115 @@ func TestVerifyPartitionRegions(t *testing.T) {
 	}
 }
 
+// TestVerifyPEGSelfHostingScan scans the PEG self-hosting grammar with
+// its own junction spec and verifies the scanner correctly identifies
+// structural delimiters. This is the FDR-0003 promotion criteria test
+// for "langlang self-hosting grammars".
+func TestVerifyPEGSelfHostingScan(t *testing.T) {
+	spec, err := AnalyzeForJunctions(pegGrammarPath())
+	if err != nil {
+		t.Fatalf("AnalyzeForJunctions: %v", err)
+	}
+
+	input, err := os.ReadFile(pegGrammarPath())
+	if err != nil {
+		t.Fatalf("read peg.peg: %v", err)
+	}
+
+	hits := ScanJunctions(input, spec)
+
+	if len(hits) == 0 {
+		t.Fatal("no junctions found in peg.peg")
+	}
+
+	// Count by kind.
+	var opens, closes, seps int
+	for _, h := range hits {
+		switch h.Kind {
+		case JunctionOpen:
+			opens++
+		case JunctionClose:
+			closes++
+		case JunctionSeparator:
+			seps++
+		}
+	}
+
+	t.Logf("peg.peg: %d hits (opens=%d closes=%d seps=%d)",
+		len(hits), opens, closes, seps)
+
+	// Character classes are mostly balanced. PEG allows escaped ] inside
+	// classes (e.g., [nrt'"\[\]\\]) which the scanner can't distinguish
+	// from structural closes without a quoting context. Allow a small
+	// imbalance.
+	if abs(opens-closes) > 2 {
+		t.Errorf("delimiters too unbalanced: %d opens vs %d closes (>2 off)", opens, closes)
+	} else if opens != closes {
+		t.Logf("note: %d opens vs %d closes (escaped ] inside character class)", opens, closes)
+	}
+
+	// The grammar has multiple character classes ([a-zA-Z_], [0-9],
+	// [nrt'\"\\[\\]\\\\], etc) so we expect a meaningful number.
+	if opens < 5 {
+		t.Errorf("expected at least 5 character class open delimiters, got %d", opens)
+	}
+
+	// Choice separators: Expression <- Sequence (SLASH Sequence)*
+	// The grammar uses / extensively. But / also appears in comments
+	// (// ...) — verify separators were found.
+	if seps == 0 {
+		t.Error("expected choice separator junctions for '/'")
+	}
+
+	// Verify all hits reference valid positions in the input.
+	for i, h := range hits {
+		if h.Pos < 0 || int(h.Pos) >= len(input) {
+			t.Errorf("hit[%d] position %d out of range [0, %d)", i, h.Pos, len(input))
+		}
+		// The byte at the hit position should be a known junction byte.
+		b := input[h.Pos]
+		found := false
+		for _, jb := range spec.Junctions {
+			if jb.Byte == b {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("hit[%d] byte %q at pos %d is not a junction byte",
+				i, rune(b), h.Pos)
+		}
+	}
+
+	// Build partitions and verify the tree is well-formed.
+	root := BuildPartitions(hits, int32(len(input)))
+	t.Logf("partitions: %d top-level children", len(root.Children))
+
+	// Every partition should have Start < End.
+	var walkPartitions func(p Partition, depth int)
+	walkPartitions = func(p Partition, depth int) {
+		if p.Start >= p.End {
+			t.Errorf("depth %d: partition [%d, %d) has start >= end",
+				depth, p.Start, p.End)
+		}
+		for _, c := range p.Children {
+			if c.Start < p.Start || c.End > p.End {
+				t.Errorf("depth %d: child [%d, %d) outside parent [%d, %d)",
+					depth, c.Start, c.End, p.Start, p.End)
+			}
+			walkPartitions(c, depth+1)
+		}
+	}
+	walkPartitions(root, 0)
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 func truncate(b []byte, n int) []byte {
 	if len(b) <= n {
 		return b

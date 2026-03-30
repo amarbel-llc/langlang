@@ -29,6 +29,11 @@ func goGrammarPath() string {
 	return filepath.Join(filepath.Dir(thisFile), "..", "..", "grammars", "go.peg")
 }
 
+func pegGrammarPath() string {
+	_, thisFile, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "grammars", "peg.peg")
+}
+
 type analyzerTestCase struct {
 	name        string
 	grammarPath string
@@ -84,6 +89,20 @@ func TestAnalyzeForJunctions(t *testing.T) {
 			quoting: []QuotingContext{
 				{Delimiter: '"', EscapePrefix: 0},
 			},
+		},
+		{
+			// PEG self-hosting grammar: character classes use [] and
+			// choice uses /. Parenthesized grouping (OPEN/CLOSE) uses
+			// indirect delimiter references like Go's LBRACE/RBRACE.
+			// Literal quotes ('/") are lex-wrapped leaves, not structural.
+			name:        "PEG",
+			grammarPath: pegGrammarPath(),
+			junctions: map[byte]JunctionKind{
+				'[': JunctionOpen,
+				']': JunctionClose,
+				'/': JunctionSeparator,
+			},
+			quoting: nil,
 		},
 		{
 			// Go grammar uses indirect delimiter references (LBRACE <- '{' Skip).
@@ -194,6 +213,7 @@ func fmtByte(b byte) string {
 	}
 	return fmt.Sprintf("%q", rune(b))
 }
+
 
 func fmtKind(k JunctionKind) string {
 	switch k {
