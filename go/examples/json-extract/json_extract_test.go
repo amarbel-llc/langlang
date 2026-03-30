@@ -1,6 +1,9 @@
 package jsonextract
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -132,5 +135,149 @@ func TestExtractNested(t *testing.T) {
 	}
 	if len(m.Value.Array.Items) != 2 {
 		t.Fatalf("expected 2 items, got %d", len(m.Value.Array.Items))
+	}
+}
+
+// countExtracted recursively walks extracted structs and counts nodes.
+type extractCounts struct {
+	objects int
+	arrays  int
+	strings int
+	numbers int
+	empty   int // literals (true/false/null) — not captured by struct extraction
+	members int
+}
+
+func countExtractedValue(v JSONValue, c *extractCounts) {
+	switch {
+	case v.Object != nil:
+		c.objects++
+		for _, m := range v.Object.Members {
+			c.members++
+			c.strings++ // key is always a string
+			countExtractedValue(m.Value, c)
+		}
+	case v.Array != nil:
+		c.arrays++
+		for _, item := range v.Array.Items {
+			countExtractedValue(item, c)
+		}
+	case v.String != nil:
+		c.strings++
+	case v.Number != nil:
+		c.numbers++
+	default:
+		c.empty++ // literal: true, false, or null
+	}
+}
+
+func TestExtractLargeDocument(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	base := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "testdata", "json")
+
+	for _, name := range []string{"30kb", "500kb"} {
+		t.Run(name, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join(base, "input_"+name+".json"))
+			if err != nil {
+				t.Skipf("test data not available: %v", err)
+			}
+
+			p := NewJSONParser()
+			p.SetShowFails(false)
+			p.SetInput(data)
+			parsed, err := p.ParseJSON()
+			if err != nil {
+				t.Fatalf("parse failed: %v", err)
+			}
+
+			root, ok := parsed.Root()
+			if !ok {
+				t.Fatal("no root")
+			}
+			tr := parsed.(*tree)
+
+			var valueID NodeID
+			found := false
+			tr.Visit(root, func(id NodeID) bool {
+				if id == root {
+					return true
+				}
+				if tr.IsNamed(id, _nameID_Value) {
+					valueID = id
+					found = true
+					return false
+				}
+				return true
+			})
+			if !found {
+				t.Fatal("no Value node")
+			}
+
+			val, err := ExtractJSONValue(tr, valueID)
+			if err != nil {
+				t.Fatalf("extract: %v", err)
+			}
+
+			var c extractCounts
+			countExtractedValue(val, &c)
+
+			t.Logf("objects=%d arrays=%d strings=%d numbers=%d literals=%d members=%d",
+				c.objects, c.arrays, c.strings, c.numbers, c.empty, c.members)
+
+			total := c.objects + c.arrays + c.strings + c.numbers + c.empty
+			if total == 0 {
+				t.Error("walked zero values")
+			}
+			if c.objects > 0 && c.members == 0 {
+				t.Error("objects found but no members")
+			}
+			if c.members > 0 && c.strings == 0 {
+				t.Error("members found but no strings")
+			}
+		})
+	}
+}
+
+func TestExtractDeeplyNested(t *testing.T) {
+	depth := 100
+	var b []byte
+	for i := 0; i < depth; i++ {
+		b = append(b, `{"k": `...)
+	}
+	b = append(b, `[1, "x"]`...)
+	for i := 0; i < depth; i++ {
+		b = append(b, '}')
+	}
+
+	val := parseAndExtract(t, string(b))
+
+	// Walk down nested objects.
+	current := val
+	for i := 0; i < depth; i++ {
+		if current.Object == nil {
+			t.Fatalf("depth %d: expected Object", i)
+		}
+		if len(current.Object.Members) != 1 {
+			t.Fatalf("depth %d: expected 1 member, got %d", i, len(current.Object.Members))
+		}
+		m := current.Object.Members[0]
+		if m.Key != `"k"` {
+			t.Fatalf("depth %d: key = %q, want %q", i, m.Key, `"k"`)
+		}
+		current = m.Value
+	}
+
+	// At the leaf: [1, "x"]
+	if current.Array == nil {
+		t.Fatal("leaf: expected Array")
+	}
+	if len(current.Array.Items) != 2 {
+		t.Fatalf("leaf: expected 2 items, got %d", len(current.Array.Items))
+	}
+	if current.Array.Items[0].Number == nil || *current.Array.Items[0].Number != "1" {
+		t.Error("leaf item 0: expected Number 1")
+	}
+	if current.Array.Items[1].String == nil || *current.Array.Items[1].String != `"x"` {
+		t.Error("leaf item 1: expected String \"x\"")
 	}
 }

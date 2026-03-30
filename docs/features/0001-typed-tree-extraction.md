@@ -3,7 +3,7 @@ date: 2026-03-27
 promotion-criteria: Generated extraction code compiles and passes round-trip
   tests against grammars/json.peg with arena-direct access showing measurable
   speedup over interface-path extraction.
-status: experimental
+status: testing
 ---
 
 # Typed Tree Extraction
