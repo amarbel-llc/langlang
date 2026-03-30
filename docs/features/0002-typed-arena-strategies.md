@@ -3,7 +3,7 @@ date: 2026-03-27
 promotion-criteria: Benchstat comparison of at least two strategies against
   baseline shows statistically significant results (p \< 0.05) on medium JSON
   and expression inputs, with clear winner identified.
-status: proposed
+status: experimental
 ---
 
 # Typed Arena Strategies

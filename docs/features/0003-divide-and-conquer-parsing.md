@@ -3,7 +3,7 @@ date: 2026-03-27
 promotion-criteria: Scanner correctly identifies all structural junctions for
   JSON and langlang self-hosting grammars, and parallel parsing of independent
   regions produces identical results to sequential parsing.
-status: proposed
+status: testing
 ---
 
 # Divide-and-Conquer Parsing
