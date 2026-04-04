@@ -1,0 +1,149 @@
+// TOML v1.0 — Full PEG grammar
+// Reference: https://toml.io/en/v1.0.0
+// Translated from the official TOML ABNF (toml-lang/toml)
+//
+// Langlang auto-injects the `Spacing` rule between non-terminal
+// calls.  We override Spacing to consume whitespace, newlines, and
+// comments so the structural rules stay clean.
+//
+// Comments are captured as parse-tree nodes (not discarded) so that
+// format-preserving round-trip tools can reconstruct them.
+//
+// Sub-rules that live inside lexified (#) contexts must themselves
+// be wrapped in #() to prevent auto-spacing injection.
+
+// ── Top-level ──────────────────────────────────────────────────
+
+TOML       <- Expression* EOF
+
+Expression <- ArrayTable
+            / StdTable
+            / KeyVal
+            / Comment
+
+// ── Table headers ──────────────────────────────────────────────
+
+StdTable   <- '[' !'[' Key ']'
+ArrayTable <- '[[' Key ']]'
+
+// ── Key / Value pair ───────────────────────────────────────────
+
+KeyVal     <- Key '=' Val
+
+Key        <- SimpleKey ('.' SimpleKey)*
+SimpleKey  <- QuotedKey / UnquotedKey
+UnquotedKey <- #([a-zA-Z0-9_\-]+)
+QuotedKey  <- BasicString / LiteralString
+
+// ── Values ─────────────────────────────────────────────────────
+
+Val        <- MLBasicString
+            / BasicString
+            / MLLiteralString
+            / LiteralString
+            / Boolean
+            / DateTime
+            / Float
+            / Integer
+            / Array
+            / InlineTable
+
+// ── Strings ────────────────────────────────────────────────────
+
+// Basic strings: "..."
+BasicString    <- '"' #(BasicChar* '"')
+BasicChar      <- #(BasicEscape / BasicUnescaped)
+BasicUnescaped <- #([\t !#-\[\]-~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
+BasicEscape    <- #('\\' EscapeSeqChar)
+EscapeSeqChar  <- #(["\\/bfnrte] / 'x' HexDig HexDig / 'u' HexDig HexDig HexDig HexDig / 'U' HexDig HexDig HexDig HexDig HexDig HexDig HexDig HexDig)
+
+// Multi-line basic strings: """..."""
+MLBasicString  <- '"""' #(MLBNewline? MLBasicBody '"""')
+MLBNewline     <- #('\r\n' / '\n')
+MLBasicBody    <- #(MLBContent* (MLBQuotes MLBContent+)* MLBQuotes?)
+MLBContent     <- #(MLBEscapedNL / BasicChar / MLBNewline)
+MLBQuotes      <- #('"' '"'? !'"')
+MLBEscapedNL   <- #('\\' [ \t]* MLBNewline ([ \t] / MLBNewline)*)
+
+// Literal strings: '...'
+LiteralString  <- '\'' #(LiteralChar* '\'')
+LiteralChar    <- #([\t -&(-~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
+
+// Multi-line literal strings: '''...'''
+MLLiteralString <- '\'\'\'' #(MLLNewline? MLLiteralBody '\'\'\'')
+MLLNewline      <- #('\r\n' / '\n')
+MLLiteralBody   <- #(MLLContent* (MLLQuotes MLLContent+)* MLLQuotes?)
+MLLContent      <- #(LiteralChar / MLLNewline)
+MLLQuotes       <- #('\'' '\''? !'\''  )
+
+// ── Integer ────────────────────────────────────────────────────
+
+Integer        <- #(HexInt / OctInt / BinInt / DecInt)
+DecInt         <- #([\-+]? UnsignedDecInt)
+UnsignedDecInt <- #([1-9] ([0-9] / '_' [0-9])+ / [0-9])
+HexInt         <- #('0x' HexDig (HexDig / '_' HexDig)*)
+OctInt         <- #('0o' [0-7] ([0-7] / '_' [0-7])*)
+BinInt         <- #('0b' [0-1] ([0-1] / '_' [0-1])*)
+HexDig         <- #([0-9A-Fa-f])
+
+// ── Float ──────────────────────────────────────────────────────
+
+Float             <- #(SpecialFloat / FloatVal)
+FloatVal          <- #(DecInt (Exp / Frac Exp?))
+Frac              <- #('.' ZeroPrefixableInt)
+Exp               <- #([eE] [\-+]? ZeroPrefixableInt)
+ZeroPrefixableInt <- #([0-9] ([0-9] / '_' [0-9])*)
+SpecialFloat      <- #([\-+]? ('inf' / 'nan'))
+
+// ── Boolean ────────────────────────────────────────────────────
+
+Boolean    <- 'true' / 'false'
+
+// ── Date-Time ──────────────────────────────────────────────────
+
+DateTime       <- #(OffsetDateTime / LocalDateTime / LocalDate / LocalTime)
+OffsetDateTime <- #(FullDate [T ] FullTime)
+LocalDateTime  <- #(FullDate [T ] PartialTime)
+LocalDate      <- #(FullDate)
+LocalTime      <- #(PartialTime)
+
+FullDate       <- #(Digit4 '-' Digit2 '-' Digit2)
+Digit4         <- #([0-9][0-9][0-9][0-9])
+Digit2         <- #([0-9][0-9])
+
+FullTime       <- #(PartialTime TimeOffset)
+PartialTime    <- #(Digit2 ':' Digit2 (':' Digit2 TimeSecFrac?)?)
+TimeSecFrac    <- #('.' [0-9]+)
+TimeOffset     <- #('Z' / [\-+] Digit2 ':' Digit2)
+
+// ── Array ──────────────────────────────────────────────────────
+
+Array          <- '[' ArrayValues? ']'^arrayClose
+ArrayValues    <- Val (',' Val^itemAfterComma)* ','?
+
+// ── Inline Table ───────────────────────────────────────────────
+
+InlineTable        <- '{' InlineTableKeyVals? '}'
+InlineTableKeyVals <- KeyVal (',' KeyVal)*
+
+// ── Comments ───────────────────────────────────────────────────
+
+Comment    <- #('#' NonEOL*)
+NonEOL     <- #([\t -~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
+
+// ── Spacing override ───────────────────────────────────────────
+// Override the builtin spacing rule to consume whitespace, newlines,
+// and comments between tokens.
+
+Spacing   <- #(SpaceChar / CommentNL)*
+SpaceChar <- [ \t\n\r]
+CommentNL <- '#' NonEOL* [\n\r]?
+
+// ── Sentinel ───────────────────────────────────────────────────
+
+EOF <- !.
+
+// ── Recovery Expressions ───────────────────────────────────────
+
+arrayClose     <-
+itemAfterComma <- (![,\]] .)*

@@ -1,0 +1,205 @@
+# TOML v1.0 full-feature test file
+# This exercises every construct in the TOML specification.
+
+# ── Comments ────────────────────────────────────────────────────
+# Comments can appear on their own line
+title = "TOML v1.0 Feature Test" # or at end of a key-value pair
+
+# ── Bare keys ───────────────────────────────────────────────────
+bare-key = "dash"
+bare_key = "underscore"
+1234 = "integer key"
+
+# ── Quoted keys ─────────────────────────────────────────────────
+"quoted key" = "with spaces"
+'literal-quoted' = "single-quoted key"
+"" = "empty quoted key"
+'' = "empty literal key"
+
+# ── Dotted keys ─────────────────────────────────────────────────
+name = "Orange"
+physical.color = "orange"
+physical.shape = "round"
+site."google.com" = true
+fruit.name = "apple"
+fruit.color = "red"
+fruit.flavor = "sweet"
+
+# ── Basic strings ───────────────────────────────────────────────
+str1 = "I'm a string."
+str2 = "You can \"quote\" me."
+str3 = "Name\tJos\u00E9\nLoc\tSF"
+str4 = "backslash: \\"
+str5 = "tab:\there"
+str6 = "\b\f\r\n\t"
+str7 = "\e escape"
+str8 = "\x41\x42\x43"
+
+# ── Multi-line basic strings ───────────────────────────────────
+str_ml1 = """
+Roses are red
+Violets are blue"""
+
+str_ml2 = """\
+  The quick brown \
+  fox jumps over \
+  the lazy dog.\
+  """
+
+str_ml3 = """Here are two quotation marks: "". Simple enough."""
+str_ml4 = """Here are three quotation marks: ""\"."""
+str_ml5 = """Here are fifteen quotation marks: ""\"""\"""\"""\"""\"."""
+
+# ── Literal strings ─────────────────────────────────────────────
+winpath  = 'C:\Users\nodejs\templates'
+winpath2 = '\\ServerX\admin$\system32\'
+quoted   = 'Tom "Dubs" Preston-Werner'
+regex    = '<\i\c*\s*>'
+
+# ── Multi-line literal strings ──────────────────────────────────
+regex2 = '''I [dw]on't need \d{2} apples'''
+lines  = '''
+The first newline is
+trimmed in raw strings.
+   All other whitespace
+   is preserved.
+'''
+quot1 = '''Here are two apostrophes: ''.'''
+
+# ── Integers ────────────────────────────────────────────────────
+int1 = +99
+int2 = 42
+int3 = 0
+int4 = -17
+int5 = 1_000
+int6 = 5_349_221
+int7 = 53_49_221
+int8 = 1_2_3_4_5
+
+# hex, octal, binary
+hex1 = 0xDEADBEEF
+hex2 = 0xdeadbeef
+hex3 = 0xdead_beef
+oct1 = 0o01234567
+oct2 = 0o755
+bin1 = 0b11010110
+bin2 = 0b1101_0110
+
+# ── Floats ──────────────────────────────────────────────────────
+flt1 = +1.0
+flt2 = 3.1415
+flt3 = -0.01
+flt4 = 5e+22
+flt5 = 1e06
+flt6 = -2E-2
+flt7 = 6.626e-34
+flt8 = 224_617.445_991_228
+
+# special float values
+sf1 = inf
+sf2 = +inf
+sf3 = -inf
+sf4 = nan
+sf5 = +nan
+sf6 = -nan
+
+# ── Booleans ────────────────────────────────────────────────────
+bool1 = true
+bool2 = false
+
+# ── Offset Date-Time ───────────────────────────────────────────
+odt1 = 1979-05-27T07:32:00Z
+odt2 = 1979-05-27T00:32:00-07:00
+odt3 = 1979-05-27T00:32:00.999999-07:00
+odt4 = 1979-05-27 07:32:00Z
+
+# ── Local Date-Time ────────────────────────────────────────────
+ldt1 = 1979-05-27T07:32:00
+ldt2 = 1979-05-27T00:32:00.999999
+
+# ── Local Date ──────────────────────────────────────────────────
+ld1 = 1979-05-27
+
+# ── Local Time ──────────────────────────────────────────────────
+lt1 = 07:32:00
+lt2 = 00:32:00.999999
+
+# ── Arrays ──────────────────────────────────────────────────────
+integers = [1, 2, 3]
+colors = ["red", "yellow", "green"]
+nested_arrays_of_ints = [[1, 2], [3, 4, 5]]
+nested_mixed_array = [[1, 2], ["a", "b", "c"]]
+
+string_array = [
+  "all",
+  "strings",
+  "are the same",
+  "type",
+]
+
+integers2 = [
+  1, 2, 3,
+]
+
+integers3 = [
+  1,
+  2, # this is ok
+]
+
+# ── Standard tables ─────────────────────────────────────────────
+[table-1]
+key1 = "some string"
+key2 = 123
+
+[table-2]
+key1 = "another string"
+key2 = 456
+
+[dog."tater.man"]
+type.name = "pug"
+
+[a.b.c]
+d = "value"
+
+[a.b]
+e = "value"
+
+# ── Inline tables ──────────────────────────────────────────────
+point1 = {x = 1, y = 2}
+point2 = {x = 3, y = 4}
+animal = {type.name = "pug"}
+
+[product]
+name = {first = "Tom", last = "Preston-Werner"}
+type = {name = "Hammer", weight = 10}
+
+# ── Array of Tables ─────────────────────────────────────────────
+[[products]]
+name = "Hammer"
+sku = 738594937
+
+[[products]]  # empty table within the array
+
+[[products]]
+name = "Nail"
+sku = 284758393
+color = "gray"
+
+[[fruits]]
+name = "apple"
+
+[fruits.physical]
+color = "red"
+shape = "round"
+
+[[fruits.varieties]]
+name = "red delicious"
+
+[[fruits.varieties]]
+name = "granny smith"
+
+[[fruits]]
+name = "banana"
+
+[[fruits.varieties]]
+name = "plantain"
