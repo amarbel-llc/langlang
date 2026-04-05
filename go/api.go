@@ -82,7 +82,7 @@ type Span struct {
 //	root, _ := tree.Root()
 //	fmt.Println(tree.Name(root))        // rule name
 //	fmt.Println(tree.Text(root))        // matched text
-//	for _, child := range tree.Children(root) {
+//	for _, child := range tree.AppendChildren(root, nil) {
 //	    fmt.Println(tree.Text(child))
 //	}
 //
@@ -161,11 +161,12 @@ type Tree interface {
 	// if the node has no child.
 	Child(NodeID) (NodeID, bool)
 
-	// Children returns all direct children of a node. For
-	// NodeType_Sequence, this is the list of child nodes. For
-	// NodeType_Node and NodeType_Error, returns a single-element
-	// slice. Returns nil for NodeType_String or childless nodes.
-	Children(NodeID) []NodeID
+	// AppendChildren appends all direct children of a node to dst
+	// and returns the extended slice. For NodeType_Sequence, appends
+	// the child list. For NodeType_Node and NodeType_Error, appends
+	// the single child. Appends nothing for NodeType_String or
+	// childless nodes. Pass nil for dst to allocate a new slice.
+	AppendChildren(id NodeID, dst []NodeID) []NodeID
 
 	// Text extracts the matched substring from the original
 	// input.  For sequences, it concatenates all descendant text.

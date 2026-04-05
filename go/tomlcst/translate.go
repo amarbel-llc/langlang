@@ -201,7 +201,7 @@ func translateChildren(a *arena, tree langlang.Tree, input []byte, id langlang.N
 	// Use mark/restore on the scratch buffer so recursive calls don't
 	// clobber the parent's collected children.
 	mark := len(a.scratch)
-	for _, cid := range tree.Children(id) {
+	for _, cid := range tree.AppendChildren(id, nil) {
 		node := translateNode(a, tree, input, cid)
 		if node == nil {
 			continue

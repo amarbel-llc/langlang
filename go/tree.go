@@ -136,19 +136,23 @@ func (t *tree) ensurePosView() {
 	}
 }
 
-func (t *tree) Children(id NodeID) []NodeID {
+func (t *tree) AppendChildren(id NodeID, dst []NodeID) []NodeID {
 	n := &t.nodes[id]
 	if n.childID == -1 {
-		return nil
+		return dst
 	}
-	if n.typ == NodeType_Node || n.typ == NodeType_Error {
-		return []NodeID{NodeID(n.childID)}
-	}
-	if n.typ == NodeType_Sequence {
+	switch n.typ {
+	case NodeType_Node, NodeType_Error:
+		return append(dst, NodeID(n.childID))
+	case NodeType_Sequence:
 		cr := t.childRanges[n.childID]
-		return t.children[cr.start:cr.end]
+		sub := t.children[cr.start:cr.end]
+		if dst == nil {
+			return sub // zero-copy sub-slice when no append needed
+		}
+		return append(dst, sub...)
 	}
-	return nil
+	return dst
 }
 
 func (t *tree) Child(id NodeID) (NodeID, bool) {
@@ -403,7 +407,7 @@ func (vi *prettyPrinter) visit(id NodeID) {
 		vi.write(vi.format(fmt.Sprintf(" (%s)", s.String()), FormatToken_Range))
 
 	case NodeType_Sequence:
-		children := vi.tree.Children(id)
+		children := vi.tree.AppendChildren(id, nil)
 		seq := fmt.Sprintf("Sequence<%d> (%s)", len(children), s.String())
 		vi.writel(vi.format(seq, FormatToken_Range))
 		for i, child := range children {
