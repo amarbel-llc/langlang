@@ -66,21 +66,68 @@ var skipNames = map[string]bool{
 	"EOL":     true,
 }
 
+// arena pre-allocates Node and []*Node storage to reduce heap allocations
+// during tree translation. Nodes are allocated from a flat slice; child
+// pointer slices share a single backing array.
+type arena struct {
+	nodes []Node
+	nUsed int
+	ptrs  []*Node
+	pUsed int
+}
+
+func newArena(nodeCount, ptrCount int) *arena {
+	a := &arena{
+		nodes: make([]Node, nodeCount),
+		ptrs:  make([]*Node, ptrCount),
+	}
+	return a
+}
+
+func (a *arena) allocNode() *Node {
+	if a.nUsed >= len(a.nodes) {
+		a.nodes = append(a.nodes, Node{})
+	}
+	n := &a.nodes[a.nUsed]
+	a.nUsed++
+	return n
+}
+
+func (a *arena) allocChildren(count int) []*Node {
+	if a.pUsed+count > len(a.ptrs) {
+		need := a.pUsed + count - len(a.ptrs)
+		a.ptrs = append(a.ptrs, make([]*Node, need)...)
+	}
+	s := a.ptrs[a.pUsed : a.pUsed+count]
+	a.pUsed += count
+	return s
+}
+
 // Translate walks a langlang parse tree produced from the CST-mode TOML
 // grammar and builds a tommy-compatible *Node tree. The input slice must
 // be the same bytes that were parsed to produce the tree.
+//
+// Nodes are allocated from a pre-sized arena to minimize heap allocations.
+// Leaf nodes reference the input slice directly (no copy).
 func Translate(tree langlang.Tree, input []byte) *Node {
 	root, ok := tree.Root()
 	if !ok {
 		return &Node{Kind: NodeDocument}
 	}
-	return translateNode(tree, input, root)
+	// Estimate arena size from input length. TOML CST produces roughly
+	// 1 node per 3 bytes (tokens + trivia).
+	est := len(input) / 3
+	if est < 64 {
+		est = 64
+	}
+	a := newArena(est, est*3)
+	return translateNode(a, tree, input, root)
 }
 
-func translateNode(tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
+func translateNode(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
 	switch tree.Type(id) {
 	case langlang.NodeType_String:
-		return makeLeaf(tree, input, id)
+		return makeLeaf(a, tree, input, id)
 
 	case langlang.NodeType_Node:
 		name := tree.Name(id)
@@ -94,78 +141,93 @@ func translateNode(tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
 			if !ok {
 				return nil
 			}
-			// For choices (single child), translate the child directly.
-			// For sequences, translate all children.
 			if tree.Type(child) == langlang.NodeType_Sequence {
-				return &Node{Kind: -1, Children: translateChildren(tree, input, child)}
+				n := a.allocNode()
+				n.Kind = -1
+				n.Children = translateChildren(a, tree, input, child)
+				return n
 			}
-			// Single child — wrap in a flatten sentinel so it gets inlined.
-			inner := translateNode(tree, input, child)
+			inner := translateNode(a, tree, input, child)
 			if inner == nil {
 				return nil
 			}
 			if inner.Kind == -1 {
-				return inner // already a flatten sentinel
+				return inner
 			}
-			return &Node{Kind: -1, Children: []*Node{inner}}
+			n := a.allocNode()
+			n.Kind = -1
+			n.Children = a.allocChildren(1)
+			n.Children[0] = inner
+			return n
 		}
 
 		kind, mapped := nameToKind[name]
 		if !mapped {
-			return makeLeaf(tree, input, id)
+			return makeLeaf(a, tree, input, id)
 		}
 
-		// Leaf-like named nodes: emit as Raw bytes, no children.
 		if leafNames[name] {
-			leaf := makeLeaf(tree, input, id)
+			leaf := makeLeaf(a, tree, input, id)
 			if leaf != nil {
 				leaf.Kind = kind
 			}
 			return leaf
 		}
 
-		// Container node: recurse into children.
 		child, ok := tree.Child(id)
 		if !ok {
-			return &Node{Kind: kind}
+			n := a.allocNode()
+			n.Kind = kind
+			return n
 		}
-		return &Node{Kind: kind, Children: translateChildren(tree, input, child)}
+		n := a.allocNode()
+		n.Kind = kind
+		n.Children = translateChildren(a, tree, input, child)
+		return n
 
 	case langlang.NodeType_Sequence:
-		// Sequence nodes are transparent — inline all children.
-		return &Node{Kind: -1, Children: translateChildren(tree, input, id)}
+		n := a.allocNode()
+		n.Kind = -1
+		n.Children = translateChildren(a, tree, input, id)
+		return n
 
 	default:
 		return nil
 	}
 }
 
-func translateChildren(tree langlang.Tree, input []byte, id langlang.NodeID) []*Node {
-	var children []*Node
-	for _, cid := range tree.Children(id) {
-		node := translateNode(tree, input, cid)
+func translateChildren(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) []*Node {
+	// Two-pass: first collect into a temporary slice, then copy into arena.
+	ids := tree.Children(id)
+	var tmp []*Node
+	for _, cid := range ids {
+		node := translateNode(a, tree, input, cid)
 		if node == nil {
 			continue
 		}
-		// Flatten sentinel nodes (Kind == -1): inline their children.
 		if node.Kind == -1 {
-			children = append(children, node.Children...)
+			tmp = append(tmp, node.Children...)
 		} else {
-			children = append(children, node)
+			tmp = append(tmp, node)
 		}
 	}
+	if len(tmp) == 0 {
+		return nil
+	}
+	children := a.allocChildren(len(tmp))
+	copy(children, tmp)
 	return children
 }
 
-func makeLeaf(tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
+func makeLeaf(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
 	span := tree.Span(id)
 	start := span.Start.Cursor
 	end := span.End.Cursor
 	if start >= end || start >= len(input) {
 		return nil
 	}
-	// Use a copy so the Node owns its bytes independent of the input slice.
-	raw := make([]byte, end-start)
-	copy(raw, input[start:end])
-	return &Node{Raw: raw}
+	n := a.allocNode()
+	// Reference input directly — no copy. The input must outlive the tree.
+	n.Raw = input[start:end]
+	return n
 }
