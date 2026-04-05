@@ -1,13 +1,15 @@
-// TOML v1.0 — Full PEG grammar
-// Reference: https://toml.io/en/v1.0.0
+// TOML v1.1 — Full PEG grammar
+// Reference: https://toml.io/en/v1.1.0
 // Translated from the official TOML ABNF (toml-lang/toml)
 //
 // Langlang auto-injects the `Spacing` rule between non-terminal
 // calls.  We override Spacing to consume whitespace, newlines, and
 // comments so the structural rules stay clean.
 //
-// Comments are captured as parse-tree nodes (not discarded) so that
-// format-preserving round-trip tools can reconstruct them.
+// Comments are preserved in the parse tree as part of Spacing text
+// nodes (not as named Comment nodes).  The Spacing override consumes
+// comments between tokens, so format-preserving round-trip tools can
+// reconstruct them by walking the full tree including Spacing.
 //
 // Sub-rules that live inside lexified (#) contexts must themselves
 // be wrapped in #() to prevent auto-spacing injection.
@@ -19,7 +21,6 @@ TOML       <- Expression* EOF
 Expression <- ArrayTable
             / StdTable
             / KeyVal
-            / Comment
 
 // ── Table headers ──────────────────────────────────────────────
 
@@ -123,8 +124,9 @@ ArrayValues    <- Val (',' Val^itemAfterComma)* ','?
 
 // ── Inline Table ───────────────────────────────────────────────
 
-InlineTable        <- '{' InlineTableKeyVals? '}'
-InlineTableKeyVals <- KeyVal (',' KeyVal)*
+InlineTable        <- #('{' ITS InlineTableKeyVals? ITS '}')
+InlineTableKeyVals <- #(KeyVal (ITS ',' ITS KeyVal)*)
+ITS                <- #([ \t]*)
 
 // ── Comments ───────────────────────────────────────────────────
 

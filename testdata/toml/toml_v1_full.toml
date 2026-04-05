@@ -1,4 +1,4 @@
-# TOML v1.0 full-feature test file
+# TOML v1.1 full-feature test file
 # This exercises every construct in the TOML specification.
 
 # ── Comments ────────────────────────────────────────────────────
@@ -51,14 +51,14 @@ str_ml4 = """Here are three quotation marks: ""\"."""
 str_ml5 = """Here are fifteen quotation marks: ""\"""\"""\"""\"""\"."""
 
 # ── Literal strings ─────────────────────────────────────────────
-winpath  = 'C:\Users\nodejs\templates'
+winpath = 'C:\Users\nodejs\templates'
 winpath2 = '\\ServerX\admin$\system32\'
-quoted   = 'Tom "Dubs" Preston-Werner'
-regex    = '<\i\c*\s*>'
+quoted = 'Tom "Dubs" Preston-Werner'
+regex = '<\i\c*\s*>'
 
 # ── Multi-line literal strings ──────────────────────────────────
 regex2 = '''I [dw]on't need \d{2} apples'''
-lines  = '''
+lines = '''
 The first newline is
 trimmed in raw strings.
    All other whitespace
@@ -111,7 +111,7 @@ bool2 = false
 odt1 = 1979-05-27T07:32:00Z
 odt2 = 1979-05-27T00:32:00-07:00
 odt3 = 1979-05-27T00:32:00.999999-07:00
-odt4 = 1979-05-27 07:32:00Z
+odt4 = 1979-05-27T12:00:00Z
 
 # ── Local Date-Time ────────────────────────────────────────────
 ldt1 = 1979-05-27T07:32:00
@@ -147,6 +147,7 @@ integers3 = [
 ]
 
 # ── Standard tables ─────────────────────────────────────────────
+
 [table-1]
 key1 = "some string"
 key2 = 123
@@ -174,6 +175,7 @@ name = {first = "Tom", last = "Preston-Werner"}
 type = {name = "Hammer", weight = 10}
 
 # ── Array of Tables ─────────────────────────────────────────────
+
 [[products]]
 name = "Hammer"
 sku = 738594937
