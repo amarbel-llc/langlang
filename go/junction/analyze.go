@@ -257,6 +257,11 @@ func (a *analyzer) findEscapePrefix(node langlang.AstNode, depth int) byte {
 	if depth > 5 {
 		return 0
 	}
+	// Check if this node is itself a single-byte escape literal (handles
+	// CharsetNode[\\] and LiteralNode("\\") that the pipeline may produce).
+	if b, ok := singleByteFromNode(node); ok && b == '\\' {
+		return '\\'
+	}
 	switch e := node.(type) {
 	case *langlang.ZeroOrMoreNode:
 		return a.findEscapePrefix(unwrapTransparent(e.Expr), depth)

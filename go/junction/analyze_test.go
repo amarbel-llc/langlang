@@ -111,20 +111,20 @@ func TestAnalyzeForJunctions(t *testing.T) {
 			name:        "Go",
 			grammarPath: goGrammarPath(),
 			junctions: map[byte]JunctionKind{
-				'`':  JunctionOpen,
-				'"':  JunctionOpen,
-				',':  JunctionSeparator,
-				'{':  JunctionOpen,
-				'}':  JunctionClose,
-				'(':  JunctionOpen,
-				')':  JunctionClose,
-				'|':  JunctionSeparator,
-				';':  JunctionOpen,
-				':':  JunctionSeparator,
+				'`': JunctionOpen,
+				'"': JunctionOpen,
+				',': JunctionSeparator,
+				'{': JunctionOpen,
+				'}': JunctionClose,
+				'(': JunctionOpen,
+				')': JunctionClose,
+				'|': JunctionSeparator,
+				';': JunctionOpen,
+				':': JunctionSeparator,
 			},
 			quoting: []QuotingContext{
 				{Delimiter: '`', EscapePrefix: 0},
-				{Delimiter: '"', EscapePrefix: 0},
+				{Delimiter: '"', EscapePrefix: '\\'},
 			},
 		},
 	}
@@ -213,7 +213,6 @@ func fmtByte(b byte) string {
 	}
 	return fmt.Sprintf("%q", rune(b))
 }
-
 
 func fmtKind(k JunctionKind) string {
 	switch k {

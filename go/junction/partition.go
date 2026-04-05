@@ -23,5 +23,11 @@ func BuildPartitions(hits []JunctionHit, inputLen int32) Partition {
 		}
 	}
 
+	// Any partitions still on the stack were never closed. Set their
+	// End to inputLen so downstream code doesn't get invalid [Start, 0) bounds.
+	for i := len(stack) - 1; i > 0; i-- {
+		stack[i].End = inputLen
+	}
+
 	return root
 }
