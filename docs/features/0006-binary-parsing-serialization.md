@@ -97,6 +97,21 @@ pub struct PNGChunk<'a> {
 - Rust codegen invokes the Go langlang CLI from `build.rs`, creating a
   cross-language build dependency.
 
+## MVP Notes (2026-04-05)
+
+- **`@binary` dropped:** The input is always a bytestream; binary primitives are
+  new expression types valid in any grammar. Use `@whitespace none` explicitly.
+- **`@endian` deferred:** Each numeric primitive encodes endianness in its name
+  (`u32le`, `u32be`). A default-endianness directive may be added later if
+  grammars get verbose with repeated `le`/`be` suffixes.
+- **Binding syntax:** `name:expr` instead of `expr -> name`. Reads
+  left-to-right: the name labels what follows.
+- **MVP scope:** Go codegen only. Rust codegen, cross-language tests, signed
+  integers, floats, hex literals, and varint deferred.
+
+See [binary-codegen-design.md](../plans/2026-04-05-binary-codegen-design.md) for
+the full MVP design.
+
 ## More Information
 
 - Full design with VM extensions, output model options, encoder generation,
