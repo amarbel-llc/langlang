@@ -442,6 +442,76 @@ func BenchmarkGoParallelPartitionParse(b *testing.B) {
 	}
 }
 
+// XML benchmarks (scan-only — no PEG parser for XML in this repo)
+
+var xmlSpec = ScannerSpec{
+	Junctions: []JunctionByte{
+		{'<', JunctionOpen},
+		{'>', JunctionClose},
+	},
+	Sequences: []JunctionSequence{
+		{Pattern: []byte("</"), Kind: JunctionClose},
+		{Pattern: []byte("/>"), Kind: JunctionClose},
+	},
+	Quoting: []QuotingContext{
+		{Delimiter: '"', EscapePrefix: 0},
+	},
+}
+
+func buildXML(approxBytes int) []byte {
+	// Generate <root><item id="N">value N ...</item>...</root>
+	var buf []byte
+	buf = append(buf, `<?xml version="1.0"?>`...)
+	buf = append(buf, '\n')
+	buf = append(buf, `<root>`...)
+	buf = append(buf, '\n')
+	for i := 0; len(buf) < approxBytes-30; i++ {
+		line := fmt.Sprintf(`  <item id="%d">value %d padding data here</item>`, i, i)
+		buf = append(buf, line...)
+		buf = append(buf, '\n')
+	}
+	buf = append(buf, `</root>`...)
+	buf = append(buf, '\n')
+	return buf
+}
+
+func BenchmarkXMLScanOnly(b *testing.B) {
+	for _, size := range []struct {
+		name  string
+		bytes int
+	}{
+		{"30kb", 30_000},
+		{"500kb", 500_000},
+	} {
+		input := buildXML(size.bytes)
+		b.Run(size.name, func(b *testing.B) {
+			b.SetBytes(int64(len(input)))
+			for n := 0; n < b.N; n++ {
+				ScanJunctions(input, xmlSpec)
+			}
+		})
+	}
+}
+
+func BenchmarkXMLScanAndPartition(b *testing.B) {
+	for _, size := range []struct {
+		name  string
+		bytes int
+	}{
+		{"30kb", 30_000},
+		{"500kb", 500_000},
+	} {
+		input := buildXML(size.bytes)
+		b.Run(size.name, func(b *testing.B) {
+			b.SetBytes(int64(len(input)))
+			for n := 0; n < b.N; n++ {
+				hits := ScanJunctions(input, xmlSpec)
+				BuildPartitions(hits, int32(len(input)))
+			}
+		})
+	}
+}
+
 // BenchmarkNestedScanAndPartition measures scanning + partitioning
 // on deeply nested JSON documents.
 func BenchmarkNestedScanAndPartition(b *testing.B) {
