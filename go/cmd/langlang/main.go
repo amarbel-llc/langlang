@@ -98,6 +98,9 @@ func main() {
 		case "extract":
 			runExtract(os.Args[2:])
 			return
+		case "codegen":
+			runCodegen(os.Args[2:])
+			return
 		}
 	}
 
@@ -248,7 +251,7 @@ func main() {
 		fatal("Can't emit code: %s", err.Error())
 	}
 
-	if err = os.WriteFile(*a.outputPath, []byte(outputData), 0644); err != nil {
+	if err = os.WriteFile(*a.outputPath, []byte(outputData), 0o644); err != nil {
 		fatal("Can't write output: %s", err.Error())
 	}
 }
