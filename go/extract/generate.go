@@ -66,6 +66,47 @@ func collectNameIDs(structs []StructInfo, rules map[string]RuleInfo) []NameIDEnt
 	return entries
 }
 
+// GenerateJen is like Generate but uses the jennifer-based emitter.
+func GenerateJen(sourceFile, grammarPath string) error {
+	structs, err := Analyze(sourceFile)
+	if err != nil {
+		return fmt.Errorf("analyze structs: %w", err)
+	}
+	if len(structs) == 0 {
+		return fmt.Errorf("no structs with ll: tags found in %s", sourceFile)
+	}
+
+	rules, err := AnalyzeGrammar(grammarPath)
+	if err != nil {
+		return fmt.Errorf("analyze grammar: %w", err)
+	}
+
+	structs, errs := Validate(structs, rules)
+	if len(errs) > 0 {
+		var msgs []string
+		for _, e := range errs {
+			msgs = append(msgs, e.Error())
+		}
+		return fmt.Errorf("validation errors:\n  %s", strings.Join(msgs, "\n  "))
+	}
+
+	nameIDs := collectNameIDs(structs, rules)
+	pkg := detectPackageName(sourceFile)
+
+	output, err := RenderFileJen(pkg, grammarPath, nameIDs, structs, rules)
+	if err != nil {
+		return fmt.Errorf("render jen: %w", err)
+	}
+
+	base := strings.TrimSuffix(filepath.Base(sourceFile), ".go")
+	outPath := filepath.Join(filepath.Dir(sourceFile), base+"_extract.go")
+	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+		return fmt.Errorf("write %s: %w", outPath, err)
+	}
+
+	return nil
+}
+
 // GenerateViews produces zero-allocation view types from a grammar file.
 // Unlike Generate, it does not require a Go source file with struct definitions.
 // The output file is written as <basename>_views.go alongside the grammar.
