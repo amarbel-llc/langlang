@@ -15,6 +15,19 @@ type JunctionByte struct {
 	Kind JunctionKind
 }
 
+// JunctionSequence is a multi-byte structural delimiter. The first byte
+// triggers candidate evaluation; the scanner peeks ahead to confirm or
+// reject the match. Longest match wins over shorter sequences and
+// single-byte junctions sharing the same first byte.
+//
+// NOTE: The current implementation uses lookahead (random access) to
+// resolve matches. Streaming input support would require maintaining
+// partial-match state across iterations instead.
+type JunctionSequence struct {
+	Pattern []byte
+	Kind    JunctionKind
+}
+
 // QuotingContext describes a delimiter that toggles quoting state,
 // suppressing junction detection for bytes inside quotes.
 type QuotingContext struct {
@@ -24,16 +37,18 @@ type QuotingContext struct {
 
 // ScannerSpec is the grammar-derived configuration for junction scanning.
 type ScannerSpec struct {
-	Junctions []JunctionByte
+	Junctions []JunctionByte     // single-byte delimiters (LUT fast path)
+	Sequences []JunctionSequence // multi-byte delimiters (lookahead match)
 	Quoting   []QuotingContext
 }
 
-// JunctionHit records a structural byte found during scanning.
+// JunctionHit records a structural delimiter found during scanning.
 type JunctionHit struct {
 	Pos   int32
 	Depth int16
 	Kind  JunctionKind
-	Byte  byte
+	Byte  byte  // first byte of the delimiter
+	Len   int16 // byte length of the delimiter (1 for single-byte)
 }
 
 // Partition represents a region of input bounded by matched open/close
