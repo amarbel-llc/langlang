@@ -155,7 +155,7 @@ func GenerateViewsJen(grammarPath, pkg, outDir, rootRule string) error {
 
 // GenerateArena produces arena types and extraction functions alongside
 // the existing heap-based extraction. Output: <source>_arena.go.
-func GenerateArena(sourceFile, grammarPath string) error {
+func GenerateArena(sourceFile, grammarPath string, includeScan bool) error {
 	structs, err := Analyze(sourceFile)
 	if err != nil {
 		return fmt.Errorf("analyze structs: %w", err)
@@ -178,9 +178,13 @@ func GenerateArena(sourceFile, grammarPath string) error {
 		return fmt.Errorf("validation errors:\n  %s", strings.Join(msgs, "\n  "))
 	}
 
-	spec, err := junction.AnalyzeForJunctions(grammarPath)
-	if err != nil {
-		return fmt.Errorf("analyze junctions: %w", err)
+	var spec *junction.ScannerSpec
+	if includeScan {
+		s, err := junction.AnalyzeForJunctions(grammarPath)
+		if err != nil {
+			return fmt.Errorf("analyze junctions: %w", err)
+		}
+		spec = &s
 	}
 
 	nameIDs := collectNameIDs(structs, rules)

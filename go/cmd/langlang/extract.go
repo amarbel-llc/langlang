@@ -14,6 +14,7 @@ func runExtract(args []string) {
 	source := fs.String("source", "", "Path to Go source file (defaults to $GOFILE)")
 	emitter := fs.String("emitter", "text", "Emitter backend: text or jen")
 	arena := fs.Bool("arena", false, "Generate arena types and extraction functions")
+	arenaScan := fs.Bool("arena-scan", true, "Include junction scanner spec and estimate in arena output")
 	fs.Parse(args)
 
 	if *grammar == "" {
@@ -32,7 +33,7 @@ func runExtract(args []string) {
 
 	var err error
 	if *arena {
-		err = extract.GenerateArena(goFile, *grammar)
+		err = extract.GenerateArena(goFile, *grammar, *arenaScan)
 	} else {
 		switch *emitter {
 		case "jen":

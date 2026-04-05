@@ -3,10 +3,7 @@
 
 package tomlextract
 
-import (
-	"fmt"
-	junction "github.com/clarete/langlang/go/junction"
-)
+import "fmt"
 
 const (
 	_arenaNameID_Expression   int32 = 6
@@ -57,54 +54,6 @@ type TomlextractNodeCounts struct {
 	Strings           int
 }
 
-var TomlextractArenaScanSpec = junction.ScannerSpec{
-	Junctions: []junction.JunctionByte{{
-		Byte: '[',
-		Kind: junction.JunctionOpen,
-	}, {
-		Byte: ']',
-		Kind: junction.JunctionClose,
-	}, {
-		Byte: '{',
-		Kind: junction.JunctionOpen,
-	}, {
-		Byte: '}',
-		Kind: junction.JunctionClose,
-	}, {
-		Byte: '=',
-		Kind: junction.JunctionSeparator,
-	}, {
-		Byte: '.',
-		Kind: junction.JunctionSeparator,
-	}, {
-		Byte: ',',
-		Kind: junction.JunctionSeparator,
-	}},
-	Quoting: []junction.QuotingContext{{
-		Delimiter:    '"',
-		EscapePrefix: '\\',
-	}},
-	Sequences: []junction.JunctionSequence{},
-}
-
-func EstimateTomlextractNodeCounts(hc junction.HitCounts) TomlextractNodeCounts {
-	var c TomlextractNodeCounts
-	// Upper-bound estimates for child slices and string pointers.
-	totalSeps := hc.Seps
-	totalOpens := hc.Opens
-	c.TOMLDocs = totalSeps + totalOpens
-	c.TOMLExpressions = totalSeps + totalOpens
-	c.TOMLTables = totalSeps + totalOpens
-	c.TOMLKeyVals = totalSeps + totalOpens
-	c.TOMLKeys = totalSeps + totalOpens
-	c.TOMLSimpleKeys = totalSeps + totalOpens
-	c.TOMLVals = totalSeps + totalOpens
-	c.TOMLArrays = totalSeps + totalOpens
-	c.TOMLInlineTables = totalSeps + totalOpens
-	c.TOMLInlineKeyVals = totalSeps + totalOpens
-	c.Strings = totalSeps + totalOpens + 1
-	return c
-}
 func (a *TomlextractArenas) Alloc(c TomlextractNodeCounts) {
 	a.TOMLDocs = make([]TOMLDoc, 0, c.TOMLDocs)
 	a.TOMLExpressions = make([]TOMLExpression, 0, c.TOMLExpressions)
