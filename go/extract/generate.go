@@ -130,6 +130,27 @@ func GenerateViews(grammarPath, pkg, outDir, rootRule string) error {
 	return nil
 }
 
+// GenerateViewsJen is like GenerateViews but uses the jennifer-based emitter.
+func GenerateViewsJen(grammarPath, pkg, outDir, rootRule string) error {
+	rules, err := AnalyzeGrammar(grammarPath)
+	if err != nil {
+		return fmt.Errorf("analyze grammar: %w", err)
+	}
+
+	output, err := RenderViewsFileJen(pkg, grammarPath, rules, rootRule)
+	if err != nil {
+		return fmt.Errorf("render views jen: %w", err)
+	}
+
+	base := strings.TrimSuffix(filepath.Base(grammarPath), filepath.Ext(grammarPath))
+	outPath := filepath.Join(outDir, base+"_views.go")
+	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+		return fmt.Errorf("write %s: %w", outPath, err)
+	}
+
+	return nil
+}
+
 func detectPackageName(sourceFile string) string {
 	data, err := os.ReadFile(sourceFile)
 	if err != nil {
