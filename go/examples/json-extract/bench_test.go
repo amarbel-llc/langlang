@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	junction "github.com/clarete/langlang/go/junction"
 )
 
 var inputNames = []string{"30kb", "500kb"}
@@ -133,7 +135,8 @@ func BenchmarkParseAndExtractInterface(b *testing.B) {
 	}
 }
 
-// BenchmarkParseAndExtractArena measures parsing + per-type arena extraction.
+// BenchmarkParseAndExtractArena measures parsing + per-type arena extraction
+// using the junction scanner for arena pre-sizing (no tree walk).
 func BenchmarkParseAndExtractArena(b *testing.B) {
 	inputs := benchInputs(b)
 	p := NewJSONParser()
@@ -148,6 +151,12 @@ func BenchmarkParseAndExtractArena(b *testing.B) {
 			var a JsonextractArenas
 
 			for b.Loop() {
+				// Scanner-based estimate (no tree walk).
+				hits := junction.ScanJunctions(input, JsonextractArenaScanSpec)
+				hc := junction.CountHits(hits)
+				c := EstimateJsonextractNodeCounts(hc)
+				a.Alloc(c)
+
 				parsed, err := p.ParseJSON()
 				if err != nil {
 					b.Fatal(err)
@@ -157,10 +166,6 @@ func BenchmarkParseAndExtractArena(b *testing.B) {
 				if !ok {
 					b.Fatal("no root")
 				}
-
-				// Pre-count and allocate arenas.
-				c := countNodes(tr, root)
-				a.Alloc(c)
 
 				var valueID NodeID
 				tr.Visit(root, func(id NodeID) bool {

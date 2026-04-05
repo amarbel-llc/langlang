@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/clarete/langlang/go/junction"
 )
 
 // Generate is the main orchestrator. It reads a Go source file and grammar,
@@ -176,10 +178,15 @@ func GenerateArena(sourceFile, grammarPath string) error {
 		return fmt.Errorf("validation errors:\n  %s", strings.Join(msgs, "\n  "))
 	}
 
+	spec, err := junction.AnalyzeForJunctions(grammarPath)
+	if err != nil {
+		return fmt.Errorf("analyze junctions: %w", err)
+	}
+
 	nameIDs := collectNameIDs(structs, rules)
 	pkg := detectPackageName(sourceFile)
 
-	output, err := RenderArenaFileJen(pkg, grammarPath, nameIDs, structs, rules)
+	output, err := RenderArenaFileJen(pkg, grammarPath, nameIDs, structs, rules, spec)
 	if err != nil {
 		return fmt.Errorf("render arena: %w", err)
 	}

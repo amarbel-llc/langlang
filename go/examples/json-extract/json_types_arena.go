@@ -3,7 +3,10 @@
 
 package jsonextract
 
-import "fmt"
+import (
+	"fmt"
+	junction "github.com/clarete/langlang/go/junction"
+)
 
 const (
 	_arenaNameID_Object int32 = 20
@@ -31,6 +34,45 @@ type JsonextractNodeCounts struct {
 	Strings     int
 }
 
+var JsonextractArenaScanSpec = junction.ScannerSpec{
+	Junctions: []junction.JunctionByte{{
+		Byte: '[',
+		Kind: junction.JunctionOpen,
+	}, {
+		Byte: ']',
+		Kind: junction.JunctionClose,
+	}, {
+		Byte: '{',
+		Kind: junction.JunctionOpen,
+	}, {
+		Byte: '}',
+		Kind: junction.JunctionClose,
+	}, {
+		Byte: ',',
+		Kind: junction.JunctionSeparator,
+	}, {
+		Byte: ':',
+		Kind: junction.JunctionSeparator,
+	}},
+	Quoting: []junction.QuotingContext{{
+		Delimiter:    '"',
+		EscapePrefix: '\\',
+	}},
+	Sequences: []junction.JunctionSequence{},
+}
+
+func EstimateJsonextractNodeCounts(hc junction.HitCounts) JsonextractNodeCounts {
+	var c JsonextractNodeCounts
+	// Upper-bound estimates for child slices and string pointers.
+	totalSeps := hc.Seps
+	totalOpens := hc.Opens
+	c.JSONValues = totalSeps + totalOpens
+	c.JSONObjects = totalSeps + totalOpens
+	c.JSONMembers = totalSeps + totalOpens
+	c.JSONArrays = totalSeps + totalOpens
+	c.Strings = totalSeps + totalOpens + 1
+	return c
+}
 func (a *JsonextractArenas) Alloc(c JsonextractNodeCounts) {
 	a.JSONValues = make([]JSONValue, 0, c.JSONValues)
 	a.JSONObjects = make([]JSONObject, 0, c.JSONObjects)
