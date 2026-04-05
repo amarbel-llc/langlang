@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate go run ../../cmd/langlang -grammar ../../../grammars/toml.peg -output-language go -output-path ./toml.go
-//go:generate go run ../../cmd/langlang -grammar ../../../grammars/toml.peg -output-language go -output-path ./toml.nocap.go -disable-captures -go-parser NoCapParser -go-remove-lib
+//go:generate go run ../../cmd/langlang -grammar ../../../grammars/toml.peg -output-language go -output-path ./toml.go -disable-spaces -disable-inline
+//go:generate go run ../../cmd/langlang -grammar ../../../grammars/toml.peg -output-language go -output-path ./toml.nocap.go -disable-captures -disable-spaces -disable-inline -go-parser NoCapParser -go-remove-lib
 
 var inputNames = []string{"30kb", "500kb"}
 
@@ -533,6 +533,114 @@ func TestCommentPreservedInTree(t *testing.T) {
 	fullText := tr.Text(root)
 	assert.Contains(t, fullText, "# standalone comment",
 		"comment text should be preserved in the parse tree")
+}
+
+// ── Round-trip tests ─────────────────────────────────────────
+
+// TestRoundTrip verifies byte-for-byte preservation: parse then
+// reconstruct the full text via tree.Text(root) and compare.
+func TestRoundTrip(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"simple kv", "key = \"value\"\n"},
+		{"integer", "x = 42\n"},
+		{"float", "pi = 3.14\n"},
+		{"boolean", "flag = true\n"},
+		{"comment only", "# just a comment\n"},
+		{"inline comment", "key = \"value\" # comment\n"},
+		{"blank lines", "\n\nkey = 1\n\n"},
+		{"table", "[server]\nhost = \"localhost\"\nport = 8080\n"},
+		{"table with comment", "# config\n[server]\nhost = \"localhost\"  # inline\nport = 8080\n"},
+		{"array of tables", "[[products]]\nname = \"Hammer\"\n\n[[products]]\nname = \"Nail\"\n"},
+		{"dotted key", "fruit.name = \"apple\"\n"},
+		{"array", "ports = [8001, 8002, 8003]\n"},
+		{"multiline array", "colors = [\n  \"red\",\n  \"green\",\n  \"blue\",\n]\n"},
+		{"inline table", "point = {x = 1, y = 2}\n"},
+		{"multiline basic string", "desc = \"\"\"\nHello\nWorld\"\"\"\n"},
+		{"literal string", "path = 'C:\\Users\\foo'\n"},
+		{"multiline literal string", "re = '''\n\\d+\\.\\d+\n'''\n"},
+		{"hex integer", "x = 0xDEAD\n"},
+		{"special float", "x = inf\n"},
+		{"datetime", "dt = 1979-05-27T07:32:00Z\n"},
+		{"multiple expressions", "a = 1\nb = 2\nc = 3\n"},
+		{"nested tables", "[a]\nx = 1\n\n[a.b]\ny = 2\n"},
+		{"trailing newline only", "\n"},
+	}
+
+	p := NewParser()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p.SetInput([]byte(tc.input))
+			tr, err := p.ParseTOML()
+			require.NoError(t, err, "parse failed")
+
+			root, ok := tr.Root()
+			require.True(t, ok, "no root node")
+
+			got := tr.Text(root)
+			assert.Equal(t, tc.input, got, "round-trip mismatch")
+		})
+	}
+}
+
+// TestRoundTripFixtures verifies round-trip on the real benchmark files
+// and the comprehensive TOML v1.1 test fixture.
+func TestRoundTripFixtures(t *testing.T) {
+	fixtures := []string{"input_30kb.toml", "input_500kb.toml", "toml_v1_full.toml"}
+	p := NewParser()
+
+	for _, name := range fixtures {
+		t.Run(name, func(t *testing.T) {
+			data := readTestFile(t, name)
+			p.SetInput(data)
+			tr, err := p.ParseTOML()
+			require.NoError(t, err, "parse failed for %s", name)
+
+			root, ok := tr.Root()
+			require.True(t, ok, "no root node")
+
+			got := tr.Text(root)
+			assert.Equal(t, string(data), got, "round-trip mismatch for %s", name)
+		})
+	}
+}
+
+// TestRoundTripNamedTokens verifies that the CST-mode grammar produces
+// named nodes for every syntactic token type.
+func TestRoundTripNamedTokens(t *testing.T) {
+	input := "# header\n[server]\nhost = \"localhost\"\n"
+	p := NewParser()
+	p.SetInput([]byte(input))
+	tr, err := p.ParseTOML()
+	require.NoError(t, err)
+
+	// Collect all named node types present in the tree.
+	names := map[string]bool{}
+	root, ok := tr.Root()
+	require.True(t, ok)
+	var walk func(NodeID)
+	walk = func(id NodeID) {
+		if tr.Type(id) == NodeType_Node {
+			names[tr.Name(id)] = true
+		}
+		tr.Visit(id, func(cid NodeID) bool {
+			if cid != id {
+				walk(cid)
+			}
+			return true
+		})
+	}
+	walk(root)
+
+	for _, want := range []string{
+		"Comment", "Newline", "BracketOpen", "BracketClose",
+		"Equals", "WS", "Key", "KeyVal", "StdTable",
+		"BasicString", "Val", "Expression", "Trivia", "LineEnd",
+	} {
+		assert.True(t, names[want], "expected named node %q in tree, got: %v", want, names)
+	}
 }
 
 // Benchmarks

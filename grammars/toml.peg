@@ -1,42 +1,60 @@
-// TOML v1.1 — Full PEG grammar
+// TOML v1.1 — Full PEG grammar (CST mode)
 // Reference: https://toml.io/en/v1.1.0
 // Translated from the official TOML ABNF (toml-lang/toml)
 //
-// Langlang auto-injects the `Spacing` rule between non-terminal
-// calls.  We override Spacing to consume whitespace, newlines, and
-// comments so the structural rules stay clean.
+// This grammar uses -disable-spaces for full control over whitespace
+// placement.  Every syntactic token (whitespace, newline, comment,
+// brackets, equals, comma, dot) is a separately named rule so the
+// parse tree can be mapped 1:1 to a typed CST for format-preserving
+// round-trip editing (e.g., tommy integration).
 //
-// Comments are preserved in the parse tree as part of Spacing text
-// nodes (not as named Comment nodes).  The Spacing override consumes
-// comments between tokens, so format-preserving round-trip tools can
-// reconstruct them by walking the full tree including Spacing.
-//
-// Sub-rules that live inside lexified (#) contexts must themselves
-// be wrapped in #() to prevent auto-spacing injection.
+// Trivia and LineEnd are wrapper rules that group inter-token
+// whitespace; extraction layers can flatten them into direct children.
 
-// ── Top-level ──────────────────────────────────────────────────
+// ── Trivia ───────────────────────────────────────────────────
 
-TOML       <- Expression* EOF
+WS         <- #([ \t]+)
+Newline    <- #('\r\n' / '\n')
+Comment    <- #('#' NonEOL*)
+NonEOL     <- #([\t -~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
 
-Expression <- ArrayTable
-            / StdTable
-            / KeyVal
+// Inter-expression trivia: whitespace, comments, blank lines.
+Trivia     <- (WS / Comment? Newline / Comment)*
 
-// ── Table headers ──────────────────────────────────────────────
+// End-of-line: optional trailing whitespace + comment, then newline or EOF.
+LineEnd    <- WS? Comment? (Newline / &EOF)
 
-StdTable   <- '[' !'[' Key ']'
-ArrayTable <- '[[' Key ']]'
+// ── Structural tokens ────────────────────────────────────────
 
-// ── Key / Value pair ───────────────────────────────────────────
+Equals       <- '='
+Dot          <- '.'
+Comma        <- ','
+BracketOpen  <- '['
+BracketClose <- ']'
+BraceOpen    <- '{'
+BraceClose   <- '}'
 
-KeyVal     <- Key '=' Val
+// ── Top-level ────────────────────────────────────────────────
 
-Key        <- SimpleKey ('.' SimpleKey)*
+TOML       <- Trivia Expression* EOF
+
+Expression <- (ArrayTable / StdTable / KeyVal) LineEnd Trivia
+
+// ── Table headers ────────────────────────────────────────────
+
+StdTable   <- BracketOpen !'[' WS? Key WS? BracketClose
+ArrayTable <- BracketOpen BracketOpen WS? Key WS? BracketClose BracketClose
+
+// ── Key / Value pair ─────────────────────────────────────────
+
+KeyVal     <- Key WS? Equals WS? Val
+
+Key        <- SimpleKey (WS? Dot WS? SimpleKey)*
 SimpleKey  <- QuotedKey / UnquotedKey
 UnquotedKey <- #([a-zA-Z0-9_\-]+)
 QuotedKey  <- BasicString / LiteralString
 
-// ── Values ─────────────────────────────────────────────────────
+// ── Values ───────────────────────────────────────────────────
 
 Val        <- MLBasicString
             / BasicString
@@ -49,7 +67,7 @@ Val        <- MLBasicString
             / Array
             / InlineTable
 
-// ── Strings ────────────────────────────────────────────────────
+// ── Strings ──────────────────────────────────────────────────
 
 // Basic strings: "..."
 BasicString    <- '"' #(BasicChar* '"')
@@ -77,7 +95,7 @@ MLLiteralBody   <- #(MLLContent* (MLLQuotes MLLContent+)* MLLQuotes?)
 MLLContent      <- #(LiteralChar / MLLNewline)
 MLLQuotes       <- #('\'' '\''? !'\''  )
 
-// ── Integer ────────────────────────────────────────────────────
+// ── Integer ──────────────────────────────────────────────────
 
 Integer        <- #(HexInt / OctInt / BinInt / DecInt)
 DecInt         <- #([\-+]? UnsignedDecInt)
@@ -87,7 +105,7 @@ OctInt         <- #('0o' [0-7] ([0-7] / '_' [0-7])*)
 BinInt         <- #('0b' [0-1] ([0-1] / '_' [0-1])*)
 HexDig         <- #([0-9A-Fa-f])
 
-// ── Float ──────────────────────────────────────────────────────
+// ── Float ────────────────────────────────────────────────────
 
 Float             <- #(SpecialFloat / FloatVal)
 FloatVal          <- #(DecInt (Exp / Frac Exp?))
@@ -96,11 +114,11 @@ Exp               <- #([eE] [\-+]? ZeroPrefixableInt)
 ZeroPrefixableInt <- #([0-9] ([0-9] / '_' [0-9])*)
 SpecialFloat      <- #([\-+]? ('inf' / 'nan'))
 
-// ── Boolean ────────────────────────────────────────────────────
+// ── Boolean ──────────────────────────────────────────────────
 
 Boolean    <- 'true' / 'false'
 
-// ── Date-Time ──────────────────────────────────────────────────
+// ── Date-Time ────────────────────────────────────────────────
 
 DateTime       <- #(OffsetDateTime / LocalDateTime / LocalDate / LocalTime)
 OffsetDateTime <- #(FullDate [T ] FullTime)
@@ -117,35 +135,22 @@ PartialTime    <- #(Digit2 ':' Digit2 (':' Digit2 TimeSecFrac?)?)
 TimeSecFrac    <- #('.' [0-9]+)
 TimeOffset     <- #('Z' / [\-+] Digit2 ':' Digit2)
 
-// ── Array ──────────────────────────────────────────────────────
+// ── Array ────────────────────────────────────────────────────
 
-Array          <- '[' ArrayValues? ']'^arrayClose
-ArrayValues    <- Val (',' Val^itemAfterComma)* ','?
+Array          <- BracketOpen Trivia ArrayValues? BracketClose^arrayClose
+ArrayValues    <- Val Trivia (Comma Trivia Val^itemAfterComma Trivia)* Comma? Trivia
 
-// ── Inline Table ───────────────────────────────────────────────
+// ── Inline Table ─────────────────────────────────────────────
 
-InlineTable        <- #('{' ITS InlineTableKeyVals? ITS '}')
-InlineTableKeyVals <- #(KeyVal (ITS ',' ITS KeyVal)*)
-ITS                <- #([ \t]*)
+InlineTable        <- BraceOpen WS? InlineTableKeyVals? WS? BraceClose
+InlineTableKeyVals <- InlineKeyVal (WS? Comma WS? InlineKeyVal)*
+InlineKeyVal       <- Key WS? Equals WS? Val
 
-// ── Comments ───────────────────────────────────────────────────
-
-Comment    <- #('#' NonEOL*)
-NonEOL     <- #([\t -~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
-
-// ── Spacing override ───────────────────────────────────────────
-// Override the builtin spacing rule to consume whitespace, newlines,
-// and comments between tokens.
-
-Spacing   <- #(SpaceChar / CommentNL)*
-SpaceChar <- [ \t\n\r]
-CommentNL <- '#' NonEOL* [\n\r]?
-
-// ── Sentinel ───────────────────────────────────────────────────
+// ── Sentinel ─────────────────────────────────────────────────
 
 EOF <- !.
 
-// ── Recovery Expressions ───────────────────────────────────────
+// ── Recovery Expressions ─────────────────────────────────────
 
 arrayClose     <-
 itemAfterComma <- (![,\]] .)*
