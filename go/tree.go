@@ -47,7 +47,7 @@ type tree struct {
 	input       []byte
 	root        NodeID
 	posView     *posIndex
-	viewArena []NodeID
+	viewArena   []NodeID
 }
 
 // viewSlice returns a sub-slice of the view arena containing the NodeIDs
@@ -298,14 +298,18 @@ func (t *tree) Visit(id NodeID, fn func(NodeID) bool) {
 	if !fn(id) {
 		return
 	}
-	switch t.nodes[id].typ {
+	n := &t.nodes[id]
+	switch n.typ {
 	case NodeType_Sequence:
-		for _, child := range t.Children(id) {
-			t.Visit(child, fn)
+		if n.childID != -1 {
+			cr := t.childRanges[n.childID]
+			for i := cr.start; i < cr.end; i++ {
+				t.Visit(t.children[i], fn)
+			}
 		}
 	case NodeType_Node, NodeType_Error:
-		if child, ok := t.Child(id); ok {
-			t.Visit(child, fn)
+		if n.childID != -1 {
+			t.Visit(NodeID(n.childID), fn)
 		}
 	}
 }
