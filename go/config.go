@@ -53,7 +53,7 @@ func (c *Config) Debug() {
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		fmt.Printf(k)
+		fmt.Print(k)
 		for i := 0; i < width-len(k); i++ {
 			fmt.Printf(" ")
 		}

@@ -31,10 +31,7 @@ func ParsePartitions(input []byte, parts []Partition, parseFn ParseFunc) []Parti
 
 	results := make([]PartitionResult, len(parts))
 
-	workers := runtime.GOMAXPROCS(0)
-	if workers > len(parts) {
-		workers = len(parts)
-	}
+	workers := min(runtime.GOMAXPROCS(0), len(parts))
 
 	if workers <= 1 {
 		for i, part := range parts {

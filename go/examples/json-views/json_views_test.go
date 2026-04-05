@@ -237,15 +237,15 @@ func TestViewLiteralNull(t *testing.T) {
 
 // valueCounts tracks how many of each Value alternative were seen.
 type valueCounts struct {
-	objects  int
-	arrays   int
-	strings  int
-	numbers  int
-	trues    int
-	falses   int
-	nulls    int
-	members  int
-	unknown  int
+	objects int
+	arrays  int
+	strings int
+	numbers int
+	trues   int
+	falses  int
+	nulls   int
+	members int
+	unknown int
 }
 
 func countValue(v Value, c *valueCounts) {
@@ -340,11 +340,11 @@ func TestViewDeeplyNested(t *testing.T) {
 	// Structure: {"a": {"a": {"a": ... {"a": [1, true, null, "x"]} ...}}}
 	depth := 200
 	var b []byte
-	for i := 0; i < depth; i++ {
+	for range depth {
 		b = append(b, `{"a": `...)
 	}
 	b = append(b, `[1, true, null, "x", {"b": false}]`...)
-	for i := 0; i < depth; i++ {
+	for range depth {
 		b = append(b, '}')
 	}
 
@@ -363,7 +363,7 @@ func TestViewDeeplyNested(t *testing.T) {
 	}
 
 	// Walk down the nested objects.
-	for i := 0; i < depth; i++ {
+	for i := range depth {
 		obj, ok := val.Object()
 		if !ok {
 			t.Fatalf("depth %d: expected Object", i)

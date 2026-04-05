@@ -1,5 +1,7 @@
 package langlang
 
+import "maps"
+
 import "fmt"
 
 // ParsedGrammarQuery parses a grammar file and returns its AST.
@@ -146,9 +148,7 @@ func copyGrammarNode(g *GrammarNode) *GrammarNode {
 	copy(defs, g.Definitions)
 
 	defsByName := make(map[string]*DefinitionNode, len(g.DefsByName))
-	for k, v := range g.DefsByName {
-		defsByName[k] = v
-	}
+	maps.Copy(defsByName, g.DefsByName)
 
 	imports := make([]*ImportNode, len(g.Imports))
 	copy(imports, g.Imports)

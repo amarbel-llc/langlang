@@ -94,10 +94,10 @@ func detectPackageName(sourceFile string) string {
 	if err != nil {
 		return "main"
 	}
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "package ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "package "))
+		if after, ok := strings.CutPrefix(line, "package "); ok {
+			return strings.TrimSpace(after)
 		}
 	}
 	return "main"

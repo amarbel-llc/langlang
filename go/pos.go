@@ -96,12 +96,9 @@ func (pi *posIndex) LocationAt(cursor int) Location {
 	}
 
 	// Find first lineStart > cursor, then step back one.
-	lineIdx := sort.Search(len(pi.lineStart), func(i int) bool {
+	lineIdx := max(sort.Search(len(pi.lineStart), func(i int) bool {
 		return pi.lineStart[i] > cursor
-	}) - 1
-	if lineIdx < 0 {
-		lineIdx = 0
-	}
+	})-1, 0)
 
 	lineStart := pi.lineStart[lineIdx]
 
@@ -158,14 +155,11 @@ func (pi *posIndex) CursorAt(line0, col0 int) int {
 
 	// Binary search for the cursor where runeUnits.UnitsAt(cursor) == targetRunes
 	// We search in the range [lineStart, lineEnd]
-	cursor := sort.Search(lineEnd-lineStart, func(i int) bool {
-		return pi.runeUnits.UnitsAt(lineStart+i) >= targetRunes
-	}) + lineStart
-
-	// Clamp to line bounds
-	if cursor > lineEnd {
-		cursor = lineEnd
-	}
+	cursor := min(
+		// Clamp to line bounds
+		sort.Search(lineEnd-lineStart, func(i int) bool {
+			return pi.runeUnits.UnitsAt(lineStart+i) >= targetRunes
+		})+lineStart, lineEnd)
 
 	return cursor
 }
@@ -272,12 +266,9 @@ func (ix *unitsIndex) UnitsAt(cursor int) int {
 	}
 
 	// Find last checkpoint byteOffset <= cursor.
-	i := sort.Search(len(ix.byteOffsets), func(i int) bool {
+	i := max(sort.Search(len(ix.byteOffsets), func(i int) bool {
 		return ix.byteOffsets[i] > cursor
-	}) - 1
-	if i < 0 {
-		i = 0
-	}
+	})-1, 0)
 
 	bytePos := ix.byteOffsets[i]
 	unitPos := ix.unitOffsets[i]

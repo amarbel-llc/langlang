@@ -76,11 +76,11 @@ func walkValue(v Value) int {
 
 func buildNestedJSON(depth int) []byte {
 	var b []byte
-	for i := 0; i < depth; i++ {
+	for range depth {
 		b = append(b, `{"k": `...)
 	}
 	b = append(b, `[1, true, null, "x"]`...)
-	for i := 0; i < depth; i++ {
+	for range depth {
 		b = append(b, '}')
 	}
 	return b

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/clarete/langlang/go"
+	langlang "github.com/clarete/langlang/go"
 	"github.com/clarete/langlang/go/ascii"
 )
 
@@ -401,7 +401,7 @@ func printParsingError(
 
 // fatal prints an error message and exits with code 1.
 func fatal(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, ascii.Color(theme.Error, "error: "))
+	fmt.Fprint(os.Stderr, ascii.Color(theme.Error, "error: "))
 	fmt.Fprintf(os.Stderr, format, args...)
 	fmt.Fprintf(os.Stderr, "\n")
 	os.Exit(1)

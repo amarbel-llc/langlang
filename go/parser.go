@@ -7,7 +7,7 @@ import (
 
 // Dummy types for parser.go framework compatibility
 // This is legacy code that uses an old Value interface model
-type Value interface{}
+type Value any
 type Node struct{}
 
 func NewString(Span) Value              { return nil }

@@ -241,11 +241,11 @@ func TestExtractLargeDocument(t *testing.T) {
 func TestExtractDeeplyNested(t *testing.T) {
 	depth := 100
 	var b []byte
-	for i := 0; i < depth; i++ {
+	for range depth {
 		b = append(b, `{"k": `...)
 	}
 	b = append(b, `[1, "x"]`...)
-	for i := 0; i < depth; i++ {
+	for range depth {
 		b = append(b, '}')
 	}
 
@@ -253,7 +253,7 @@ func TestExtractDeeplyNested(t *testing.T) {
 
 	// Walk down nested objects.
 	current := val
-	for i := 0; i < depth; i++ {
+	for i := range depth {
 		if current.Object == nil {
 			t.Fatalf("depth %d: expected Object", i)
 		}

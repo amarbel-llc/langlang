@@ -1,5 +1,7 @@
 package langlang
 
+import "strings"
+
 import "fmt"
 
 // FileLoadError is returned if a grammar cant be loaded from disk.
@@ -124,15 +126,15 @@ func joinWithOr(items []string) string {
 		return items[0] + " or " + items[1]
 	}
 	// For 3+: "a, b, c, or d"
-	result := ""
+	var result strings.Builder
 	for i, item := range items {
 		if i == len(items)-1 {
-			result += "or " + item
+			result.WriteString("or " + item)
 		} else {
-			result += item + ", "
+			result.WriteString(item + ", ")
 		}
 	}
-	return result
+	return result.String()
 }
 
 // String returns the human readable representation of a parsing error

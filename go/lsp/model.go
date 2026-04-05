@@ -23,10 +23,10 @@ type InitializeParams struct {
 	RootURI string `json:"rootUri,omitempty"`
 
 	// User provided initialization options
-	InitializationOptions InitializeOptions `json:"initializationOptions,omitempty"`
+	InitializationOptions InitializeOptions `json:"initializationOptions"`
 
 	// The capabilities provided by the client (editor or tool)
-	Capabilities ClientCapabilities `json:"capabilities,omitempty"`
+	Capabilities ClientCapabilities `json:"capabilities"`
 
 	// The initial trace setting. If omitted trace is disabled ('off')
 	Trace string `json:"trace,omitempty"`
@@ -36,7 +36,7 @@ type InitializeOptions struct{}
 
 type InitializeResult struct {
 	// The capabilities the language server provides.
-	Capabilities ServerCapabilities `json:"capabilities,omitempty"`
+	Capabilities ServerCapabilities `json:"capabilities"`
 }
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#clientCapabilities
@@ -139,7 +139,7 @@ type HoverParams struct {
 // Hover is the result of a hover request.
 type Hover struct {
 	Contents MarkupContent `json:"contents"`
-	Range    Range         `json:"range,omitempty"`
+	Range    Range         `json:"range"`
 }
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#semanticTokensLegend
@@ -250,7 +250,7 @@ type CompletionItem struct {
 	Kind          CompletionItemKind  `json:"kind,omitempty"`
 	Tags          []CompletionItemTag `json:"tags,omitempty"`
 	Detail        string              `json:"detail,omitempty"`
-	Documentation MarkupContent       `json:"documentation,omitempty"`
+	Documentation MarkupContent       `json:"documentation"`
 }
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItemKind
@@ -392,7 +392,7 @@ type TextDocumentPositionParams struct {
 
 type WorkDoneProgressParams struct {
 	// type ProgressToken = integer | string
-	WorkDoneToken interface{} `json:"workDoneToken,omitempty"`
+	WorkDoneToken any `json:"workDoneToken,omitempty"`
 }
 
 // ---- Diagnostics ----

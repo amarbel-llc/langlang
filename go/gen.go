@@ -166,7 +166,7 @@ func (g *goEvalEmitter) writeParserProgram(bt *Bytecode) {
 	for _, set := range bt.sets {
 		g.parser.writei("{bits: [32]byte{")
 
-		for i := 0; i < len(set.bits); i++ {
+		for i := range len(set.bits) {
 			g.parser.write(fmt.Sprintf("%d,", set.bits[i]))
 		}
 

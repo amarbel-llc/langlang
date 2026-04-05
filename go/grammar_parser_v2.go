@@ -690,7 +690,7 @@ func unescapeChar(s string) (value rune, encode bool, tail string, err error) {
 				err = errors.New("unable to unescape string")
 				return
 			}
-			for j := 0; j < n; j++ {
+			for j := range n {
 				x, ok := unhex(s[j])
 				if !ok {
 					err = errors.New("unable to unescape string")

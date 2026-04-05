@@ -67,11 +67,11 @@ func BenchmarkScanAndPartition(b *testing.B) {
 
 func buildNestedJSON(depth int) []byte {
 	var buf []byte
-	for i := 0; i < depth; i++ {
+	for range depth {
 		buf = append(buf, `{"k": `...)
 	}
 	buf = append(buf, `[1, true, null, "x"]`...)
-	for i := 0; i < depth; i++ {
+	for range depth {
 		buf = append(buf, '}')
 	}
 	return buf

@@ -85,7 +85,7 @@ func (cs *charset) popcount() int {
 
 func charsetMerge(a, b *charset) *charset {
 	out := newCharSet()
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		out.bits[i] = a.bits[i] | b.bits[i]
 	}
 	return out
