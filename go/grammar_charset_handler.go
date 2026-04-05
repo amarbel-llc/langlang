@@ -152,6 +152,12 @@ func addCharset(expr AstNode) (AstNode, error) {
 
 	case *CaptureNode:
 		e.Expr, err = addCharset(e.Expr)
+
+	case *NameBindingNode:
+		e.Expr, err = addCharset(e.Expr)
+
+	case *CountedRepetitionNode:
+		e.Expr, err = addCharset(e.Expr)
 	}
 	if err != nil {
 		return nil, err

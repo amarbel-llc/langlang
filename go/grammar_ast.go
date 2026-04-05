@@ -163,6 +163,114 @@ func (n IdentifierNode) Equal(o AstNode) bool {
 	}
 }
 
+// Node Type: NumericPrimitive
+
+type NumericPrimitiveNode struct {
+	src       SourceLocation
+	Name      string // e.g. "u32le"
+	Width     int    // bytes: 1, 2, 4, 8
+	BigEndian bool
+}
+
+func NewNumericPrimitiveNode(name string, width int, bigEndian bool, s SourceLocation) *NumericPrimitiveNode {
+	return &NumericPrimitiveNode{Name: name, Width: width, BigEndian: bigEndian, src: s}
+}
+
+func (n NumericPrimitiveNode) SourceLocation() SourceLocation { return n.src }
+func (n NumericPrimitiveNode) String() string                 { return n.Name }
+func (n NumericPrimitiveNode) PrettyString() string           { return ppAstNode(&n, formatNodePlain) }
+func (n NumericPrimitiveNode) HighlightPrettyString() string  { return ppAstNode(&n, formatNodeThemed) }
+func (n NumericPrimitiveNode) Accept(v AstNodeVisitor) error  { return v.VisitNumericPrimitiveNode(&n) }
+
+func (n NumericPrimitiveNode) Equal(o AstNode) bool {
+	other, ok := o.(*NumericPrimitiveNode)
+	if !ok {
+		return false
+	}
+	return n.Name == other.Name
+}
+
+// Node Type: NameBinding
+
+type NameBindingNode struct {
+	src  SourceLocation
+	Name string
+	Expr AstNode
+}
+
+func NewNameBindingNode(name string, expr AstNode, s SourceLocation) *NameBindingNode {
+	return &NameBindingNode{Name: name, Expr: expr, src: s}
+}
+
+func (n NameBindingNode) SourceLocation() SourceLocation { return n.src }
+func (n NameBindingNode) String() string                 { return fmt.Sprintf("%s:%s", n.Name, n.Expr.String()) }
+func (n NameBindingNode) PrettyString() string           { return ppAstNode(&n, formatNodePlain) }
+func (n NameBindingNode) HighlightPrettyString() string  { return ppAstNode(&n, formatNodeThemed) }
+func (n NameBindingNode) Accept(v AstNodeVisitor) error  { return v.VisitNameBindingNode(&n) }
+
+func (n NameBindingNode) Equal(o AstNode) bool {
+	other, ok := o.(*NameBindingNode)
+	if !ok {
+		return false
+	}
+	return n.Name == other.Name && n.Expr.Equal(other.Expr)
+}
+
+// Node Type: BytesConsume
+
+type BytesConsumeNode struct {
+	src  SourceLocation
+	Name string // references a NameBindingNode
+}
+
+func NewBytesConsumeNode(name string, s SourceLocation) *BytesConsumeNode {
+	return &BytesConsumeNode{Name: name, src: s}
+}
+
+func (n BytesConsumeNode) SourceLocation() SourceLocation { return n.src }
+func (n BytesConsumeNode) String() string                 { return fmt.Sprintf("bytes(%s)", n.Name) }
+func (n BytesConsumeNode) PrettyString() string           { return ppAstNode(&n, formatNodePlain) }
+func (n BytesConsumeNode) HighlightPrettyString() string  { return ppAstNode(&n, formatNodeThemed) }
+func (n BytesConsumeNode) Accept(v AstNodeVisitor) error  { return v.VisitBytesConsumeNode(&n) }
+
+func (n BytesConsumeNode) Equal(o AstNode) bool {
+	other, ok := o.(*BytesConsumeNode)
+	if !ok {
+		return false
+	}
+	return n.Name == other.Name
+}
+
+// Node Type: CountedRepetition
+
+type CountedRepetitionNode struct {
+	src   SourceLocation
+	Expr  AstNode
+	Count string // references a NameBindingNode
+}
+
+func NewCountedRepetitionNode(expr AstNode, count string, s SourceLocation) *CountedRepetitionNode {
+	return &CountedRepetitionNode{Expr: expr, Count: count, src: s}
+}
+
+func (n CountedRepetitionNode) SourceLocation() SourceLocation { return n.src }
+func (n CountedRepetitionNode) String() string {
+	return fmt.Sprintf("%s{%s}", n.Expr.String(), n.Count)
+}
+func (n CountedRepetitionNode) PrettyString() string          { return ppAstNode(&n, formatNodePlain) }
+func (n CountedRepetitionNode) HighlightPrettyString() string { return ppAstNode(&n, formatNodeThemed) }
+func (n CountedRepetitionNode) Accept(v AstNodeVisitor) error {
+	return v.VisitCountedRepetitionNode(&n)
+}
+
+func (n CountedRepetitionNode) Equal(o AstNode) bool {
+	other, ok := o.(*CountedRepetitionNode)
+	if !ok {
+		return false
+	}
+	return n.Count == other.Count && n.Expr.Equal(other.Expr)
+}
+
 // Node Type: Range
 
 type RangeNode struct {

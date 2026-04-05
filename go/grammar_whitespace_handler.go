@@ -133,6 +133,12 @@ func (wi *whitespaceInjector) expandExpr(n AstNode, consumeFirst bool) AstNode {
 	case *CaptureNode:
 		return NewCaptureNode(node.Name, wi.expandExpr(node.Expr, true), n.SourceLocation())
 
+	case *NameBindingNode:
+		return NewNameBindingNode(node.Name, wi.expandExpr(node.Expr, true), n.SourceLocation())
+
+	case *CountedRepetitionNode:
+		return NewCountedRepetitionNode(wi.expandExpr(node.Expr, true), node.Count, n.SourceLocation())
+
 	default:
 		return node
 	}

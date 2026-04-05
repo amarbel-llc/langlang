@@ -278,6 +278,38 @@ func (gp *grammarPrinter) VisitIdentifierNode(n *IdentifierNode) error {
 	return nil
 }
 
+func (gp *grammarPrinter) VisitNumericPrimitiveNode(n *NumericPrimitiveNode) error {
+	gp.writeOperatorWithOneRand("NumericPrimitive", n.Name)
+	gp.writeSpan(n)
+	return nil
+}
+
+func (gp *grammarPrinter) VisitNameBindingNode(n *NameBindingNode) error {
+	gp.writeOperatorWithOneRand("Binding", n.Name)
+	gp.writeSpanl(n)
+	gp.pwrite("└── ")
+	gp.indent("    ")
+	n.Expr.Accept(gp)
+	gp.unindent()
+	return nil
+}
+
+func (gp *grammarPrinter) VisitBytesConsumeNode(n *BytesConsumeNode) error {
+	gp.writeOperatorWithOneRand("Bytes", n.Name)
+	gp.writeSpan(n)
+	return nil
+}
+
+func (gp *grammarPrinter) VisitCountedRepetitionNode(n *CountedRepetitionNode) error {
+	gp.writeOperatorWithOneRand("Counted", n.Count)
+	gp.writeSpanl(n)
+	gp.pwrite("└── ")
+	gp.indent("    ")
+	n.Expr.Accept(gp)
+	gp.unindent()
+	return nil
+}
+
 func (gp *grammarPrinter) VisitErrorNode(n *ErrorNode) error {
 	gp.writeOperator("Error")
 	gp.writeSpanl(n)

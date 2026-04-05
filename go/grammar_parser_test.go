@@ -243,3 +243,88 @@ func TestParsePrimary(t *testing.T) {
 		})
 	}
 }
+
+func TestParseBinarySyntax(t *testing.T) {
+	for _, test := range []struct {
+		Name    string
+		Grammar string
+	}{
+		{
+			Name:    "NumericPrimitive",
+			Grammar: "A <- u32le",
+		},
+		{
+			Name:    "NameBinding",
+			Grammar: "A <- len:u32le",
+		},
+		{
+			Name:    "BytesConsume",
+			Grammar: "A <- bytes(len)",
+		},
+		{
+			Name:    "CountedRepetition",
+			Grammar: "A <- B{count}\nB <- u32le",
+		},
+		{
+			Name:    "PrefixedString",
+			Grammar: "prefixed_string <- len:u32le data:bytes(len)",
+		},
+		{
+			Name:    "PrefixedStringList",
+			Grammar: "prefixed_string_list <- count:u32le items:prefixed_string{count}\nprefixed_string <- len:u32le data:bytes(len)",
+		},
+		{
+			Name:    "BindingWithPrefix",
+			Grammar: "A <- len:!u32le",
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			parser := NewGrammarParser([]byte(test.Grammar))
+			output, err := parser.Parse()
+			require.NoError(t, err)
+			grammar := output.(*GrammarNode)
+			assert.Empty(t, grammar.Errors, "grammar should have no errors")
+
+			var hasExpectedNode bool
+			Inspect(output, func(n AstNode) bool {
+				switch test.Name {
+				case "NumericPrimitive":
+					if np, ok := n.(*NumericPrimitiveNode); ok {
+						assert.Equal(t, "u32le", np.Name)
+						assert.Equal(t, 4, np.Width)
+						assert.False(t, np.BigEndian)
+						hasExpectedNode = true
+					}
+				case "NameBinding":
+					if nb, ok := n.(*NameBindingNode); ok {
+						assert.Equal(t, "len", nb.Name)
+						hasExpectedNode = true
+					}
+				case "BytesConsume":
+					if bc, ok := n.(*BytesConsumeNode); ok {
+						assert.Equal(t, "len", bc.Name)
+						hasExpectedNode = true
+					}
+				case "CountedRepetition":
+					if cr, ok := n.(*CountedRepetitionNode); ok {
+						assert.Equal(t, "count", cr.Count)
+						hasExpectedNode = true
+					}
+				case "PrefixedString", "PrefixedStringList":
+					if _, ok := n.(*NameBindingNode); ok {
+						hasExpectedNode = true
+					}
+				case "BindingWithPrefix":
+					if nb, ok := n.(*NameBindingNode); ok {
+						assert.Equal(t, "len", nb.Name)
+						_, isNot := nb.Expr.(*NotNode)
+						assert.True(t, isNot, "binding should wrap a Not node")
+						hasExpectedNode = true
+					}
+				}
+				return true
+			})
+			assert.True(t, hasExpectedNode, "expected node type not found in AST")
+		})
+	}
+}

@@ -378,6 +378,7 @@ func (p *GrammarParserV2) parseSequence(id NodeID) (AstNode, error) {
 	return NewSequenceNode(items, p.sloc(id)), nil
 }
 
+// Prefix <- (Identifier ':')? ("#" / "&" / "!")? Labeled
 func (p *GrammarParserV2) parsePrefix(id NodeID) (AstNode, error) {
 	childID, ok := p.tree.Child(id)
 	if !ok {
@@ -388,24 +389,78 @@ func (p *GrammarParserV2) parsePrefix(id NodeID) (AstNode, error) {
 	switch childType {
 	case NodeType_Sequence:
 		items := slices.Collect(p.tree.IterDirectChildren(childID))
-		labeled, err := p.parseLabeled(items[1])
+
+		// Scan items to find: optional binding name, optional prefix op, and Labeled
+		var bindingName string
+		var prefixOp string
+		var labeledID NodeID
+		var foundLabeled bool
+
+		for _, itemID := range items {
+			switch p.tree.Type(itemID) {
+			case NodeType_Node:
+				name := p.tree.Name(itemID)
+				if name == "Labeled" {
+					labeledID = itemID
+					foundLabeled = true
+				} else if name == "Identifier" {
+					bindingName = p.tree.Text(itemID)
+				}
+			case NodeType_String:
+				text := p.tree.Text(itemID)
+				switch text {
+				case "!", "&", "#":
+					prefixOp = text
+				}
+			}
+		}
+
+		if !foundLabeled {
+			// Fallback: old behavior — items[0] is prefix op, items[1] is Labeled
+			labeled, err := p.parseLabeled(items[len(items)-1])
+			if err != nil {
+				return nil, err
+			}
+			labeledID = items[len(items)-1]
+			_ = labeledID
+			return p.applyPrefixOp(prefixOp, labeled, p.sloc(childID))
+		}
+
+		labeled, err := p.parseLabeled(labeledID)
 		if err != nil {
 			return nil, err
 		}
-		switch p.tree.Text(items[0]) {
-		case "!":
-			return NewNotNode(labeled, p.sloc(childID)), nil
-		case "&":
-			return NewAndNode(labeled, p.sloc(childID)), nil
-		case "#":
-			return NewLexNode(labeled, p.sloc(childID)), nil
+
+		result, err := p.applyPrefixOp(prefixOp, labeled, p.sloc(childID))
+		if err != nil {
+			return nil, err
 		}
+
+		if bindingName != "" {
+			return NewNameBindingNode(bindingName, result, p.sloc(childID)), nil
+		}
+		return result, nil
+
 	case NodeType_Node:
 		return p.parseLabeled(childID)
 	default:
 		return nil, fmt.Errorf("unknown node type for parsePrefix: %v", childType)
 	}
-	panic("unreachable")
+}
+
+func (p *GrammarParserV2) applyPrefixOp(op string, expr AstNode, sloc SourceLocation) (AstNode, error) {
+	switch op {
+	case "!":
+		return NewNotNode(expr, sloc), nil
+	case "&":
+		return NewAndNode(expr, sloc), nil
+	case "#":
+		return NewLexNode(expr, sloc), nil
+	case "":
+		return expr, nil
+	default:
+		return nil, fmt.Errorf("unknown prefix operator: %s", op)
+	}
 }
 
 func (p *GrammarParserV2) parseLabeled(id NodeID) (AstNode, error) {
@@ -443,6 +498,12 @@ func (p *GrammarParserV2) parseSuffix(id NodeID) (AstNode, error) {
 		primary, err := p.parsePrimary(items[0])
 		if err != nil {
 			return nil, err
+		}
+
+		// Check if suffix is a CountedSuffix node or a text suffix
+		if p.tree.Type(items[1]) == NodeType_Node && p.tree.Name(items[1]) == "CountedSuffix" {
+			countName := p.extractIdentifierFromCountedSuffix(items[1])
+			return NewCountedRepetitionNode(primary, countName, p.sloc(childID)), nil
 		}
 
 		suffix := p.tree.Text(items[1])
@@ -491,8 +552,17 @@ func (p *GrammarParserV2) parsePrimary(id NodeID) (AstNode, error) {
 		return p.parseExpression(items[1])
 	case NodeType_Node:
 		switch p.tree.Name(childID) {
+		case "BytesConsume":
+			return p.parseBytesConsume(childID)
 		case "Identifier":
-			return p.parseIdentifier(childID)
+			ident, err := p.parseIdentifier(childID)
+			if err != nil {
+				return nil, err
+			}
+			if prim, ok := numericPrimitives[ident.Value]; ok {
+				return NewNumericPrimitiveNode(ident.Value, prim.Width, prim.BigEndian, ident.SourceLocation()), nil
+			}
+			return ident, nil
 		case "Literal":
 			return p.parseLiteral(childID)
 		case "Class":
@@ -582,6 +652,47 @@ func (p *GrammarParserV2) parseIdentifier(id NodeID) (*IdentifierNode, error) {
 	}
 	idText := p.tree.Text(childID)
 	return NewIdentifierNode(idText, p.sloc(id)), nil
+}
+
+func (p *GrammarParserV2) extractIdentifierFromCountedSuffix(id NodeID) string {
+	var name string
+	p.tree.Visit(id, func(childID NodeID) bool {
+		if p.tree.Type(childID) == NodeType_Node && p.tree.Name(childID) == "Identifier" {
+			name = p.tree.Text(childID)
+			return false
+		}
+		return true
+	})
+	return name
+}
+
+var numericPrimitives = map[string]struct {
+	Width     int
+	BigEndian bool
+}{
+	"u8":    {1, false},
+	"u16le": {2, false},
+	"u16be": {2, true},
+	"u32le": {4, false},
+	"u32be": {4, true},
+	"u64le": {8, false},
+	"u64be": {8, true},
+}
+
+// BytesConsume <- "bytes" "(" Identifier ")"
+func (p *GrammarParserV2) parseBytesConsume(id NodeID) (*BytesConsumeNode, error) {
+	var name string
+	p.tree.Visit(id, func(childID NodeID) bool {
+		if p.tree.Type(childID) == NodeType_Node && p.tree.Name(childID) == "Identifier" {
+			name = p.tree.Text(childID)
+			return false
+		}
+		return true
+	})
+	if name == "" {
+		return nil, errors.New("parseBytesConsume: no identifier found")
+	}
+	return NewBytesConsumeNode(name, p.sloc(id)), nil
 }
 
 func (p *GrammarParserV2) parseChar(id NodeID) (string, error) {

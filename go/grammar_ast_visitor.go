@@ -23,6 +23,10 @@ type AstNodeVisitor interface {
 	VisitCharsetNode(*CharsetNode) error
 	VisitAnyNode(*AnyNode) error
 	VisitIdentifierNode(*IdentifierNode) error
+	VisitNumericPrimitiveNode(*NumericPrimitiveNode) error
+	VisitNameBindingNode(*NameBindingNode) error
+	VisitBytesConsumeNode(*BytesConsumeNode) error
+	VisitCountedRepetitionNode(*CountedRepetitionNode) error
 	VisitErrorNode(*ErrorNode) error
 }
 
@@ -155,7 +159,14 @@ func inspect(node AstNode, f func(AstNode) bool, visited map[AstNode]bool) {
 			inspect(def, f, visited)
 		}
 
-	case *AnyNode, *LiteralNode, *IdentifierNode, *RangeNode, *CharsetNode:
+	case *NameBindingNode:
+		inspect(n.Expr, f, visited)
+
+	case *CountedRepetitionNode:
+		inspect(n.Expr, f, visited)
+
+	case *AnyNode, *LiteralNode, *IdentifierNode, *RangeNode, *CharsetNode,
+		*NumericPrimitiveNode, *BytesConsumeNode:
 		// Leaf nodes, so no children to traverse
 
 	default:

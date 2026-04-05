@@ -536,6 +536,22 @@ func (c *compiler) VisitLiteralNode(node *LiteralNode) error {
 	return nil
 }
 
+func (c *compiler) VisitNumericPrimitiveNode(node *NumericPrimitiveNode) error {
+	return fmt.Errorf("binary numeric primitives are not supported by the VM compiler")
+}
+
+func (c *compiler) VisitNameBindingNode(node *NameBindingNode) error {
+	return fmt.Errorf("name bindings are not supported by the VM compiler")
+}
+
+func (c *compiler) VisitBytesConsumeNode(node *BytesConsumeNode) error {
+	return fmt.Errorf("bytes consume is not supported by the VM compiler")
+}
+
+func (c *compiler) VisitCountedRepetitionNode(node *CountedRepetitionNode) error {
+	return fmt.Errorf("counted repetition is not supported by the VM compiler")
+}
+
 func (c *compiler) VisitAnyNode(node *AnyNode) error {
 	c.pushSrc(node.SourceLocation())
 	defer c.popSrc()

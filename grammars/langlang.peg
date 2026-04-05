@@ -19,12 +19,15 @@ Definition  <- Identifier LEFTARROW Expression // this always succeeds, there's 
 
 Expression  <- Sequence (SLASH Sequence)*
 Sequence    <- Prefix*
-Prefix      <- ("#" / "&" / "!")? Labeled
+Prefix      <- (Identifier ':')? ("#" / "&" / "!")? Labeled
 Labeled     <- Suffix #(([^⇑] Identifier^MissingLabel)?)
-Suffix      <- Primary ("?" / "*" / "+" / Superscript)?
-Primary     <- Identifier !LEFTARROW
+Suffix      <- Primary ("?" / "*" / "+" / Superscript / CountedSuffix)?
+CountedSuffix <- "{" Identifier "}"
+Primary     <- BytesConsume
+             / Identifier !LEFTARROW
              / "(" Expression ")"^MissingClosingParen
              / List / Literal / Class / Any
+BytesConsume <- "bytes" "(" Identifier ")"
 List        <- "{" (!"}" Expression)* "}"^MissingClosingCurly
 
 // Lexical syntax

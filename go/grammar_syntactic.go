@@ -68,6 +68,18 @@ func isSyntactic(expr AstNode, isCapture bool) bool {
 	case *ImportNode:
 		return false
 
+	case *NameBindingNode:
+		return isSyntactic(e.Expr, isCapture)
+
+	case *CountedRepetitionNode:
+		return isSyntactic(e.Expr, isCapture)
+
+	case *NumericPrimitiveNode:
+		return true
+
+	case *BytesConsumeNode:
+		return true
+
 	default:
 		panic(fmt.Sprintf("isSyntactic: unknown node type %T", e))
 	}

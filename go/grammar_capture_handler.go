@@ -120,6 +120,12 @@ func addUnamedCaptures(expr AstNode) AstNode {
 	case *LabeledNode:
 		e.Expr = addUnamedCaptures(e.Expr)
 
+	case *NameBindingNode:
+		e.Expr = addUnamedCaptures(e.Expr)
+
+	case *CountedRepetitionNode:
+		e.Expr = addUnamedCaptures(e.Expr)
+
 	case *NotNode, *AndNode:
 		// predicates don't move the cursor, thus should never
 		// anything to be captured so skip them altogether
