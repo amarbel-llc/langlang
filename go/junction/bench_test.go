@@ -41,7 +41,7 @@ func BenchmarkScanOnly(b *testing.B) {
 			input := inputs[name]
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				ScanJunctions(input, jsonSpec)
 			}
 		})
@@ -57,7 +57,7 @@ func BenchmarkScanAndPartition(b *testing.B) {
 			input := inputs[name]
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, jsonSpec)
 				BuildPartitions(hits, int32(len(input)))
 			}
@@ -89,7 +89,7 @@ func BenchmarkFullParse(b *testing.B) {
 			parser := jsonviews.NewJSONParser()
 			parser.SetShowFails(false)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				parser.SetInput(input)
 				_, err := parser.ParseJSON()
 				if err != nil {
@@ -113,7 +113,7 @@ func BenchmarkPartitionParse(b *testing.B) {
 			parser := jsonviews.NewJSONParser()
 			parser.SetShowFails(false)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, jsonSpec)
 				root := BuildPartitions(hits, int32(len(input)))
 
@@ -155,7 +155,7 @@ func BenchmarkParallelPartitionParse(b *testing.B) {
 				return p.ParseValue()
 			}
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, jsonSpec)
 				root := BuildPartitions(hits, int32(len(input)))
 
@@ -212,7 +212,7 @@ func BenchmarkTOMLScanOnly(b *testing.B) {
 			input := inputs[name]
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				ScanJunctions(input, tomlSpec)
 			}
 		})
@@ -227,7 +227,7 @@ func BenchmarkTOMLScanAndPartition(b *testing.B) {
 			input := inputs[name]
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, tomlSpec)
 				BuildPartitions(hits, int32(len(input)))
 			}
@@ -246,7 +246,7 @@ func BenchmarkTOMLFullParse(b *testing.B) {
 			parser := tomlextract.NewTOMLParser()
 			parser.SetShowFails(false)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				parser.SetInput(input)
 				_, err := parser.ParseTOML()
 				if err != nil {
@@ -280,7 +280,7 @@ func BenchmarkTOMLParallelPartitionParse(b *testing.B) {
 				return p.ParseVal()
 			}
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, tomlSpec)
 				root := BuildPartitions(hits, int32(len(input)))
 
@@ -346,7 +346,7 @@ func BenchmarkGoScanOnly(b *testing.B) {
 			input := inputs[name]
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				ScanJunctions(input, goSpec)
 			}
 		})
@@ -361,7 +361,7 @@ func BenchmarkGoScanAndPartition(b *testing.B) {
 			input := inputs[name]
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, goSpec)
 				BuildPartitions(hits, int32(len(input)))
 			}
@@ -380,7 +380,7 @@ func BenchmarkGoFullParse(b *testing.B) {
 			parser := goviews.NewGoParser()
 			parser.SetShowFails(false)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				parser.SetInput(input)
 				_, err := parser.ParseSourceFile()
 				if err != nil {
@@ -416,7 +416,7 @@ func BenchmarkGoParallelPartitionParse(b *testing.B) {
 				return p.ParseBlock()
 			}
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, goSpec)
 				root := BuildPartitions(hits, int32(len(input)))
 
@@ -486,7 +486,7 @@ func BenchmarkXMLScanOnly(b *testing.B) {
 		input := buildXML(size.bytes)
 		b.Run(size.name, func(b *testing.B) {
 			b.SetBytes(int64(len(input)))
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				ScanJunctions(input, xmlSpec)
 			}
 		})
@@ -504,7 +504,7 @@ func BenchmarkXMLScanAndPartition(b *testing.B) {
 		input := buildXML(size.bytes)
 		b.Run(size.name, func(b *testing.B) {
 			b.SetBytes(int64(len(input)))
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, xmlSpec)
 				BuildPartitions(hits, int32(len(input)))
 			}
@@ -520,7 +520,7 @@ func BenchmarkNestedScanAndPartition(b *testing.B) {
 		b.Run(fmt.Sprintf("depth%d", depth), func(b *testing.B) {
 			b.SetBytes(int64(len(input)))
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				hits := ScanJunctions(input, jsonSpec)
 				BuildPartitions(hits, int32(len(input)))
 			}
