@@ -1,4 +1,5 @@
 # generic stuff
+build/
 target/
 _/
 *.o
