@@ -70,10 +70,11 @@ var skipNames = map[string]bool{
 // during tree translation. Nodes are allocated from a flat slice; child
 // pointer slices share a single backing array.
 type arena struct {
-	nodes []Node
-	nUsed int
-	ptrs  []*Node
-	pUsed int
+	nodes   []Node
+	nUsed   int
+	ptrs    []*Node
+	pUsed   int
+	scratch []*Node // reusable buffer for translateChildren
 }
 
 func newArena(nodeCount, ptrCount int) *arena {
@@ -197,25 +198,28 @@ func translateNode(a *arena, tree langlang.Tree, input []byte, id langlang.NodeI
 }
 
 func translateChildren(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) []*Node {
-	// Two-pass: first collect into a temporary slice, then copy into arena.
-	ids := tree.Children(id)
-	var tmp []*Node
-	for _, cid := range ids {
+	// Use mark/restore on the scratch buffer so recursive calls don't
+	// clobber the parent's collected children.
+	mark := len(a.scratch)
+	for _, cid := range tree.Children(id) {
 		node := translateNode(a, tree, input, cid)
 		if node == nil {
 			continue
 		}
 		if node.Kind == -1 {
-			tmp = append(tmp, node.Children...)
+			a.scratch = append(a.scratch, node.Children...)
 		} else {
-			tmp = append(tmp, node)
+			a.scratch = append(a.scratch, node)
 		}
 	}
-	if len(tmp) == 0 {
+	count := len(a.scratch) - mark
+	if count == 0 {
+		a.scratch = a.scratch[:mark]
 		return nil
 	}
-	children := a.allocChildren(len(tmp))
-	copy(children, tmp)
+	children := a.allocChildren(count)
+	copy(children, a.scratch[mark:])
+	a.scratch = a.scratch[:mark]
 	return children
 }
 
