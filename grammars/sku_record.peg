@@ -1,0 +1,14 @@
+// Wire format for dodder sku records.
+// Sequential, length-prefixed encoding for WASM host-guest communication.
+// Use with: langlang codegen (disables builtins/whitespace automatically)
+
+sku_record <- genre:prefixed_string
+              object_id:prefixed_string
+              type_id:prefixed_string
+              tags:prefixed_string_list
+              tags_implicit:prefixed_string_list
+              blob_digest:prefixed_string
+              description:prefixed_string
+
+prefixed_string <- len:u32le data:bytes(len)
+prefixed_string_list <- count:u32le items:prefixed_string{count}
