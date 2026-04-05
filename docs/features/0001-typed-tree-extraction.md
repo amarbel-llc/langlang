@@ -3,7 +3,7 @@ date: 2026-03-27
 promotion-criteria: Generated extraction code compiles and passes round-trip
   tests against grammars/json.peg with arena-direct access showing measurable
   speedup over interface-path extraction.
-status: testing
+status: accepted
 ---
 
 # Typed Tree Extraction
@@ -87,6 +87,28 @@ func ExtractAssignment(t *tree, id NodeID) (Assignment, error) {
 
 Cross-validation at `go generate` time catches mismatches: unknown rules, arity
 mismatches, type/kind conflicts.
+
+## Benchmark Results
+
+Arena-direct extraction (generated) vs interface-path extraction (hand-written),
+measured on an i7-1165G7, Go 1.26.1, 5 runs per benchmark.
+
+**JSON:**
+
+  Input   Arena-direct ns/op   Interface ns/op   Speedup   Alloc reduction
+  ------- -------------------- ----------------- --------- -----------------
+  30kb    2.6M                 3.2M              19%       54% fewer
+  500kb   49M                  66M               26%       50% fewer
+
+**TOML:**
+
+  Input   Arena-direct ns/op   Interface ns/op   Speedup   Alloc reduction
+  ------- -------------------- ----------------- --------- -----------------
+  30kb    2.0M                 2.5M              20%       51% fewer
+  500kb   36M                  40M               10%       51% fewer
+
+Arena-direct extraction consistently uses \~40% fewer bytes and \~50% fewer
+allocations across both grammars and input sizes.
 
 ## Limitations
 
