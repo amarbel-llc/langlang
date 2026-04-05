@@ -13,6 +13,7 @@ func runExtract(args []string) {
 	grammar := fs.String("grammar", "", "Path to the grammar file")
 	source := fs.String("source", "", "Path to Go source file (defaults to $GOFILE)")
 	emitter := fs.String("emitter", "text", "Emitter backend: text or jen")
+	arena := fs.Bool("arena", false, "Generate arena types and extraction functions")
 	fs.Parse(args)
 
 	if *grammar == "" {
@@ -30,11 +31,15 @@ func runExtract(args []string) {
 	}
 
 	var err error
-	switch *emitter {
-	case "jen":
-		err = extract.GenerateJen(goFile, *grammar)
-	default:
-		err = extract.Generate(goFile, *grammar)
+	if *arena {
+		err = extract.GenerateArena(goFile, *grammar)
+	} else {
+		switch *emitter {
+		case "jen":
+			err = extract.GenerateJen(goFile, *grammar)
+		default:
+			err = extract.Generate(goFile, *grammar)
+		}
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)

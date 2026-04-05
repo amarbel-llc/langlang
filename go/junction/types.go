@@ -51,6 +51,33 @@ type JunctionHit struct {
 	Len   int16 // byte length of the delimiter (1 for single-byte)
 }
 
+// HitCounts summarizes junction hits by byte and kind. Used for
+// estimating per-type node counts for arena pre-sizing.
+type HitCounts struct {
+	ByByte [256]int // count of hits per junction byte
+	Opens  int      // total Open hits
+	Closes int      // total Close hits
+	Seps   int      // total Separator hits
+	Quotes int      // number of quoting transitions (enter/exit pairs)
+}
+
+// CountHits summarizes a hit stream into per-byte and per-kind totals.
+func CountHits(hits []JunctionHit) HitCounts {
+	var c HitCounts
+	for _, h := range hits {
+		c.ByByte[h.Byte]++
+		switch h.Kind {
+		case JunctionOpen:
+			c.Opens++
+		case JunctionClose:
+			c.Closes++
+		case JunctionSeparator:
+			c.Seps++
+		}
+	}
+	return c
+}
+
 // Partition represents a region of input bounded by matched open/close
 // junctions, with child partitions for nested structure.
 type Partition struct {

@@ -42,7 +42,7 @@ func Generate(sourceFile, grammarPath string) error {
 
 	base := strings.TrimSuffix(filepath.Base(sourceFile), ".go")
 	outPath := filepath.Join(filepath.Dir(sourceFile), base+"_extract.go")
-	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(outPath, []byte(output), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", outPath, err)
 	}
 
@@ -100,7 +100,7 @@ func GenerateJen(sourceFile, grammarPath string) error {
 
 	base := strings.TrimSuffix(filepath.Base(sourceFile), ".go")
 	outPath := filepath.Join(filepath.Dir(sourceFile), base+"_extract.go")
-	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(outPath, []byte(output), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", outPath, err)
 	}
 
@@ -123,7 +123,7 @@ func GenerateViews(grammarPath, pkg, outDir, rootRule string) error {
 
 	base := strings.TrimSuffix(filepath.Base(grammarPath), filepath.Ext(grammarPath))
 	outPath := filepath.Join(outDir, base+"_views.go")
-	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(outPath, []byte(output), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", outPath, err)
 	}
 
@@ -144,7 +144,49 @@ func GenerateViewsJen(grammarPath, pkg, outDir, rootRule string) error {
 
 	base := strings.TrimSuffix(filepath.Base(grammarPath), filepath.Ext(grammarPath))
 	outPath := filepath.Join(outDir, base+"_views.go")
-	if err := os.WriteFile(outPath, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(outPath, []byte(output), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", outPath, err)
+	}
+
+	return nil
+}
+
+// GenerateArena produces arena types and extraction functions alongside
+// the existing heap-based extraction. Output: <source>_arena.go.
+func GenerateArena(sourceFile, grammarPath string) error {
+	structs, err := Analyze(sourceFile)
+	if err != nil {
+		return fmt.Errorf("analyze structs: %w", err)
+	}
+	if len(structs) == 0 {
+		return fmt.Errorf("no structs with ll: tags found in %s", sourceFile)
+	}
+
+	rules, err := AnalyzeGrammar(grammarPath)
+	if err != nil {
+		return fmt.Errorf("analyze grammar: %w", err)
+	}
+
+	structs, errs := Validate(structs, rules)
+	if len(errs) > 0 {
+		var msgs []string
+		for _, e := range errs {
+			msgs = append(msgs, e.Error())
+		}
+		return fmt.Errorf("validation errors:\n  %s", strings.Join(msgs, "\n  "))
+	}
+
+	nameIDs := collectNameIDs(structs, rules)
+	pkg := detectPackageName(sourceFile)
+
+	output, err := RenderArenaFileJen(pkg, grammarPath, nameIDs, structs, rules)
+	if err != nil {
+		return fmt.Errorf("render arena: %w", err)
+	}
+
+	base := strings.TrimSuffix(filepath.Base(sourceFile), ".go")
+	outPath := filepath.Join(filepath.Dir(sourceFile), base+"_arena.go")
+	if err := os.WriteFile(outPath, []byte(output), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", outPath, err)
 	}
 

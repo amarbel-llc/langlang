@@ -4,6 +4,30 @@ import (
 	"testing"
 )
 
+// countNodes walks the tree and produces exact counts for arena pre-sizing.
+func countNodes(t *tree, root NodeID) JsonextractNodeCounts {
+	var c JsonextractNodeCounts
+	t.Visit(root, func(id NodeID) bool {
+		if t.Type(id) != NodeType_Node {
+			return true
+		}
+		switch t.NameID(id) {
+		case _arenaNameID_Value:
+			c.JSONValues++
+		case _arenaNameID_Object:
+			c.JSONObjects++
+		case _arenaNameID_Member:
+			c.JSONMembers++
+		case _arenaNameID_Array:
+			c.JSONArrays++
+		case _arenaNameID_String, _arenaNameID_Number:
+			c.Strings++
+		}
+		return true
+	})
+	return c
+}
+
 // parseAndExtractArena mirrors parseAndExtract but uses arena extraction.
 func parseAndExtractArena(t *testing.T, input string) JSONValue {
 	t.Helper()
@@ -36,8 +60,8 @@ func parseAndExtractArena(t *testing.T, input string) JSONValue {
 		t.Fatalf("no Value node found in %q", input)
 	}
 
-	var a JSONArenas
-	c := CountJSONNodes(tr, root)
+	var a JsonextractArenas
+	c := countNodes(tr, root)
 	a.Alloc(c)
 
 	val, err := ExtractJSONValueArena(tr, valueID, &a)

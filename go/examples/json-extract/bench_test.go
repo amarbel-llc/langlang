@@ -145,7 +145,7 @@ func BenchmarkParseAndExtractArena(b *testing.B) {
 			b.SetBytes(int64(len(input)))
 			p.SetInput(input)
 
-			var a JSONArenas
+			var a JsonextractArenas
 
 			for b.Loop() {
 				parsed, err := p.ParseJSON()
@@ -159,7 +159,7 @@ func BenchmarkParseAndExtractArena(b *testing.B) {
 				}
 
 				// Pre-count and allocate arenas.
-				c := CountJSONNodes(tr, root)
+				c := countNodes(tr, root)
 				a.Alloc(c)
 
 				var valueID NodeID
