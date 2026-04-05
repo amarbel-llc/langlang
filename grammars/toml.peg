@@ -11,30 +11,8 @@
 // Trivia and LineEnd are wrapper rules that group inter-token
 // whitespace; extraction layers can flatten them into direct children.
 
-// ── Trivia ───────────────────────────────────────────────────
-
-WS         <- #([ \t]+)
-Newline    <- #('\r\n' / '\n')
-Comment    <- #('#' NonEOL*)
-NonEOL     <- #([\t -~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
-
-// Inter-expression trivia: whitespace, comments, blank lines.
-Trivia     <- (WS / Comment? Newline / Comment)*
-
-// End-of-line: optional trailing whitespace + comment, then newline or EOF.
-LineEnd    <- WS? Comment? (Newline / &EOF)
-
-// ── Structural tokens ────────────────────────────────────────
-
-Equals       <- '='
-Dot          <- '.'
-Comma        <- ','
-BracketOpen  <- '['
-BracketClose <- ']'
-BraceOpen    <- '{'
-BraceClose   <- '}'
-
 // ── Top-level ────────────────────────────────────────────────
+// TOML must be the first rule (PEG entry point).
 
 TOML       <- Trivia Expression* EOF
 
@@ -145,6 +123,29 @@ ArrayValues    <- Val Trivia (Comma Trivia Val^itemAfterComma Trivia)* Comma? Tr
 InlineTable        <- BraceOpen WS? InlineTableKeyVals? WS? BraceClose
 InlineTableKeyVals <- InlineKeyVal (WS? Comma WS? InlineKeyVal)*
 InlineKeyVal       <- Key WS? Equals WS? Val
+
+// ── Trivia ───────────────────────────────────────────────────
+
+WS         <- #([ \t]+)
+Newline    <- #('\r\n' / '\n')
+Comment    <- #('#' NonEOL*)
+NonEOL     <- #([\t -~\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}])
+
+// Inter-expression trivia: whitespace, comments, blank lines.
+Trivia     <- (WS / Comment? Newline / Comment)*
+
+// End-of-line: optional trailing whitespace + comment, then newline or EOF.
+LineEnd    <- WS? Comment? (Newline / &EOF)
+
+// ── Structural tokens ────────────────────────────────────────
+
+Equals       <- '='
+Dot          <- '.'
+Comma        <- ','
+BracketOpen  <- '['
+BracketClose <- ']'
+BraceOpen    <- '{'
+BraceClose   <- '}'
 
 // ── Sentinel ─────────────────────────────────────────────────
 
