@@ -4,7 +4,7 @@ promotion-criteria: Property-based tests confirm parse equivalence between
   forward and backward parsers for at least two grammars (JSON and a
   repetition-heavy grammar), and wall time approaches 0.5x sequential on 2+
   cores for large inputs.
-status: proposed
+status: rejected
 ---
 
 # Bidirectional PEG Parsing
