@@ -38,7 +38,7 @@ func BenchmarkParseOnly(b *testing.B) {
 			b.SetBytes(int64(len(input)))
 			p.SetInput(input)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				_, err := p.ParseJSON()
 				if err != nil {
 					b.Fatal(err)
@@ -60,7 +60,7 @@ func BenchmarkParseAndExtract(b *testing.B) {
 			b.SetBytes(int64(len(input)))
 			p.SetInput(input)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				parsed, err := p.ParseJSON()
 				if err != nil {
 					b.Fatal(err)
@@ -104,7 +104,7 @@ func BenchmarkParseAndExtractInterface(b *testing.B) {
 			b.SetBytes(int64(len(input)))
 			p.SetInput(input)
 
-			for n := 0; n < b.N; n++ {
+			for b.Loop() {
 				parsed, err := p.ParseJSON()
 				if err != nil {
 					b.Fatal(err)
@@ -125,6 +125,55 @@ func BenchmarkParseAndExtractInterface(b *testing.B) {
 					return true
 				})
 				_, err = extractJSONValueInterface(parsed, valueID)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkParseAndExtractArena measures parsing + per-type arena extraction.
+func BenchmarkParseAndExtractArena(b *testing.B) {
+	inputs := benchInputs(b)
+	p := NewJSONParser()
+	p.SetShowFails(false)
+
+	for _, name := range inputNames {
+		b.Run(name, func(b *testing.B) {
+			input := inputs[name]
+			b.SetBytes(int64(len(input)))
+			p.SetInput(input)
+
+			var a JSONArenas
+
+			for b.Loop() {
+				parsed, err := p.ParseJSON()
+				if err != nil {
+					b.Fatal(err)
+				}
+				tr := parsed.(*tree)
+				root, ok := parsed.Root()
+				if !ok {
+					b.Fatal("no root")
+				}
+
+				// Pre-count and allocate arenas.
+				c := CountJSONNodes(tr, root)
+				a.Alloc(c)
+
+				var valueID NodeID
+				tr.Visit(root, func(id NodeID) bool {
+					if id == root {
+						return true
+					}
+					if tr.IsNamed(id, _nameID_Value) {
+						valueID = id
+						return false
+					}
+					return true
+				})
+				_, err = ExtractJSONValueArena(tr, valueID, &a)
 				if err != nil {
 					b.Fatal(err)
 				}
