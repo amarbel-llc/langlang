@@ -110,8 +110,16 @@ func (a *arena) allocChildren(count int) []*Node {
 //
 // Nodes are allocated from a pre-sized arena to minimize heap allocations.
 // Leaf nodes reference the input slice directly (no copy).
+//
+// The tree is type-asserted to *ConcreteTree so that IterDirectChildren
+// calls are inlined by the compiler (avoiding interface dispatch and
+// closure heap allocation).
 func Translate(tree langlang.Tree, input []byte) *Node {
-	root, ok := tree.Root()
+	ct, ok := tree.(*langlang.ConcreteTree)
+	if !ok {
+		return &Node{Kind: NodeDocument}
+	}
+	root, ok := ct.Root()
 	if !ok {
 		return &Node{Kind: NodeDocument}
 	}
@@ -122,10 +130,10 @@ func Translate(tree langlang.Tree, input []byte) *Node {
 		est = 64
 	}
 	a := newArena(est, est*3)
-	return translateNode(a, tree, input, root)
+	return translateNode(a, ct, input, root)
 }
 
-func translateNode(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
+func translateNode(a *arena, tree *langlang.ConcreteTree, input []byte, id langlang.NodeID) *Node {
 	switch tree.Type(id) {
 	case langlang.NodeType_String:
 		return makeLeaf(a, tree, input, id)
@@ -197,11 +205,11 @@ func translateNode(a *arena, tree langlang.Tree, input []byte, id langlang.NodeI
 	}
 }
 
-func translateChildren(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) []*Node {
+func translateChildren(a *arena, tree *langlang.ConcreteTree, input []byte, id langlang.NodeID) []*Node {
 	// Use mark/restore on the scratch buffer so recursive calls don't
 	// clobber the parent's collected children.
 	mark := len(a.scratch)
-	for _, cid := range tree.AppendChildren(id, nil) {
+	for cid := range tree.IterDirectChildren(id) {
 		node := translateNode(a, tree, input, cid)
 		if node == nil {
 			continue
@@ -223,7 +231,7 @@ func translateChildren(a *arena, tree langlang.Tree, input []byte, id langlang.N
 	return children
 }
 
-func makeLeaf(a *arena, tree langlang.Tree, input []byte, id langlang.NodeID) *Node {
+func makeLeaf(a *arena, tree *langlang.ConcreteTree, input []byte, id langlang.NodeID) *Node {
 	span := tree.Span(id)
 	start := span.Start.Cursor
 	end := span.End.Cursor

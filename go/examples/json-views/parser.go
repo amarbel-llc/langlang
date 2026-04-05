@@ -5,7 +5,9 @@ package jsonviews
 import (
 	"encoding/hex"
 	"fmt"
+	"iter"
 	"math/bits"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,7 +61,7 @@ type Tree interface {
 
 	Child(NodeID) (NodeID, bool)
 
-	AppendChildren(id NodeID, dst []NodeID) []NodeID
+	IterDirectChildren(NodeID) iter.Seq[NodeID]
 
 	Text(NodeID) string
 
@@ -551,19 +553,24 @@ func (t *tree) ensurePosView() {
 		t.posView = newPosIndex(t.input)
 	}
 }
-func (t *tree) AppendChildren(id NodeID, dst []NodeID) []NodeID {
-	n := &t.nodes[id]
-	if n.childID == -1 {
-		return dst
+func (t *tree) IterDirectChildren(id NodeID) iter.Seq[NodeID] {
+	return func(yield func(NodeID) bool) {
+		n := &t.nodes[id]
+		if n.childID == -1 {
+			return
+		}
+		switch n.typ {
+		case NodeType_Node, NodeType_Error:
+			yield(NodeID(n.childID))
+		case NodeType_Sequence:
+			cr := t.childRanges[n.childID]
+			for i := cr.start; i < cr.end; i++ {
+				if !yield(t.children[i]) {
+					return
+				}
+			}
+		}
 	}
-	switch n.typ {
-	case NodeType_Node, NodeType_Error:
-		return append(dst, NodeID(n.childID))
-	case NodeType_Sequence:
-		cr := t.childRanges[n.childID]
-		return append(dst, t.children[cr.start:cr.end]...)
-	}
-	return dst
 }
 func (t *tree) Child(id NodeID) (NodeID, bool) {
 	childID := t.nodes[id].childID
@@ -791,7 +798,7 @@ func (vi *prettyPrinter) visit(id NodeID) {
 		vi.write(vi.format(fmt.Sprintf(" (%s)", s.String()), FormatToken_Range))
 
 	case NodeType_Sequence:
-		children := vi.tree.AppendChildren(id, nil)
+		children := slices.Collect(vi.tree.IterDirectChildren(id))
 		seq := fmt.Sprintf("Sequence<%d> (%s)", len(children), s.String())
 		vi.writel(vi.format(seq, FormatToken_Range))
 		for i, child := range children {

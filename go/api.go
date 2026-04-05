@@ -1,5 +1,7 @@
 package langlang
 
+import "iter"
+
 // Matcher provides a dynamic PEG parsing interface created at runtime
 // from a grammar definition.  Unlike ahead-of-time code generation,
 // Matchers are built on-the-fly by compiling PEG grammars into
@@ -82,7 +84,7 @@ type Span struct {
 //	root, _ := tree.Root()
 //	fmt.Println(tree.Name(root))        // rule name
 //	fmt.Println(tree.Text(root))        // matched text
-//	for _, child := range tree.AppendChildren(root, nil) {
+//	for child := range tree.IterDirectChildren(root) {
 //	    fmt.Println(tree.Text(child))
 //	}
 //
@@ -161,12 +163,11 @@ type Tree interface {
 	// if the node has no child.
 	Child(NodeID) (NodeID, bool)
 
-	// AppendChildren appends all direct children of a node to dst
-	// and returns the extended slice. For NodeType_Sequence, appends
-	// the child list. For NodeType_Node and NodeType_Error, appends
-	// the single child. Appends nothing for NodeType_String or
-	// childless nodes. Pass nil for dst to allocate a new slice.
-	AppendChildren(id NodeID, dst []NodeID) []NodeID
+	// IterDirectChildren returns an iterator over the direct children
+	// of a node. For NodeType_Sequence, yields each child in order.
+	// For NodeType_Node and NodeType_Error, yields the single child.
+	// Yields nothing for NodeType_String or childless nodes.
+	IterDirectChildren(NodeID) iter.Seq[NodeID]
 
 	// Text extracts the matched substring from the original
 	// input.  For sequences, it concatenates all descendant text.

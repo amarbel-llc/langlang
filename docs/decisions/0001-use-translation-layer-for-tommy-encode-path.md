@@ -110,21 +110,67 @@ the tree and consult the overlay at each node.
 
 ## Benchmark Results (Option 1 --- Translation Layer)
 
-Measured on 11th Gen Intel i7-1165G7, `go/tomlcst/` benchmarks:
+Measured on 11th Gen Intel i7-1165G7, `go/tomlcst/` benchmarks.
 
-                          30kb input            500kb input
-  ----------------------- --------------------- ---------------------
-  **Parse only**          4.1 ms, 0 allocs      72 ms, 0 allocs
-  **Translate only**      6.8 ms, 57k allocs    114 ms, 890k allocs
-  **Parse + Translate**   11.4 ms, 57k allocs   188 ms, 890k allocs
+### Allocation optimization journey
 
-Translation adds \~60-65% overhead on top of parsing. The high alloc count (57k
-for 30kb) is because the CST preserves every whitespace, newline, and comment
-token as a separate `*Node` heap allocation. For tommy's config-file use case
-(small files, not hot path), this is acceptable.
+  ---------------------------------------------------------------
+  Step                            30kb allocs     500kb allocs
+  ------------------------------- --------------- ---------------
+  Original (no arena)             57,149          889,744
 
-These numbers provide the baseline for evaluating Option 3 (copy-on-write
-overlay), which should eliminate the translation allocation overhead entirely.
+  \+ Arena allocator              11,718 (-79%)   184,439
+
+  \+ Scratch mark/restore         8,521 (-85%)    134,772
+
+  \+ ConcreteTree + iterator      6,601 (-88%)    104,970
+  ---------------------------------------------------------------
+
+### Final numbers
+
+  ------------------------------------------------------------------------------
+                           30kb input                 500kb input
+  ------------------------ -------------------------- --------------------------
+  **Parse only**           4.1 ms, 0 allocs           72 ms, 0 allocs
+
+  **Translate only**       6.6 ms, 6.6k allocs        114 ms, 105k allocs
+
+  **Parse + Translate**    10.7 ms, 6.6k allocs       186 ms, 105k allocs
+  ------------------------------------------------------------------------------
+
+### Key optimization techniques
+
+1.  **Arena allocator** --- pre-allocate `[]Node` and `[]*Node` slices sized
+    from `len(input)/3`. Nodes come from the flat array; child pointer slices
+    share a single backing array. Eliminated 79% of allocs.
+
+2.  **Scratch buffer with mark/restore** --- reusable `[]*Node` buffer for
+    `translateChildren`. Mark position before recursion, restore after. Avoids
+    per-call `var tmp []*Node` allocations. Another 6% reduction.
+
+3.  **ConcreteTree type alias** --- exposed `tree` as `ConcreteTree` so
+    `tomlcst` can type-assert and call `IterDirectChildren` on the concrete
+    type. This allows the compiler to inline the iterator closure, avoiding heap
+    escape. Another 3% reduction.
+
+### Iterator escape analysis findings
+
+`IterDirectChildren` returns an `iter.Seq[NodeID]` closure. Escape analysis
+shows:
+
+- **Direct call on `*tree`**: closure is inlined, zero allocs
+- **Interface call on `Tree`**: closure escapes to heap (1 alloc per call)
+  because the compiler cannot inline across interface dispatch
+- **`ConcreteTree` type assert**: compiler devirtualizes and inlines, zero
+  allocs --- same as direct call
+
+This means `IterDirectChildren` should be preferred over `AppendChildren` when
+the concrete tree type is available. `AppendChildren` remains on the `Tree`
+interface for callers that cannot type-assert (e.g., generated parser code that
+uses the interface).
+
+`slices.Collect(tree.IterDirectChildren(id))` is the idiomatic way to get a
+`[]NodeID` slice when indexed access is needed (used in `grammar_parser_v2.go`).
 
 ## Option 3 Analysis (Copy-on-Write Overlay)
 

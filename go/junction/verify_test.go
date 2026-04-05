@@ -18,7 +18,7 @@ func collectLeafValues(t jsonviews.Tree, id jsonviews.NodeID, depth int, target 
 		*out = append(*out, t.Text(id))
 		return
 	}
-	for _, child := range t.AppendChildren(id, nil) {
+	for child := range t.IterDirectChildren(id) {
 		nextDepth := depth
 		if name == "Object" || name == "Array" {
 			nextDepth = depth + 1

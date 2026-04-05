@@ -3,6 +3,7 @@ package langlang
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -201,7 +202,7 @@ func (p *GrammarParserV2) parseGrammar(id NodeID) (*GrammarNode, error) {
 		return nil, errors.New("parseGrammar: no child node found")
 	}
 	if p.tree.Type(childID) == NodeType_Sequence {
-		items = p.tree.AppendChildren(childID, nil)
+		items = slices.Collect(p.tree.IterDirectChildren(childID))
 	} else {
 		items = []NodeID{childID}
 	}
@@ -244,7 +245,7 @@ func (p *GrammarParserV2) parseImport(id NodeID) *ImportNode {
 	var (
 		child, _ = p.tree.Child(id)
 		names    []*LiteralNode
-		items    = p.tree.AppendChildren(child, nil)
+		items    = slices.Collect(p.tree.IterDirectChildren(child))
 		idx      = 1
 	)
 	for _, itemID := range items[idx:] {
@@ -278,7 +279,7 @@ func (p *GrammarParserV2) parseDefinition(id NodeID) (*DefinitionNode, error) {
 		return nil, errors.New("parseDefinition: no child node found")
 	}
 	var (
-		items = p.tree.AppendChildren(child, nil)
+		items = slices.Collect(p.tree.IterDirectChildren(child))
 		name  = p.tree.Text(items[0])
 		expr  AstNode
 		err   error
@@ -312,7 +313,7 @@ func (p *GrammarParserV2) parseExpression(id NodeID) (AstNode, error) {
 }
 
 func (p *GrammarParserV2) parseChoice(seqID NodeID) (AstNode, error) {
-	items := p.tree.AppendChildren(seqID, nil)
+	items := slices.Collect(p.tree.IterDirectChildren(seqID))
 	head, err := p.parseSequence(items[0])
 	if err != nil {
 		return nil, err
@@ -358,7 +359,7 @@ func (p *GrammarParserV2) parseSequence(id NodeID) (AstNode, error) {
 
 	switch childType {
 	case NodeType_Sequence:
-		children := p.tree.AppendChildren(childID, nil)
+		children := slices.Collect(p.tree.IterDirectChildren(childID))
 		items = make([]AstNode, len(children))
 		for i, expID := range children {
 			if items[i], err = p.parsePrefix(expID); err != nil {
@@ -386,7 +387,7 @@ func (p *GrammarParserV2) parsePrefix(id NodeID) (AstNode, error) {
 
 	switch childType {
 	case NodeType_Sequence:
-		items := p.tree.AppendChildren(childID, nil)
+		items := slices.Collect(p.tree.IterDirectChildren(childID))
 		labeled, err := p.parseLabeled(items[1])
 		if err != nil {
 			return nil, err
@@ -416,7 +417,7 @@ func (p *GrammarParserV2) parseLabeled(id NodeID) (AstNode, error) {
 
 	switch childType {
 	case NodeType_Sequence:
-		items := p.tree.AppendChildren(childID, nil)
+		items := slices.Collect(p.tree.IterDirectChildren(childID))
 		suffix, err := p.parseSuffix(items[0])
 		if err != nil {
 			return nil, err
@@ -438,7 +439,7 @@ func (p *GrammarParserV2) parseSuffix(id NodeID) (AstNode, error) {
 
 	switch childType {
 	case NodeType_Sequence:
-		items := p.tree.AppendChildren(childID, nil)
+		items := slices.Collect(p.tree.IterDirectChildren(childID))
 		primary, err := p.parsePrimary(items[0])
 		if err != nil {
 			return nil, err
@@ -486,7 +487,7 @@ func (p *GrammarParserV2) parsePrimary(id NodeID) (AstNode, error) {
 
 	switch childType {
 	case NodeType_Sequence:
-		items := p.tree.AppendChildren(childID, nil)
+		items := slices.Collect(p.tree.IterDirectChildren(childID))
 		return p.parseExpression(items[1])
 	case NodeType_Node:
 		switch p.tree.Name(childID) {
@@ -529,7 +530,7 @@ func (p *GrammarParserV2) parseClass(id NodeID) (*ClassNode, error) {
 	if !ok {
 		return nil, errors.New("parseClass: no child node found")
 	}
-	all := p.tree.AppendChildren(childID, nil)
+	all := slices.Collect(p.tree.IterDirectChildren(childID))
 	items := all[1 : len(all)-1]
 	output := make([]AstNode, len(items))
 	var err error
@@ -552,7 +553,7 @@ func (p *GrammarParserV2) parseSpan(id NodeID) (AstNode, error) {
 
 	switch childType {
 	case NodeType_Sequence:
-		items := p.tree.AppendChildren(childID, nil)
+		items := slices.Collect(p.tree.IterDirectChildren(childID))
 		left, err := p.parseChar(items[0])
 		if err != nil {
 			return nil, err

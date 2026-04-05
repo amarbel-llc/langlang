@@ -2,6 +2,8 @@ package langlang
 
 import (
 	"fmt"
+	"iter"
+	"slices"
 	"strconv"
 	"unsafe"
 )
@@ -38,6 +40,16 @@ type node struct {
 	childID   int32
 	messageID int32
 }
+
+// ConcreteTree is the exported name for the concrete parse tree
+// implementation. Performance-sensitive callers can type-assert a Tree
+// to *ConcreteTree to call methods like IterDirectChildren without
+// interface dispatch overhead, enabling the compiler to inline the
+// iterator closure and avoid heap allocation.
+//
+//	ct := tree.(*ConcreteTree)
+//	for child := range ct.IterDirectChildren(root) { ... }
+type ConcreteTree = tree
 
 type tree struct {
 	nodes       []node
@@ -136,23 +148,24 @@ func (t *tree) ensurePosView() {
 	}
 }
 
-func (t *tree) AppendChildren(id NodeID, dst []NodeID) []NodeID {
-	n := &t.nodes[id]
-	if n.childID == -1 {
-		return dst
-	}
-	switch n.typ {
-	case NodeType_Node, NodeType_Error:
-		return append(dst, NodeID(n.childID))
-	case NodeType_Sequence:
-		cr := t.childRanges[n.childID]
-		sub := t.children[cr.start:cr.end]
-		if dst == nil {
-			return sub // zero-copy sub-slice when no append needed
+func (t *tree) IterDirectChildren(id NodeID) iter.Seq[NodeID] {
+	return func(yield func(NodeID) bool) {
+		n := &t.nodes[id]
+		if n.childID == -1 {
+			return
 		}
-		return append(dst, sub...)
+		switch n.typ {
+		case NodeType_Node, NodeType_Error:
+			yield(NodeID(n.childID))
+		case NodeType_Sequence:
+			cr := t.childRanges[n.childID]
+			for i := cr.start; i < cr.end; i++ {
+				if !yield(t.children[i]) {
+					return
+				}
+			}
+		}
 	}
-	return dst
 }
 
 func (t *tree) Child(id NodeID) (NodeID, bool) {
@@ -407,7 +420,7 @@ func (vi *prettyPrinter) visit(id NodeID) {
 		vi.write(vi.format(fmt.Sprintf(" (%s)", s.String()), FormatToken_Range))
 
 	case NodeType_Sequence:
-		children := vi.tree.AppendChildren(id, nil)
+		children := slices.Collect(vi.tree.IterDirectChildren(id))
 		seq := fmt.Sprintf("Sequence<%d> (%s)", len(children), s.String())
 		vi.writel(vi.format(seq, FormatToken_Range))
 		for i, child := range children {
