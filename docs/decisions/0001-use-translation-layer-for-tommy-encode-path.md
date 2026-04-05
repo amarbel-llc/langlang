@@ -108,12 +108,30 @@ the tree and consult the overlay at each node.
 - Bad, because tommy's accessors need adaptation to consult the overlay
 - Bad, because insertion ordering at the same offset needs careful handling
 
+## Benchmark Results (Option 1 --- Translation Layer)
+
+Measured on 11th Gen Intel i7-1165G7, `go/tomlcst/` benchmarks:
+
+                          30kb input            500kb input
+  ----------------------- --------------------- ---------------------
+  **Parse only**          4.1 ms, 0 allocs      72 ms, 0 allocs
+  **Translate only**      6.8 ms, 57k allocs    114 ms, 890k allocs
+  **Parse + Translate**   11.4 ms, 57k allocs   188 ms, 890k allocs
+
+Translation adds \~60-65% overhead on top of parsing. The high alloc count (57k
+for 30kb) is because the CST preserves every whitespace, newline, and comment
+token as a separate `*Node` heap allocation. For tommy's config-file use case
+(small files, not hot path), this is acceptable.
+
+These numbers provide the baseline for evaluating Option 3 (copy-on-write
+overlay), which should eliminate the translation allocation overhead entirely.
+
 ## More Information
 
 - GitHub issue: amarbel-llc/langlang#16 (tommy migration tracer bullet)
 - CST-mode grammar: `grammars/toml.peg` (commit 2796b45)
-- Round-trip tests: `go/tests/toml/toml_test.go` (TestRoundTrip,
-  TestRoundTripFixtures)
+- Translation layer: `go/tomlcst/` (commit 9316ccc)
+- Round-trip tests: `go/tests/toml/toml_test.go`, `go/tomlcst/translate_test.go`
 - Tommy's CST: `pkg/cst/node.go`, `pkg/cst/accessors.go`,
   `pkg/document/document.go` in amarbel-llc/tommy
 - Related FDRs: FDR-0001 (typed tree extraction), FDR-0002 (typed arena

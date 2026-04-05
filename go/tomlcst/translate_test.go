@@ -208,6 +208,89 @@ func TestTranslateDottedKey(t *testing.T) {
 	assert.Contains(t, kinds, NodeDot, "expected Dot node in dotted key")
 }
 
+// benchMatcher caches the matcher across benchmark iterations.
+func benchMatcher(b *testing.B) langlang.Matcher {
+	b.Helper()
+	cfg := langlang.NewConfig()
+	cfg.SetBool("grammar.handle_spaces", false)
+	cfg.SetBool("compiler.inline.enabled", false)
+	db := langlang.NewDatabase(cfg, langlang.NewRelativeImportLoader())
+	matcher, err := langlang.QueryMatcher(db, grammarPath())
+	if err != nil {
+		b.Fatal(err)
+	}
+	return matcher
+}
+
+func BenchmarkParseAndTranslate(b *testing.B) {
+	matcher := benchMatcher(b)
+	fixtures := []string{"input_30kb.toml", "input_500kb.toml"}
+
+	for _, name := range fixtures {
+		data, err := os.ReadFile(testdataPath(name))
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Run(name, func(b *testing.B) {
+			b.SetBytes(int64(len(data)))
+			for b.Loop() {
+				tree, _, err := matcher.Match(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+				node := Translate(tree, data)
+				_ = node.Bytes()
+			}
+		})
+	}
+}
+
+func BenchmarkParseOnly(b *testing.B) {
+	matcher := benchMatcher(b)
+	fixtures := []string{"input_30kb.toml", "input_500kb.toml"}
+
+	for _, name := range fixtures {
+		data, err := os.ReadFile(testdataPath(name))
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Run(name, func(b *testing.B) {
+			b.SetBytes(int64(len(data)))
+			for b.Loop() {
+				_, _, err := matcher.Match(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkTranslateOnly(b *testing.B) {
+	matcher := benchMatcher(b)
+	fixtures := []string{"input_30kb.toml", "input_500kb.toml"}
+
+	for _, name := range fixtures {
+		data, err := os.ReadFile(testdataPath(name))
+		if err != nil {
+			b.Fatal(err)
+		}
+		tree, _, err := matcher.Match(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		treeCopy := tree.Copy()
+
+		b.Run(name, func(b *testing.B) {
+			b.SetBytes(int64(len(data)))
+			for b.Loop() {
+				node := Translate(treeCopy, data)
+				_ = node.Bytes()
+			}
+		})
+	}
+}
+
 func childKinds(n *Node) []NodeKind {
 	kinds := make([]NodeKind, len(n.Children))
 	for i, c := range n.Children {
