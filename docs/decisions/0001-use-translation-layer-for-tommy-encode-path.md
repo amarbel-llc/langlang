@@ -126,6 +126,42 @@ token as a separate `*Node` heap allocation. For tommy's config-file use case
 These numbers provide the baseline for evaluating Option 3 (copy-on-write
 overlay), which should eliminate the translation allocation overhead entirely.
 
+## Option 3 Analysis (Copy-on-Write Overlay)
+
+Examined in detail (2026-04-05) after implementing Option 1. The COW overlay
+would store `replacements map[NodeID][]byte`, `insertions []Insertion`, and
+`deletions map[NodeID]bool` on top of the immutable langlang tree. `Bytes()`
+would be a linear scan splicing replacement bytes at modified offsets.
+
+### What works well
+
+- `SetValue` maps cleanly: find the value NodeID, add to `replacements`
+- `Bytes()` is a single linear scan over leaf byte ranges --- no tree needed
+- Read-only accessors (`KeyValueName`, `KeyValueValue`) work directly on the
+  immutable tree via `Tree.Visit()` + name matching
+
+### What's hard
+
+- **Structural insertions** (`EnsureChildTable`, `AppendArrayTableEntryAfter`)
+  require computing exact byte offsets for insertion points and synthesizing raw
+  bytes with correct formatting (brackets, newlines, indentation)
+- **Reading modified state** --- after `Set("key", "new")`, `Get("key")` must
+  check `replacements` before falling through to the tree
+- **Navigation API mismatch** --- tommy walks `container.Children` as a slice;
+  the overlay would need to simulate this over the immutable tree's `Visit()` +
+  `Children()` API, a fundamentally different shape
+- **Multiple mutations at same offset** --- insertions need stable ordering;
+  deletions + insertions at the same node need careful sequencing
+
+### Conclusion
+
+The COW approach is viable but amounts to building a **new document API** on top
+of the immutable tree rather than adapting tommy's existing one. Every accessor
+and mutator in tommy's 722-line `accessors.go` and 1122-line `document.go` would
+need reimplementation. This is the right optimization target once allocation
+overhead becomes a measurable bottleneck in real usage, but premature for the
+tracer bullet phase.
+
 ## More Information
 
 - GitHub issue: amarbel-llc/langlang#16 (tommy migration tracer bullet)
