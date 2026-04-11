@@ -9,6 +9,7 @@ __pycache__
 
 # go implementation
 go/examples/tiny/tiny.go
+go/examples/orgmode/orgmode.go
 go/tests/arithmetic/arithmetic.go
 go/tests/arithmetic/arithmetic.nocap.go
 go/tests/arithmetic_leftrec/arithmetic.go

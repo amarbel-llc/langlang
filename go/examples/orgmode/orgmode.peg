@@ -1,0 +1,63 @@
+// Minimal org-mode subset.
+//
+// Goals: cover headlines, paragraphs, blank lines, single-level plain lists,
+// and #+BEGIN_/#+END_ blocks. Context-sensitive parts (inline markup, nested
+// lists, indentation, tables, properties, drawers, TODO keywords) are deferred
+// or treated as opaque text.
+
+Document   <- Element*
+
+Element    <- Headline
+            / PropertiesDrawer
+            / Block
+            / List
+            / BlankLine
+            / Paragraph
+
+// Headline: one or more leading stars, a single space, an optional TODO-style
+// keyword, then the rest of the line. Headline tags (`:tag:tag:` at end of
+// line) are intentionally not extracted — they'd require fragile tail
+// lookahead and are rare in practice.
+Headline    <- Stars ' ' TodoKeyword? Title EOL
+Stars       <- '*'+
+TodoKeyword <- ('TODO' / 'DONE' / 'NEXT' / 'WAIT' / 'CANCELLED' / 'HOLD') ' '
+Title       <- (!EOL .)*
+
+// PROPERTIES drawer. Body is opaque — we don't parse the individual
+// `:KEY: value` lines. Generic drawers (LOGBOOK, CLOCK, etc.) are not
+// recognized; they would fall through to Paragraph.
+PropertiesDrawer <- PropertiesOpen DrawerBody PropertiesClose
+PropertiesOpen   <- ':PROPERTIES:' EOL
+PropertiesClose  <- ':END:' EOL
+DrawerBody       <- (!PropertiesClose .)*
+
+// #+BEGIN_X ... #+END_X. Body is opaque — no inline parsing. The end marker
+// must repeat the same block name; we accept any name in BlockEnd and rely on
+// the consumer to validate matching if it cares.
+Block      <- BlockBegin BlockBody BlockEnd
+BlockBegin <- '#+BEGIN_' BlockName BlockArgs EOL
+BlockEnd   <- '#+END_' BlockName EOL
+BlockName  <- [A-Za-z]+
+BlockArgs  <- (!EOL .)*
+BlockBody  <- (!BlockEnd .)*
+
+// Single-level plain list. Item content past the bullet is opaque.
+// '*' is intentionally excluded as a bullet to avoid clashing with headlines
+// at column 0; nested/indented lists are out of scope for the basics.
+List       <- ListItem+
+ListItem   <- Bullet ' ' ItemBody EOL
+Bullet     <- '-' / '+'
+ItemBody   <- (!EOL .)*
+
+// Paragraph: one or more lines that aren't any of the above. Each line must
+// have at least one character so that Element* always makes progress.
+Paragraph  <- ParaLine+
+ParaLine   <- !Headline !BlockBegin !ListItem !PropertiesOpen !BlankLine (!EOL .)+ EOL
+
+// A blank line is an empty line. We require an actual newline (not !.) so
+// that end-of-input doesn't loop forever in Element*.
+BlankLine  <- '\n'
+
+// EOL: a newline OR end of input. Used at the end of headlines/list items so
+// the last line of a document doesn't need a trailing newline.
+EOL        <- '\n' / !.
