@@ -2,16 +2,20 @@
   description = "LangLang: a parsing expression grammar library";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/4590696c8693fea477850fe379a01544293ca4e2";
-    nixpkgs-master.url = "github:NixOS/nixpkgs/e2dde111aea2c0699531dc616112a96cd55ab8b5";
+    # Fork of upstream nixpkgs. overlays.default exposes buildGoApplication,
+    # gomod2nix, and other amarbel-llc additions, so we don't need a
+    # standalone gomod2nix flake input.
+    nixpkgs.url = "github:amarbel-llc/nixpkgs";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
     utils.url = "https://flakehub.com/f/numtide/flake-utils/0.1.102";
-    gomod2nix = {
-      url = "github:nix-community/gomod2nix";
+    bats = {
+      url = "github:amarbel-llc/bats";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
+      inputs.nixpkgs-master.follows = "nixpkgs-master";
+      inputs.utils.follows = "utils";
     };
-    bob = {
-      url = "github:amarbel-llc/bob";
+    tap = {
+      url = "github:amarbel-llc/tap";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.nixpkgs-master.follows = "nixpkgs-master";
       inputs.utils.follows = "utils";
@@ -24,8 +28,8 @@
       nixpkgs,
       nixpkgs-master,
       utils,
-      gomod2nix,
-      bob,
+      bats,
+      tap,
     }:
     utils.lib.eachDefaultSystem (
       system:
@@ -33,10 +37,7 @@
         pkgs-master = import nixpkgs-master { inherit system; };
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            gomod2nix.overlays.default
-            (_: _: { go = pkgs-master.go; })
-          ];
+          overlays = [ nixpkgs.overlays.default ];
         };
       in
       {
@@ -47,6 +48,7 @@
             src = ./go;
             modules = ./go/gomod2nix.toml;
             subPackages = [ "cmd/langlang" ];
+            go = pkgs-master.go;
 
             meta = {
               description = "A parsing expression grammar library";
@@ -64,10 +66,11 @@
             pkgs-master.golangci-lint
             pkgs-master.delve
             pkgs-master.nixfmt
-            gomod2nix.packages.${system}.default
+            pkgs.gomod2nix
             pkgs.just
-            bob.packages.${system}.batman
-            bob.packages.${system}.tap-dancer
+            bats.packages.${system}.batman
+            bats.packages.${system}.bats
+            tap.packages.${system}.tap-dancer
           ];
         };
       }
