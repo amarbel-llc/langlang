@@ -64,6 +64,16 @@ type shapeGen struct {
 	// curDef is the index of the definition currently being generated; used in
 	// exec-safe mode to keep references strictly forward (acyclic).
 	curDef int
+
+	// noRepetition and noPredicate further restrict generation to the
+	// star-free, predicate-free subset that the matching-input fuzzer can
+	// co-generate a guaranteed in-language string for: every construct then
+	// consumes a bounded, exactly-known amount (atoms, sequence, choice,
+	// optional, lex), so a derived string matches and fully consumes
+	// deterministically. * / + are unbounded-greedy and & / ! couple to the
+	// following context, so both are excluded there. Independent of execSafe.
+	noRepetition bool
+	noPredicate  bool
 }
 
 func (g *shapeGen) ruleName(i int) string { return "R" + strconv.Itoa(i) }
@@ -139,6 +149,9 @@ func (g *shapeGen) genSuffixed(depth int) AstNode {
 	if depth <= 0 || g.rng.Intn(2) == 1 {
 		return prim
 	}
+	if g.noRepetition {
+		return NewOptionalNode(prim, fuzzLoc)
+	}
 	switch g.rng.Intn(3) {
 	case 0:
 		return NewOptionalNode(prim, fuzzLoc)
@@ -185,6 +198,9 @@ func (g *shapeGen) genItem(depth int) AstNode {
 	inner := g.genSuffixed(depth)
 	if depth <= 0 || g.rng.Intn(3) != 0 {
 		return inner
+	}
+	if g.noPredicate {
+		return NewLexNode(inner, fuzzLoc) // lex is consumption-neutral; & / ! are not
 	}
 	switch g.rng.Intn(3) {
 	case 0:
