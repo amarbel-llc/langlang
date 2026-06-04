@@ -47,6 +47,23 @@ var fuzzLoc = SourceLocation{}
 type shapeGen struct {
 	rng     *rand.Rand
 	numDefs int
+
+	// execSafe restricts generation to grammars that are safe to *run* on the
+	// step-budget-less VM. Two hazards are excluded by construction:
+	//   - Nullable-body repetition (e* / e+ where e matches empty) loops
+	//     forever, so a repetition operand is never a rule reference (whose
+	//     nullability needs whole-grammar analysis), only a consuming terminal.
+	//   - Recursion is dropped entirely: references point strictly forward
+	//     (R_i -> R_j, j > i), so the rule graph is acyclic. This rules out
+	//     direct/mutual left recursion *and* recursion through a & / ! predicate
+	//     — the latter is not caught by the VM's left-recursion memoization and
+	//     recurses unboundedly (e.g. `R0 <- 'b' / &R0 . .` on "").
+	// Off by default so the round-trip fuzzer's RNG stream is unchanged.
+	execSafe bool
+
+	// curDef is the index of the definition currently being generated; used in
+	// exec-safe mode to keep references strictly forward (acyclic).
+	curDef int
 }
 
 func (g *shapeGen) ruleName(i int) string { return "R" + strconv.Itoa(i) }
@@ -95,8 +112,23 @@ func (g *shapeGen) genPrimary() AstNode {
 	case 2:
 		return g.genClass()
 	default:
+		return g.genReference()
+	}
+}
+
+// genReference emits a non-terminal (rule) reference. In the default mode it
+// may point at any rule (self/backward refs are valid round-trip fodder). In
+// exec-safe mode it points strictly forward to keep the rule graph acyclic; the
+// last rule has no forward target, so it degenerates to a terminal.
+func (g *shapeGen) genReference() AstNode {
+	if !g.execSafe {
 		return NewIdentifierNode(g.ruleName(g.rng.Intn(g.numDefs)), fuzzLoc)
 	}
+	lo := g.curDef + 1
+	if lo >= g.numDefs {
+		return g.genTerminal()
+	}
+	return NewIdentifierNode(g.ruleName(lo+g.rng.Intn(g.numDefs-lo)), fuzzLoc)
 }
 
 // genSuffixed optionally wraps a primary in one suffix operator. The parser
@@ -111,10 +143,39 @@ func (g *shapeGen) genSuffixed(depth int) AstNode {
 	case 0:
 		return NewOptionalNode(prim, fuzzLoc)
 	case 1:
-		return NewZeroOrMoreNode(prim, fuzzLoc)
+		return NewZeroOrMoreNode(g.repeatable(prim), fuzzLoc)
 	default:
-		return NewOneOrMoreNode(prim, fuzzLoc)
+		return NewOneOrMoreNode(g.repeatable(prim), fuzzLoc)
 	}
+}
+
+// genTerminal emits a guaranteed-consuming atom (never a rule reference): any
+// (.), a non-empty literal, or a character class. Each matches at least one
+// byte, so repeating it cannot loop.
+func (g *shapeGen) genTerminal() AstNode {
+	switch g.rng.Intn(3) {
+	case 0:
+		return NewAnyNode(fuzzLoc)
+	case 1:
+		return NewLiteralNode(g.literalText(), fuzzLoc)
+	default:
+		return g.genClass()
+	}
+}
+
+// repeatable returns prim unchanged, except in exec-safe mode where a rule
+// reference (whose nullability is unknown without whole-grammar analysis) is
+// swapped for a non-nullable terminal so that wrapping it in * / + can never
+// produce a nullable-body infinite loop. In the default (round-trip) mode it is
+// a no-op and draws no randomness, leaving that RNG stream untouched.
+func (g *shapeGen) repeatable(prim AstNode) AstNode {
+	if !g.execSafe {
+		return prim
+	}
+	if _, ok := prim.(*IdentifierNode); ok {
+		return g.genTerminal()
+	}
+	return prim
 }
 
 // genItem produces one sequence element: a suffixed primary, optionally with a
@@ -174,6 +235,7 @@ func (g *shapeGen) genGrammar(depth int) *GrammarNode {
 	defs := make([]*DefinitionNode, g.numDefs)
 	byName := map[string]*DefinitionNode{}
 	for i := range defs {
+		g.curDef = i
 		name := g.ruleName(i)
 		def := NewDefinitionNode(name, g.genExpression(depth), fuzzLoc)
 		defs[i] = def
