@@ -6,7 +6,7 @@
     # gomod2nix, and other amarbel-llc additions, so we don't need a
     # standalone gomod2nix flake input.
     igloo.url = "github:amarbel-llc/igloo";
-    nixpkgs-master.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
     utils.url = "https://flakehub.com/f/numtide/flake-utils/0.1.102";
     bats = {
       url = "github:amarbel-llc/bats";
