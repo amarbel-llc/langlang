@@ -1,0 +1,14 @@
+# langlang is a fork of clarete/langlang. This config exists to SHADOW eng's
+# baked catch-all conformist.toml (the cwd-aware wrapper prefers a per-project
+# config at the git root — see eng-design_patterns-conformist(7)): the
+# catch-all reformats upstream code (huge diffs against upstream) and hard-fails
+# on files upstream legitimately ships — JSONC tsconfigs under js/ that strict
+# `jq .` can't parse, and intentionally-invalid parser-error fixtures like
+# rust/tests/err/*.java that google-java-format refuses.
+#
+# Scope formatters to what the fork itself owns: the nix layer. Everything
+# upstream stays byte-identical to ease rebases onto clarete/langlang.
+
+[formatter.nixfmt]
+command = "nixfmt"
+includes = ["*.nix"]
