@@ -20,6 +20,17 @@
       inputs.nixpkgs-master.follows = "nixpkgs-master";
       inputs.utils.follows = "utils";
     };
+
+    # conformist: the linter/formatter multiplexer. `nix fmt` entry point;
+    # config lives in ./conformist.nix (+ conformist.lib.presets.{eng,eng-go,
+    # eng-impure} in outputs below). No igloo follow needed: conformist#93
+    # (v0.1.19) made the impure lane's gomod2nix linter degrade gracefully
+    # without igloo's overlay — and our own `pkgs` already carries it anyway.
+    conformist = {
+      url = "https://code.linenisgreat.com/conformist/archive/master.tar.gz";
+      inputs.nixpkgs-master.follows = "nixpkgs-master";
+      inputs.utils.follows = "utils";
+    };
   };
 
   outputs =
@@ -30,6 +41,7 @@
       utils,
       bats,
       tap,
+      conformist,
     }:
     utils.lib.eachDefaultSystem (
       system:
@@ -38,6 +50,34 @@
         pkgs = import igloo {
           inherit system;
           overlays = [ igloo.overlays.default ];
+        };
+
+        conformistPkg = conformist.packages.${system}.default;
+
+        # Pure lane: the eng presets (the eng-convention linters + the
+        # canonical goimports->gofumpt Go formatter chain) plus this repo's
+        # overlay (./conformist.nix). Drives `nix fmt` (build.wrapper), the
+        # sandboxed checks.formatting (build.check), and the
+        # conformist-pre-commit hook (build.preCommit).
+        conformistEval = conformist.lib.evalModule pkgs {
+          imports = [
+            conformist.lib.presets.eng
+            conformist.lib.presets.eng-go
+            ./conformist.nix
+          ];
+          package = conformistPkg;
+        };
+
+        # Impure lane: the git-state eng-convention checks (git-remotes,
+        # git-default-branch, sweatfile, agents-md, gomod2nix) that need a
+        # live .git / real go.mod resolution, so they can't run in the
+        # sandboxed checks.formatting. Runs against the working tree via
+        # `just lint-worktree`, consuming packages.conformist-impure-config
+        # below.
+        conformistImpureEval = conformist.lib.evalModule pkgs {
+          imports = [ conformist.lib.presets.eng-impure ];
+          package = conformistPkg;
+          projectRootFile = "flake.nix";
         };
       in
       {
@@ -56,6 +96,14 @@
               license = pkgs.lib.licenses.gpl3Only;
             };
           };
+
+          # Store-pinned conformist hooks + configs (conformist#51/#59): the
+          # per-commit restage hook, its merge-repair sibling, and the
+          # generated impure-lane config consumed by `just lint-worktree`.
+          conformist-pre-commit = conformistEval.config.build.preCommit;
+          conformist-repair = conformistEval.config.build.repair;
+          conformist-impure-config = conformistImpureEval.config.build.configFile;
+          conformist = conformistPkg;
         };
 
         devShells.default = pkgs.mkShell {
@@ -71,8 +119,19 @@
             bats.packages.${system}.batman
             bats.packages.${system}.bats
             tap.packages.${system}.tap-dancer
+            conformistPkg
+            conformistEval.config.build.preCommit
+            conformistEval.config.build.repair
           ];
         };
+
+        # `nix fmt` — the generated conformist wrapper (config + every
+        # formatter baked as /nix/store paths) across the worktree.
+        formatter = conformistEval.config.build.wrapper;
+
+        # `nix flake check` — read-only formatting + eng-convention gate
+        # (sandbox-pure; the git-state lane is `just lint-worktree`).
+        checks.formatting = conformistEval.config.build.check self;
       }
     );
 }

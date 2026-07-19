@@ -1,0 +1,16 @@
+langlang
+========
+
+This repository is a fork of langlang, a parsing expression grammar (PEG)
+toolkit by Lincoln Clarete (clarete).
+
+  Upstream:    https://github.com/clarete/langlang
+  License:     GPL-3.0-or-later (see COPYING)
+
+This fork carries the upstream project's full git history (no squash import)
+plus first-party additions — the tomlcst/extract/junction/binary Go
+subsystems under go/, the docs/decisions, docs/features, docs/plans, and
+docs/references records, and the eng repository conventions (conformist,
+this justfile). The upstream copyright and GPL-3.0-or-later license are
+retained verbatim in COPYING; modifications in this repository are released
+under the same terms.
