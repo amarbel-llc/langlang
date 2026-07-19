@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/clarete/langlang/go"
+	langlang "github.com/clarete/langlang/go"
 
 	"github.com/stretchr/testify/require"
 )

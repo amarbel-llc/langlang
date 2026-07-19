@@ -30,6 +30,7 @@ func (i IChar) Name() string {
 	}
 	return "char32"
 }
+
 func (i IChar) SizeInBytes() int {
 	if fitsU16Rune(i.Char) {
 		return opCharSizeInBytes
@@ -49,6 +50,7 @@ func (i IRange) Name() string {
 	}
 	return "range32"
 }
+
 func (i IRange) SizeInBytes() int {
 	if fitsU16Rune(i.Lo) && fitsU16Rune(i.Hi) {
 		return opRangeSizeInBytes
@@ -304,7 +306,8 @@ type ICapNonTermBeginOffset struct {
 	sl SourceLocation
 }
 
-func (ICapNonTermBeginOffset) Name() string                     { return "cap_non_term_begin_offset" }
+func (ICapNonTermBeginOffset) Name() string { return "cap_non_term_begin_offset" }
+
 func (ICapNonTermBeginOffset) SizeInBytes() int                 { return opCapNonTermBeginOffsetSizeInBytes }
 func (i ICapNonTermBeginOffset) SourceLocation() SourceLocation { return i.sl }
 

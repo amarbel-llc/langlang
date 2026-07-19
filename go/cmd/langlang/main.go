@@ -269,7 +269,8 @@ func version() {
 			}
 		}
 	} else {
-		fmt.Printf("No build info found. Build time: %s\n",
+		fmt.Printf(
+			"No build info found. Build time: %s\n",
 			time.Now().Format(time.RFC3339),
 		)
 	}
@@ -393,7 +394,8 @@ func printParsingError(
 	if srcm := matcher.SourceMap(); srcm != nil {
 		if loc, ok := srcm.LocationAt(perr.FFPPC); ok {
 			file := srcm.FileAt(loc.FileID)
-			fmt.Println(ascii.Color(theme.Muted, "  at %s:%d:%d",
+			fmt.Println(ascii.Color(
+				theme.Muted, "  at %s:%d:%d",
 				file,
 				loc.Span.Start.Line,
 				loc.Span.Start.Column,

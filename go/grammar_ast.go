@@ -179,8 +179,10 @@ func NewNumericPrimitiveNode(name string, width int, bigEndian bool, s SourceLoc
 func (n NumericPrimitiveNode) SourceLocation() SourceLocation { return n.src }
 func (n NumericPrimitiveNode) String() string                 { return n.Name }
 func (n NumericPrimitiveNode) PrettyString() string           { return ppAstNode(&n, formatNodePlain) }
-func (n NumericPrimitiveNode) HighlightPrettyString() string  { return ppAstNode(&n, formatNodeThemed) }
-func (n NumericPrimitiveNode) Accept(v AstNodeVisitor) error  { return v.VisitNumericPrimitiveNode(&n) }
+
+func (n NumericPrimitiveNode) HighlightPrettyString() string { return ppAstNode(&n, formatNodeThemed) }
+
+func (n NumericPrimitiveNode) Accept(v AstNodeVisitor) error { return v.VisitNumericPrimitiveNode(&n) }
 
 func (n NumericPrimitiveNode) Equal(o AstNode) bool {
 	other, ok := o.(*NumericPrimitiveNode)
@@ -257,8 +259,11 @@ func (n CountedRepetitionNode) SourceLocation() SourceLocation { return n.src }
 func (n CountedRepetitionNode) String() string {
 	return fmt.Sprintf("%s{%s}", n.Expr.String(), n.Count)
 }
-func (n CountedRepetitionNode) PrettyString() string          { return ppAstNode(&n, formatNodePlain) }
+
+func (n CountedRepetitionNode) PrettyString() string { return ppAstNode(&n, formatNodePlain) }
+
 func (n CountedRepetitionNode) HighlightPrettyString() string { return ppAstNode(&n, formatNodeThemed) }
+
 func (n CountedRepetitionNode) Accept(v AstNodeVisitor) error {
 	return v.VisitCountedRepetitionNode(&n)
 }

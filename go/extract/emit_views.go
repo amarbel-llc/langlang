@@ -154,8 +154,6 @@ func viewTypeName(ruleName string, exported map[string]bool) string {
 	return fieldName(ruleName) + "_view"
 }
 
-
-
 func emitPublicConstructor(buf *strings.Builder, ri RuleInfo) {
 	typeName := ri.Name
 	fmt.Fprintf(buf, "// New%s creates a %s view from a parsed tree.\n", typeName, typeName)

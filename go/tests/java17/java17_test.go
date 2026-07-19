@@ -9,10 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const grammarPath = "../../../grammars/java17.peg"
-const testdataDir = "../../../testdata/java17"
-const java8TestdataDir = "../../../testdata/java8"
-const java7TestdataDir = "../../../testdata/java"
+const (
+	grammarPath      = "../../../grammars/java17.peg"
+	testdataDir      = "../../../testdata/java17"
+	java8TestdataDir = "../../../testdata/java8"
+	java7TestdataDir = "../../../testdata/java"
+)
 
 // TestJava17TestFiles parses every .java file in the Java 17 testdata directory.
 func TestJava17TestFiles(t *testing.T) {
@@ -69,4 +71,3 @@ func TestJava17Snippets(t *testing.T) {
 		})
 	}
 }
-

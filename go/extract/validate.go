@@ -17,7 +17,8 @@ func Validate(structs []StructInfo, rules map[string]RuleInfo) ([]StructInfo, []
 			rule, ok := rules[f.LLTag]
 			if !ok {
 				errs = append(errs, fmt.Errorf(
-					"%s.%s: unknown rule %q", result[i].Name, f.GoName, f.LLTag))
+					"%s.%s: unknown rule %q", result[i].Name, f.GoName, f.LLTag,
+				))
 				continue
 			}
 
@@ -25,7 +26,8 @@ func Validate(structs []StructInfo, rules map[string]RuleInfo) ([]StructInfo, []
 
 			if err := validateFieldAgainstRule(f, &rule, &result[i]); err != nil {
 				errs = append(errs, fmt.Errorf(
-					"%s.%s: %w", result[i].Name, f.GoName, err))
+					"%s.%s: %w", result[i].Name, f.GoName, err,
+				))
 			}
 		}
 	}
@@ -44,7 +46,8 @@ func validateFieldAgainstRule(f *FieldInfo, rule *RuleInfo, parent *StructInfo) 
 		default:
 			return fmt.Errorf(
 				"string field mapped to %s rule %q (expected leaf, alias, or sequence)",
-				ruleKindString(rule.Kind), f.LLTag)
+				ruleKindString(rule.Kind), f.LLTag,
+			)
 		}
 
 	case FieldNamedRule:
@@ -53,7 +56,8 @@ func validateFieldAgainstRule(f *FieldInfo, rule *RuleInfo, parent *StructInfo) 
 			return nil
 		case RuleLeaf:
 			return fmt.Errorf(
-				"struct field mapped to leaf rule %q", f.LLTag)
+				"struct field mapped to leaf rule %q", f.LLTag,
+			)
 		}
 
 	case FieldOptional:
@@ -65,7 +69,8 @@ func validateFieldAgainstRule(f *FieldInfo, rule *RuleInfo, parent *StructInfo) 
 	case FieldChoice:
 		if rule.Kind != RuleChoice {
 			return fmt.Errorf(
-				"choice struct mapped to non-choice rule %q", f.LLTag)
+				"choice struct mapped to non-choice rule %q", f.LLTag,
+			)
 		}
 	}
 

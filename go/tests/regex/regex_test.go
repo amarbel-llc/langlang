@@ -613,4 +613,3 @@ func BenchmarkRegexpSyntax(b *testing.B) {
 		})
 	}
 }
-

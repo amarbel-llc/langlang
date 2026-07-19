@@ -13,8 +13,10 @@ func TestRenderFile(t *testing.T) {
 	structs := []StructInfo{{
 		Name: "JSONValue",
 		Fields: []FieldInfo{
-			{GoName: "Object", LLTag: "Object", Kind: FieldOptional,
-				GoType: "*JSONObject", NameID: 1},
+			{
+				GoName: "Object", LLTag: "Object", Kind: FieldOptional,
+				GoType: "*JSONObject", NameID: 1,
+			},
 		},
 	}}
 	rules := map[string]RuleInfo{

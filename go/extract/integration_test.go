@@ -33,7 +33,7 @@ type JSONMember struct {
 type JSONArray struct {
 	Items []JSONValue `+"`"+`ll:"Value"`+"`"+`
 }
-`), 0644)
+`), 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}

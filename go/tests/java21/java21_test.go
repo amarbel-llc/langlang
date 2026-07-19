@@ -9,11 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const grammarPath = "../../../grammars/java21.peg"
-const testdataDir = "../../../testdata/java21"
-const java17TestdataDir = "../../../testdata/java17"
-const java8TestdataDir = "../../../testdata/java8"
-const java7TestdataDir = "../../../testdata/java"
+const (
+	grammarPath       = "../../../grammars/java21.peg"
+	testdataDir       = "../../../testdata/java21"
+	java17TestdataDir = "../../../testdata/java17"
+	java8TestdataDir  = "../../../testdata/java8"
+	java7TestdataDir  = "../../../testdata/java"
+)
 
 func TestJava21TestFiles(t *testing.T) {
 	matcher, err := langlang.MatcherFromFilePath(grammarPath)
@@ -57,48 +59,74 @@ func TestJava21Snippets(t *testing.T) {
 		{"yield", "class A { void m(int x) { switch (x) { case 1: yield 10; default: yield 0; } } }\n"},
 
 		// Java 21: lambda in ternary false branch
-		{"lambda in ternary false branch",
-			"class A { java.util.function.Predicate<Object> p = true ? x -> true : x -> false; }\n"},
-		{"multi-param lambda in ternary",
-			"class A { void m(boolean b) { var f = b ? (a, c) -> a : (a, c) -> c; } }\n"},
+		{
+			"lambda in ternary false branch",
+			"class A { java.util.function.Predicate<Object> p = true ? x -> true : x -> false; }\n",
+		},
+		{
+			"multi-param lambda in ternary",
+			"class A { void m(boolean b) { var f = b ? (a, c) -> a : (a, c) -> c; } }\n",
+		},
 
 		// Java 21: type-use annotations in qualified types
-		{"annotation in qualified type",
-			"class A { Outer.@NotNull Inner field; }\n"},
+		{
+			"annotation in qualified type",
+			"class A { Outer.@NotNull Inner field; }\n",
+		},
 
 		// Java 21: instanceof final
-		{"instanceof final",
-			"class A { void m(Object o) { if (o instanceof final String s) {} } }\n"},
+		{
+			"instanceof final",
+			"class A { void m(Object o) { if (o instanceof final String s) {} } }\n",
+		},
 
 		// Java 21: switch with qualified enum constants
-		{"switch qualified enum",
-			"class A { void m(E e) { switch (e) { case E.X -> {} case E.Y -> {} default -> {} } } }\n"},
-		{"switch string concat case",
-			"class A { void m(String s) { switch (s) { case \"a\" + \"b\" -> {} default -> {} } } }\n"},
+		{
+			"switch qualified enum",
+			"class A { void m(E e) { switch (e) { case E.X -> {} case E.Y -> {} default -> {} } } }\n",
+		},
+		{
+			"switch string concat case",
+			"class A { void m(String s) { switch (s) { case \"a\" + \"b\" -> {} default -> {} } } }\n",
+		},
 
 		// Java 21: local interface in block
-		{"local interface",
-			"class A { void m() { interface Checker { void check(); } } }\n"},
+		{
+			"local interface",
+			"class A { void m() { interface Checker { void check(); } } }\n",
+		},
 
 		// Java 21: record with varargs
-		{"record varargs",
-			"record R(String... values) {}\n"},
+		{
+			"record varargs",
+			"record R(String... values) {}\n",
+		},
 
 		// Java 21: deconstruction patterns
-		{"deconstruction pattern switch",
-			"class A { void m(Object o) { switch (o) { case Pair(String a, String b) -> {} default -> {} } } }\n"},
-		{"nested deconstruction pattern",
-			"class A { void m(Object o) { switch (o) { case Outer(Inner(int x)) -> {} default -> {} } } }\n"},
+		{
+			"deconstruction pattern switch",
+			"class A { void m(Object o) { switch (o) { case Pair(String a, String b) -> {} default -> {} } } }\n",
+		},
+		{
+			"nested deconstruction pattern",
+			"class A { void m(Object o) { switch (o) { case Outer(Inner(int x)) -> {} default -> {} } } }\n",
+		},
 
 		// Java 21: qualified super method reference
-		{"qualified super method ref",
-			"class A implements I { void m() { Runnable r = I.super::method; } }\n"},
+		{
+			"qualified super method ref",
+			"class A implements I { void m() { Runnable r = I.super::method; } }\n",
+		},
 
 		// Java 21: text block with escape
-		{"text block escape",
-			"class A { String s = \"\"\"\n    line\\\"end\n    \"\"\"; }\n"},
-		{"text block with escaped closing",
-			"class A { String s = \"\"\"\n    content\\\"\"\"\"; }\n"},
+		{
+			"text block escape",
+			"class A { String s = \"\"\"\n    line\\\"end\n    \"\"\"; }\n",
+		},
+		{
+			"text block with escaped closing",
+			"class A { String s = \"\"\"\n    content\\\"\"\"\"; }\n",
+		},
 	}
 
 	for _, tt := range tests {

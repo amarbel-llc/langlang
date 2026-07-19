@@ -11,7 +11,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/clarete/langlang/go"
+	langlang "github.com/clarete/langlang/go"
 	"github.com/clarete/langlang/go/corpus"
 
 	"github.com/stretchr/testify/require"
@@ -211,7 +211,7 @@ func download(files []string) string {
 	var destDir string
 	if cacheDir, ok := corpus.CorpusCacheDirExpanded(); ok {
 		destDir = filepath.Join(cacheDir, "javascript")
-		if err := os.MkdirAll(destDir, 0755); err != nil {
+		if err := os.MkdirAll(destDir, 0o755); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println("Cache dir:", destDir)

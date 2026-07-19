@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clarete/langlang/go"
+	langlang "github.com/clarete/langlang/go"
 )
 
 // CorpusDir is the -corpus=dir flag for differential corpus tests.

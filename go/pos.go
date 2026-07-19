@@ -159,7 +159,8 @@ func (pi *posIndex) CursorAt(line0, col0 int) int {
 		// Clamp to line bounds
 		sort.Search(lineEnd-lineStart, func(i int) bool {
 			return pi.runeUnits.UnitsAt(lineStart+i) >= targetRunes
-		})+lineStart, lineEnd)
+		})+lineStart, lineEnd,
+	)
 
 	return cursor
 }

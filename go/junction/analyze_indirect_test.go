@@ -58,7 +58,8 @@ func TestIndirectDelimiterResolution(t *testing.T) {
 
 	items := langlang.NewDefinitionNode("Items",
 		langlang.NewZeroOrMoreNode(
-			langlang.NewIdentifierNode("Item", loc), loc), loc)
+			langlang.NewIdentifierNode("Item", loc), loc,
+		), loc)
 
 	// Block after pipeline: [Spacing, LBRACE, Spacing, Items?, Spacing, RBRACE]
 	block := langlang.NewDefinitionNode("Block",

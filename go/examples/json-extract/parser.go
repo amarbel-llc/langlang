@@ -18,8 +18,10 @@ type Matcher interface {
 
 	SourceMap() *SourceMap
 }
-type NodeID uint32
-type NodeType uint8
+type (
+	NodeID   uint32
+	NodeType uint8
+)
 
 const (
 	NodeType_String NodeType = iota
@@ -74,11 +76,13 @@ type ImportLoader interface {
 
 	GetContent(path string) ([]byte, error)
 }
-type FileID int
-type SourceLocation struct {
-	FileID FileID
-	Span   Span
-}
+type (
+	FileID         int
+	SourceLocation struct {
+		FileID FileID
+		Span   Span
+	}
+)
 type DiagnosticSeverity int
 
 const (
@@ -201,6 +205,7 @@ func (p *JSONParser) SetShowFails(v bool)                  { p.vm.SetShowFails(v
 func LabelMessagesForJSONParser(labels map[string]string) map[int]int {
 	return bytecodeForJSONParser.CompileErrorLabels(labels)
 }
+
 func (p *JSONParser) parseFn(addr int) (Tree, error) {
 	val, _, err := p.vm.MatchRule(p.input, addr)
 	return val, err
@@ -211,15 +216,19 @@ const eof = -1
 func NewLocation(line, column, cursor int) Location {
 	return Location{Line: line, Column: column, Cursor: cursor}
 }
+
 func (l Location) String() string {
 	return fmt.Sprintf("%d:%d", l.Line, l.Column)
 }
+
 func NewSpan(start, end Location) Span {
 	return Span{Start: start, End: end}
 }
+
 func (s Span) Contains(other Span) bool {
 	return s.Start.Cursor <= other.Start.Cursor && s.End.Cursor >= other.End.Cursor
 }
+
 func (s Span) String() string {
 	startLoc := s.Start
 	endLoc := s.End
@@ -258,17 +267,16 @@ type posIndex struct {
 }
 
 func newPosIndex(input []byte) *posIndex {
-
 	lineStart := make([]int, 1, 64)
 	lineStart[0] = 0
 	for i, b := range input {
 		if b == '\n' {
-
 			lineStart = append(lineStart, i+1)
 		}
 	}
 	return &posIndex{input: input, lineStart: lineStart}
 }
+
 func (pi *posIndex) LocationAt(cursor int) Location {
 	if cursor < 0 {
 		cursor = 0
@@ -296,8 +304,8 @@ func (pi *posIndex) LocationAt(cursor int) Location {
 		Cursor: cursor,
 	}
 }
-func (pi *posIndex) CursorAt(line0, col0 int) int {
 
+func (pi *posIndex) CursorAt(line0, col0 int) int {
 	line := line0 + 1
 	col := col0 + 1
 
@@ -310,7 +318,6 @@ func (pi *posIndex) CursorAt(line0, col0 int) int {
 
 	lineIdx := line - 1
 	if lineIdx >= len(pi.lineStart) {
-
 		return len(pi.input)
 	}
 
@@ -338,15 +345,18 @@ func (pi *posIndex) CursorAt(line0, col0 int) int {
 
 	return cursor
 }
+
 func (pi *posIndex) CursorU16(cursor int) int {
 	pi.ensureU16Units()
 	return pi.u16Units.UnitsAt(cursor)
 }
+
 func (pi *posIndex) ensureRuneUnits() {
 	if pi.runeUnits == nil {
 		pi.runeUnits = newUnitsIndex(pi.input, unitsModeRune)
 	}
 }
+
 func (pi *posIndex) ensureU16Units() {
 	if pi.u16Units == nil {
 		pi.u16Units = newUnitsIndex(pi.input, unitsModeUTF16)
@@ -371,7 +381,6 @@ type unitsIndex struct {
 }
 
 func newUnitsIndex(input []byte, mode unitsMode) *unitsIndex {
-
 	const strideBytes = 64
 
 	var (
@@ -412,6 +421,7 @@ func newUnitsIndex(input []byte, mode unitsMode) *unitsIndex {
 	}
 	return index
 }
+
 func (ix *unitsIndex) UnitsAt(cursor int) int {
 	if cursor < 0 {
 		cursor = 0
@@ -444,6 +454,7 @@ func (ix *unitsIndex) UnitsAt(cursor int) int {
 	}
 	return unitPos
 }
+
 func (ix *unitsIndex) unitsForRune(r rune) int {
 	switch ix.mode {
 	case unitsModeRune:
@@ -520,10 +531,12 @@ func (t *tree) IsType(id NodeID, typ NodeType) bool { return t.Type(id) == typ }
 func (t *tree) IsNamed(id NodeID, nameID int32) bool {
 	return t.Type(id) == NodeType_Node && t.NameID(id) == nameID
 }
+
 func (t *tree) Location(cursor int) Location {
 	t.ensurePosView()
 	return t.posView.LocationAt(cursor)
 }
+
 func (t *tree) Span(id NodeID) Span {
 	t.ensurePosView()
 	n := &t.nodes[id]
@@ -532,15 +545,18 @@ func (t *tree) Span(id NodeID) Span {
 		End:   t.posView.LocationAt(n.end),
 	}
 }
+
 func (t *tree) CursorU16(cursor int) int {
 	t.ensurePosView()
 	return t.posView.CursorU16(cursor)
 }
+
 func (t *tree) ensurePosView() {
 	if t.posView == nil {
 		t.posView = newPosIndex(t.input)
 	}
 }
+
 func (t *tree) Children(id NodeID) []NodeID {
 	n := &t.nodes[id]
 	if n.childID == -1 {
@@ -555,6 +571,7 @@ func (t *tree) Children(id NodeID) []NodeID {
 	}
 	return nil
 }
+
 func (t *tree) Child(id NodeID) (NodeID, bool) {
 	childID := t.nodes[id].childID
 	if childID == -1 {
@@ -562,8 +579,8 @@ func (t *tree) Child(id NodeID) (NodeID, bool) {
 	}
 	return NodeID(childID), true
 }
-func (t *tree) Copy() Tree {
 
+func (t *tree) Copy() Tree {
 	if t == nil {
 		return nil
 	}
@@ -586,6 +603,7 @@ func (t *tree) Copy() Tree {
 		root:        t.root,
 	}
 }
+
 func (t *tree) AddString(start, end int) NodeID {
 	id := NodeID(len(t.nodes))
 	t.nodes = append(t.nodes, node{
@@ -598,6 +616,7 @@ func (t *tree) AddString(start, end int) NodeID {
 	})
 	return id
 }
+
 func (t *tree) AddSequence(children []NodeID, start, end int) NodeID {
 	id := NodeID(len(t.nodes))
 	childRangeID := int32(-1)
@@ -618,6 +637,7 @@ func (t *tree) AddSequence(children []NodeID, start, end int) NodeID {
 	})
 	return id
 }
+
 func (t *tree) AddNode(nameID int32, child NodeID, start, end int) NodeID {
 	id := NodeID(len(t.nodes))
 	t.nodes = append(t.nodes, node{
@@ -630,6 +650,7 @@ func (t *tree) AddNode(nameID int32, child NodeID, start, end int) NodeID {
 	})
 	return id
 }
+
 func (t *tree) AddNamedString(nameID int32, start, end int) NodeID {
 	stringID := NodeID(len(t.nodes))
 	t.nodes = append(t.nodes, node{
@@ -649,6 +670,7 @@ func (t *tree) AddNamedString(nameID int32, start, end int) NodeID {
 	})
 	return stringID + 1
 }
+
 func (t *tree) AddError(labelID, messageID int32, start, end int) NodeID {
 	id := NodeID(len(t.nodes))
 	t.nodes = append(t.nodes, node{
@@ -661,6 +683,7 @@ func (t *tree) AddError(labelID, messageID int32, start, end int) NodeID {
 	})
 	return id
 }
+
 func (t *tree) AddErrorWithChild(labelID, messageID int32, childID NodeID, start, end int) NodeID {
 	id := NodeID(len(t.nodes))
 	t.nodes = append(t.nodes, node{
@@ -673,6 +696,7 @@ func (t *tree) AddErrorWithChild(labelID, messageID int32, childID NodeID, start
 	})
 	return id
 }
+
 func (t *tree) Visit(id NodeID, fn func(NodeID) bool) {
 	if !fn(id) {
 		return
@@ -688,6 +712,7 @@ func (t *tree) Visit(id NodeID, fn func(NodeID) bool) {
 		}
 	}
 }
+
 func (t *tree) Text(id NodeID) string {
 	n := &t.nodes[id]
 
@@ -711,6 +736,7 @@ func (t *tree) Text(id NodeID) string {
 		panic(fmt.Sprintf("Unknown node type: %T", n.typ))
 	}
 }
+
 func (t *tree) Pretty(id NodeID) string {
 	vi := newPrettyPrinter(t, t.input, func(input string, _ FormatToken) string {
 		return input
@@ -718,6 +744,7 @@ func (t *tree) Pretty(id NodeID) string {
 	vi.visit(id)
 	return vi.output.String()
 }
+
 func (t *tree) Highlight(id NodeID) string {
 	vi := newPrettyPrinter(t, t.input, func(input string, token FormatToken) string {
 		return treePrinterTheme[token] + input + treePrinterTheme[FormatToken_None]
@@ -746,6 +773,7 @@ func newPrettyPrinter(tree *tree, input []byte, format FormatFunc[FormatToken]) 
 		treePrinter: newTreePrinter(format),
 	}
 }
+
 func (vi *prettyPrinter) visit(id NodeID) {
 	n := &vi.tree.nodes[id]
 	s := vi.tree.Span(id)
@@ -804,12 +832,14 @@ func (vi *prettyPrinter) visit(id NodeID) {
 	}
 }
 
-type FormatFunc[T any] func(input string, token T) string
-type treePrinter[T any] struct {
-	padStr *[]string
-	output *strings.Builder
-	format FormatFunc[T]
-}
+type (
+	FormatFunc[T any]  func(input string, token T) string
+	treePrinter[T any] struct {
+		padStr *[]string
+		output *strings.Builder
+		format FormatFunc[T]
+	}
+)
 
 func newTreePrinter[T any](format FormatFunc[T]) *treePrinter[T] {
 	return &treePrinter[T]{
@@ -818,29 +848,36 @@ func newTreePrinter[T any](format FormatFunc[T]) *treePrinter[T] {
 		format: format,
 	}
 }
+
 func (tp *treePrinter[T]) indent(s string) {
 	*tp.padStr = append(*tp.padStr, s)
 }
+
 func (tp *treePrinter[T]) unindent() {
 	index := len(*tp.padStr) - 1
 	*tp.padStr = (*tp.padStr)[:index]
 }
+
 func (tp *treePrinter[T]) padding() {
 	for _, item := range *tp.padStr {
 		tp.write(item)
 	}
 }
+
 func (tp *treePrinter[T]) writel(s string) {
 	tp.write(s)
 	tp.output.WriteRune('\n')
 }
+
 func (tp *treePrinter[T]) pwritel(s string) {
 	tp.pwrite(s)
 	tp.output.WriteRune('\n')
 }
+
 func (tp *treePrinter[T]) write(s string) {
 	tp.output.WriteString(s)
 }
+
 func (tp *treePrinter[T]) pwrite(s string) {
 	tp.padding()
 	tp.write(s)
@@ -866,6 +903,7 @@ type FileLoadError struct {
 func (e *FileLoadError) Error() string {
 	return fmt.Sprintf("failed to load grammar file %s: %v", e.Path, e.Err)
 }
+
 func (e *FileLoadError) Unwrap() error {
 	return e.Err
 }
@@ -906,6 +944,7 @@ func (eh *ErrHint) eq(oh *ErrHint) bool {
 	}
 	return false
 }
+
 func (eh ErrHint) String() string {
 	switch eh.Type {
 	case ErrHintType_EOF:
@@ -918,6 +957,7 @@ func (eh ErrHint) String() string {
 		return "?"
 	}
 }
+
 func formatChar(c rune) string {
 	switch {
 	case c == 0:
@@ -937,6 +977,7 @@ func formatChar(c rune) string {
 		return fmt.Sprintf("'%c'", c)
 	}
 }
+
 func FormatExpectedMessage(hints []ErrHint, input []byte, pos int) string {
 	if len(hints) == 0 {
 		return ""
@@ -955,6 +996,7 @@ func FormatExpectedMessage(hints []ErrHint, input []byte, pos int) string {
 	return fmt.Sprintf("Expected %s but got %s",
 		joinWithOr(parts), got)
 }
+
 func joinWithOr(items []string) string {
 	if len(items) == 0 {
 		return ""
@@ -976,6 +1018,7 @@ func joinWithOr(items []string) string {
 	}
 	return result
 }
+
 func (e ParsingError) Error() string {
 	message := e.Label
 	if e.Message != "" {
@@ -988,10 +1031,12 @@ func (e ParsingError) Error() string {
 	}
 	return fmt.Sprintf("%s @ %s", message, span)
 }
+
 func isthrown(err error) bool {
 	_, ok := err.(ParsingError)
 	return ok
 }
+
 func (s DiagnosticSeverity) String() string {
 	switch s {
 	case DiagnosticError:
@@ -1006,9 +1051,11 @@ func (s DiagnosticSeverity) String() string {
 		return "unknown"
 	}
 }
+
 func (d Diagnostic) String() string {
 	return fmt.Sprintf("[%s] %s: %s", d.Severity, d.Code, d.Message)
 }
+
 func (d Diagnostic) FormatCLI() string {
 	loc := d.Location.Span.Start
 	return fmt.Sprintf(
@@ -1069,30 +1116,37 @@ type stack struct {
 func (s *stack) lr(f *frame) *lrFrameData {
 	return &s.lrData[f.lrIdx-1]
 }
+
 func (s *stack) pushLR(data lrFrameData) uint32 {
 	s.lrData = append(s.lrData, data)
 	return uint32(len(s.lrData))
 }
+
 func (s *stack) push(f frame) {
 	f.nodesStart = uint32(len(s.nodeArena))
 	f.nodesEnd = f.nodesStart
 	s.frames = append(s.frames, f)
 }
+
 func (s *stack) pop() frame {
 	idx := len(s.frames) - 1
 	f := s.frames[idx]
 	s.frames = s.frames[:idx]
 	return f
 }
+
 func (s *stack) top() *frame {
 	return &s.frames[len(s.frames)-1]
 }
+
 func (s *stack) len() int {
 	return len(s.frames)
 }
+
 func (s *stack) frameNodes(f *frame) []NodeID {
 	return s.nodeArena[f.nodesStart:f.nodesEnd]
 }
+
 func (s *stack) capture(nodes ...NodeID) {
 	if len(nodes) == 0 {
 		return
@@ -1106,6 +1160,7 @@ func (s *stack) capture(nodes ...NodeID) {
 	}
 	s.nodes = append(s.nodes, nodes...)
 }
+
 func (s *stack) popAndCapture() frame {
 	idx := len(s.frames) - 1
 	f := s.frames[idx]
@@ -1113,15 +1168,14 @@ func (s *stack) popAndCapture() frame {
 
 	if f.nodesStart != f.nodesEnd {
 		if idx > 0 {
-
 			s.frames[idx-1].nodesEnd = f.nodesEnd
 		} else {
-
 			s.nodes = append(s.nodes, s.nodeArena[f.nodesStart:f.nodesEnd]...)
 		}
 	}
 	return f
 }
+
 func (s *stack) collectCaptures() {
 	n := len(s.frames)
 	if n == 0 {
@@ -1132,14 +1186,15 @@ func (s *stack) collectCaptures() {
 		if n == 1 {
 			s.nodes = append(s.nodes, s.nodeArena[f.nodesStart:f.nodesEnd]...)
 		} else {
-
 			s.frames[n-2].nodesEnd = f.nodesEnd
 		}
 	}
 }
+
 func (s *stack) truncateArena(pos uint32) {
 	s.nodeArena = s.nodeArena[:pos]
 }
+
 func (s *stack) reset() {
 	s.frames = s.frames[:0]
 	s.nodeArena = s.nodeArena[:0]
@@ -1159,6 +1214,7 @@ func newCharsetForRune(r rune) *charset {
 	cs.add(r)
 	return cs
 }
+
 func newCharsetForRange(a, b rune) *charset {
 	cs := newCharSet()
 	cs.addRange(a, b)
@@ -1183,6 +1239,7 @@ func (cs *charset) add(r rune) {
 	i := int(r)
 	cs.bits[i>>3] |= 1 << (i & 7)
 }
+
 func (cs *charset) addRange(start, end rune) {
 	if !fitcs(start) || !fitcs(end) || start > end {
 		panic(fmt.Sprintf("range out of charset bounds: `%c-%c`", start, end))
@@ -1191,10 +1248,11 @@ func (cs *charset) addRange(start, end rune) {
 		cs.add(r)
 	}
 }
-func (cs *charset) hasByte(i byte) bool {
 
+func (cs *charset) hasByte(i byte) bool {
 	return cs.bits[i>>3]&(1<<(i&7)) != 0
 }
+
 func (cs *charset) hasHighBytes() bool {
 	for i := 16; i < 32; i++ {
 		if cs.bits[i] != 0 {
@@ -1203,6 +1261,7 @@ func (cs *charset) hasHighBytes() bool {
 	}
 	return false
 }
+
 func (cs *charset) popcount() int {
 	var total int
 	for _, oneByte := range cs.bits {
@@ -1210,6 +1269,7 @@ func (cs *charset) popcount() int {
 	}
 	return total
 }
+
 func charsetMerge(a, b *charset) *charset {
 	out := newCharSet()
 	for i := 0; i < 32; i++ {
@@ -1217,6 +1277,7 @@ func charsetMerge(a, b *charset) *charset {
 	}
 	return out
 }
+
 func (cs *charset) precomputeExpectedSet() []expected {
 	var (
 		ex []expected
@@ -1247,6 +1308,7 @@ func (cs *charset) precomputeExpectedSet() []expected {
 
 	return ex
 }
+
 func addRangeToSlice(ex *[]expected, start, end rune) {
 	if start == end {
 		*ex = append(*ex, expected{a: start})
@@ -1257,6 +1319,7 @@ func addRangeToSlice(ex *[]expected, start, end rune) {
 		*ex = append(*ex, expected{a: start, b: end})
 	}
 }
+
 func (cs *charset) String() string {
 	var (
 		s  strings.Builder
@@ -1286,6 +1349,7 @@ func (cs *charset) String() string {
 	s.WriteString("]")
 	return s.String()
 }
+
 func addRangeToStr(s *strings.Builder, start, end rune) {
 	if start == end {
 		s.WriteString(escapeLiteral(string(start)))
@@ -1384,6 +1448,7 @@ func (e *expectedInfo) add(s expected) {
 	e.arr[e.cur] = s
 	e.cur++
 }
+
 func (e *expectedInfo) clear() {
 	e.cur = 0
 }
@@ -1473,6 +1538,7 @@ var opNames = map[byte]string{
 	opReturnLR:              "return_lr",
 	opCapReturnLR:           "cap_return_lr",
 }
+
 var (
 	opAnySizeInBytes = 1
 
@@ -1530,6 +1596,7 @@ func NewVirtualMachine(bytecode *Bytecode) *virtualMachine {
 	}
 	return vm
 }
+
 func (vm *virtualMachine) SetShowFails(showFails bool) {
 	if showFails {
 		vm.expected = &expectedInfo{}
@@ -1538,17 +1605,20 @@ func (vm *virtualMachine) SetShowFails(showFails bool) {
 	}
 	vm.showFails = false
 }
+
 func (vm *virtualMachine) SetLabelMessages(labels map[int]int) {
 	vm.errLabels = labels
 }
+
 func (vm *virtualMachine) SourceMap() *SourceMap {
 	return vm.bytecode.srcm
 }
+
 func (vm *virtualMachine) Match(data []byte) (Tree, int, error) {
 	return vm.MatchRule(data, 0)
 }
-func (vm *virtualMachine) MatchRule(data []byte, ruleAddress int) (Tree, int, error) {
 
+func (vm *virtualMachine) MatchRule(data []byte, ruleAddress int) (Tree, int, error) {
 	stack := vm.stack
 	code := vm.bytecode.code
 	sets := vm.bytecode.sets
@@ -1881,6 +1951,7 @@ fail:
 	}
 	return stack.tree, cursor, vm.mkErr(data, 0, cursor, vm.ffp)
 }
+
 func (vm *virtualMachine) doCallLR(stack *stack, pc, cursor int) (int, int, bool) {
 	var (
 		code = vm.bytecode.code
@@ -1920,7 +1991,6 @@ func (vm *virtualMachine) doCallLR(stack *stack, pc, cursor int) (int, int, bool
 	}
 
 	if entry.cursor == lrResultLeftRec || prec < entry.precedence {
-
 		return 0, 0, true
 	}
 
@@ -1929,6 +1999,7 @@ func (vm *virtualMachine) doCallLR(stack *stack, pc, cursor int) (int, int, bool
 	}
 	return pc + opCallLRSizeInBytes, entry.cursor, false
 }
+
 func (vm *virtualMachine) doReturnLR(stack *stack, cursor int) (int, int) {
 	var (
 		f     = stack.top()
@@ -1953,6 +2024,7 @@ func (vm *virtualMachine) doReturnLR(stack *stack, cursor int) (int, int) {
 	delete(vm.lrmemo, key)
 	return newPC, newCursor
 }
+
 func (vm *virtualMachine) doCapReturnLR(stack *stack, cursor int) (int, int) {
 	var (
 		f     = stack.top()
@@ -1992,6 +2064,7 @@ func (vm *virtualMachine) doCapReturnLR(stack *stack, cursor int) (int, int) {
 	delete(vm.lrmemo, key)
 	return newPC, newCursor
 }
+
 func (vm *virtualMachine) doFailLR(stack *stack, f *frame) (int, int, bool) {
 	var (
 		lr    = stack.lr(f)
@@ -2015,6 +2088,7 @@ func (vm *virtualMachine) doFailLR(stack *stack, f *frame) (int, int, bool) {
 	delete(vm.lrmemo, key)
 	return 0, 0, false
 }
+
 func mkBacktrackFrame(pc, cursor int) frame {
 	return frame{
 		t:      frameType_Backtracking,
@@ -2022,11 +2096,13 @@ func mkBacktrackFrame(pc, cursor int) frame {
 		cursor: cursor,
 	}
 }
+
 func mkBacktrackPredFrame(pc, cursor int) frame {
 	f := mkBacktrackFrame(pc, cursor)
 	f.predicate = true
 	return f
 }
+
 func (vm *virtualMachine) mkCaptureFrame(id, cursor int) frame {
 	return frame{
 		t:      frameType_Capture,
@@ -2034,9 +2110,11 @@ func (vm *virtualMachine) mkCaptureFrame(id, cursor int) frame {
 		cursor: cursor,
 	}
 }
+
 func (vm *virtualMachine) mkCallFrame(pc int) frame {
 	return frame{t: frameType_Call, pc: uint32(pc)}
 }
+
 func (vm *virtualMachine) newNode(cursor int, f frame, nodes []NodeID) {
 	var (
 		nodeID  NodeID
@@ -2052,7 +2130,6 @@ func (vm *virtualMachine) newNode(cursor int, f frame, nodes []NodeID) {
 			nodeID = vm.stack.tree.AddString(start, end)
 			hasNode = true
 		} else if !isrxp {
-
 			return
 		}
 
@@ -2091,6 +2168,7 @@ func (vm *virtualMachine) newNode(cursor int, f frame, nodes []NodeID) {
 	named := vm.stack.tree.AddNode(capId, nodeID, start, end)
 	vm.stack.capture(named)
 }
+
 func (vm *virtualMachine) updateExpected(cursor int, s expected) {
 	shouldClear := cursor > vm.ffp
 	shouldAdd := cursor >= vm.ffp
@@ -2102,6 +2180,7 @@ func (vm *virtualMachine) updateExpected(cursor int, s expected) {
 		vm.expected.add(s)
 	}
 }
+
 func (vm *virtualMachine) updateSetExpected(cursor int, sid uint16) {
 	shouldClear := cursor > vm.ffp
 	shouldAdd := cursor >= vm.ffp
@@ -2118,8 +2197,8 @@ func (vm *virtualMachine) updateSetExpected(cursor int, sid uint16) {
 		}
 	}
 }
-func (vm *virtualMachine) mkErr(data []byte, errLabelID int, cursor, errCursor int) error {
 
+func (vm *virtualMachine) mkErr(data []byte, errLabelID int, cursor, errCursor int) error {
 	var (
 		isEof   bool
 		message strings.Builder
@@ -2131,7 +2210,6 @@ func (vm *virtualMachine) mkErr(data []byte, errLabelID int, cursor, errCursor i
 		c, _ = decodeRune(data, errCursor)
 	}
 	if msgID, ok := vm.errLabels[errLabelID]; ok {
-
 		message.WriteString(vm.bytecode.strs[msgID])
 	} else {
 
@@ -2206,15 +2284,18 @@ func (vm *virtualMachine) mkErr(data []byte, errLabelID int, cursor, errCursor i
 		FFPPC:    vm.ffpPC,
 	}
 }
+
 func decodeU16(code []byte, offset int) uint16 {
 	return uint16(code[offset]) | uint16(code[offset+1])<<8
 }
+
 func decodeU32(code []byte, offset int) uint32 {
 	return uint32(code[offset]) |
 		uint32(code[offset+1])<<8 |
 		uint32(code[offset+2])<<16 |
 		uint32(code[offset+3])<<24
 }
+
 func decodeRune(data []byte, offset int) (rune, int) {
 	if r := data[offset]; r < utf8.RuneSelf {
 		return rune(r), 1

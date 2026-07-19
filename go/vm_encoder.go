@@ -157,5 +157,7 @@ func encodeJmp(code []byte, op byte, label int) []byte {
 	return code
 }
 
-var encodeU16 = binary.LittleEndian.AppendUint16
-var encodeU32 = binary.LittleEndian.AppendUint32
+var (
+	encodeU16 = binary.LittleEndian.AppendUint16
+	encodeU32 = binary.LittleEndian.AppendUint32
+)

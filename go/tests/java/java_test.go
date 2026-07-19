@@ -10,8 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const grammarPath = "../../../grammars/java1.7.peg"
-const testdataDir = "../../../testdata/java"
+const (
+	grammarPath = "../../../grammars/java1.7.peg"
+	testdataDir = "../../../testdata/java"
+)
 
 // TestJavaGrammarTestFiles parses every .java file in the testdata directory
 // and asserts that parsing succeeds and consumes the entire input.
@@ -110,4 +112,3 @@ func BenchmarkJavaGrammar(b *testing.B) {
 		}
 	}
 }
-

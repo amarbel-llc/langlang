@@ -1,8 +1,9 @@
 package langlang
 
-import "strings"
-
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // FileLoadError is returned if a grammar cant be loaded from disk.
 type FileLoadError struct {

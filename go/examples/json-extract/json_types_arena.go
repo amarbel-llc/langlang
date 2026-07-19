@@ -5,6 +5,7 @@ package jsonextract
 
 import (
 	"fmt"
+
 	junction "github.com/clarete/langlang/go/junction"
 )
 
@@ -73,6 +74,7 @@ func EstimateJsonextractNodeCounts(hc junction.HitCounts) JsonextractNodeCounts 
 	c.Strings = totalSeps + totalOpens + 1
 	return c
 }
+
 func (a *JsonextractArenas) Alloc(c JsonextractNodeCounts) {
 	a.JSONValues = make([]JSONValue, 0, c.JSONValues)
 	a.JSONObjects = make([]JSONObject, 0, c.JSONObjects)
@@ -82,6 +84,7 @@ func (a *JsonextractArenas) Alloc(c JsonextractNodeCounts) {
 	a.JSONArrayItemsBuf = make([]JSONValue, 0, c.JSONValues)
 	a.StringBuf = make([]string, 0, c.Strings)
 }
+
 func (a *JsonextractArenas) Reset() {
 	a.JSONValues = a.JSONValues[:0]
 	a.JSONObjects = a.JSONObjects[:0]
@@ -91,11 +94,13 @@ func (a *JsonextractArenas) Reset() {
 	a.JSONArrayItemsBuf = a.JSONArrayItemsBuf[:0]
 	a.StringBuf = a.StringBuf[:0]
 }
+
 func (a *JsonextractArenas) allocString(s string) *string {
 	idx := len(a.StringBuf)
 	a.StringBuf = append(a.StringBuf, s)
 	return &a.StringBuf[idx]
 }
+
 func ExtractJSONValueArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONValue, error) {
 	idx := len(a.JSONValues)
 	a.JSONValues = append(a.JSONValues, JSONValue{})
@@ -125,6 +130,7 @@ func ExtractJSONValueArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONValue
 	}
 	return &a.JSONValues[idx], nil
 }
+
 func ExtractJSONObjectArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONObject, error) {
 	idx := len(a.JSONObjects)
 	a.JSONObjects = append(a.JSONObjects, JSONObject{})
@@ -166,6 +172,7 @@ func ExtractJSONObjectArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONObje
 	a.JSONObjects[idx].Members = sliceMembers[:iMembers]
 	return &a.JSONObjects[idx], nil
 }
+
 func ExtractJSONMemberArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONMember, error) {
 	idx := len(a.JSONMembers)
 	a.JSONMembers = append(a.JSONMembers, JSONMember{})
@@ -191,6 +198,7 @@ func ExtractJSONMemberArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONMemb
 	})
 	return &a.JSONMembers[idx], nil
 }
+
 func ExtractJSONArrayArena(t *tree, id NodeID, a *JsonextractArenas) (*JSONArray, error) {
 	idx := len(a.JSONArrays)
 	a.JSONArrays = append(a.JSONArrays, JSONArray{})

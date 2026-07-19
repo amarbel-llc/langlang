@@ -72,6 +72,7 @@ func (a *TomlextractArenas) Alloc(c TomlextractNodeCounts) {
 	a.TOMLInlineTableKeyValsBuf = make([]TOMLInlineKeyVal, 0, c.TOMLInlineKeyVals)
 	a.StringBuf = make([]string, 0, c.Strings)
 }
+
 func (a *TomlextractArenas) Reset() {
 	a.TOMLDocs = a.TOMLDocs[:0]
 	a.TOMLExpressions = a.TOMLExpressions[:0]
@@ -90,11 +91,13 @@ func (a *TomlextractArenas) Reset() {
 	a.TOMLInlineTableKeyValsBuf = a.TOMLInlineTableKeyValsBuf[:0]
 	a.StringBuf = a.StringBuf[:0]
 }
+
 func (a *TomlextractArenas) allocString(s string) *string {
 	idx := len(a.StringBuf)
 	a.StringBuf = append(a.StringBuf, s)
 	return &a.StringBuf[idx]
 }
+
 func ExtractTOMLDocArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLDoc, error) {
 	idx := len(a.TOMLDocs)
 	a.TOMLDocs = append(a.TOMLDocs, TOMLDoc{})
@@ -136,6 +139,7 @@ func ExtractTOMLDocArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLDoc, er
 	a.TOMLDocs[idx].Expressions = sliceExpressions[:iExpressions]
 	return &a.TOMLDocs[idx], nil
 }
+
 func ExtractTOMLExpressionArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLExpression, error) {
 	idx := len(a.TOMLExpressions)
 	a.TOMLExpressions = append(a.TOMLExpressions, TOMLExpression{})
@@ -161,6 +165,7 @@ func ExtractTOMLExpressionArena(t *tree, id NodeID, a *TomlextractArenas) (*TOML
 	}
 	return &a.TOMLExpressions[idx], nil
 }
+
 func ExtractTOMLTableArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLTable, error) {
 	idx := len(a.TOMLTables)
 	a.TOMLTables = append(a.TOMLTables, TOMLTable{})
@@ -219,6 +224,7 @@ func ExtractTOMLTableArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLTable
 	})
 	return &a.TOMLTables[idx], nil
 }
+
 func ExtractTOMLKeyValArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLKeyVal, error) {
 	idx := len(a.TOMLKeyVals)
 	a.TOMLKeyVals = append(a.TOMLKeyVals, TOMLKeyVal{})
@@ -247,6 +253,7 @@ func ExtractTOMLKeyValArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLKeyV
 	})
 	return &a.TOMLKeyVals[idx], nil
 }
+
 func ExtractTOMLKeyArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLKey, error) {
 	idx := len(a.TOMLKeys)
 	a.TOMLKeys = append(a.TOMLKeys, TOMLKey{})
@@ -288,6 +295,7 @@ func ExtractTOMLKeyArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLKey, er
 	a.TOMLKeys[idx].SimpleKeys = sliceSimpleKeys[:iSimpleKeys]
 	return &a.TOMLKeys[idx], nil
 }
+
 func ExtractTOMLSimpleKeyArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLSimpleKey, error) {
 	idx := len(a.TOMLSimpleKeys)
 	a.TOMLSimpleKeys = append(a.TOMLSimpleKeys, TOMLSimpleKey{})
@@ -305,6 +313,7 @@ func ExtractTOMLSimpleKeyArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLS
 	}
 	return &a.TOMLSimpleKeys[idx], nil
 }
+
 func ExtractTOMLValArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLVal, error) {
 	idx := len(a.TOMLVals)
 	a.TOMLVals = append(a.TOMLVals, TOMLVal{})
@@ -338,6 +347,7 @@ func ExtractTOMLValArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLVal, er
 	}
 	return &a.TOMLVals[idx], nil
 }
+
 func ExtractTOMLArrayArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLArray, error) {
 	idx := len(a.TOMLArrays)
 	a.TOMLArrays = append(a.TOMLArrays, TOMLArray{})
@@ -379,6 +389,7 @@ func ExtractTOMLArrayArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLArray
 	a.TOMLArrays[idx].Items = sliceItems[:iItems]
 	return &a.TOMLArrays[idx], nil
 }
+
 func ExtractTOMLInlineTableArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLInlineTable, error) {
 	idx := len(a.TOMLInlineTables)
 	a.TOMLInlineTables = append(a.TOMLInlineTables, TOMLInlineTable{})
@@ -420,6 +431,7 @@ func ExtractTOMLInlineTableArena(t *tree, id NodeID, a *TomlextractArenas) (*TOM
 	a.TOMLInlineTables[idx].KeyVals = sliceKeyVals[:iKeyVals]
 	return &a.TOMLInlineTables[idx], nil
 }
+
 func ExtractTOMLInlineKeyValArena(t *tree, id NodeID, a *TomlextractArenas) (*TOMLInlineKeyVal, error) {
 	idx := len(a.TOMLInlineKeyVals)
 	a.TOMLInlineKeyVals = append(a.TOMLInlineKeyVals, TOMLInlineKeyVal{})

@@ -372,21 +372,25 @@ func computeDiagnostics(db *Database, key FilePath) ([]Diagnostic, error) {
 			if risk.ViaRule != "" {
 				msg = fmt.Sprintf(
 					"Infinite loop: body of '%s' always succeeds without consuming input because rule '%s' is nullable",
-					risk.Operator, risk.ViaRule)
+					risk.Operator, risk.ViaRule,
+				)
 			} else {
 				msg = fmt.Sprintf(
 					"Infinite loop: body of '%s' always succeeds without consuming input",
-					risk.Operator)
+					risk.Operator,
+				)
 			}
 		} else {
 			if risk.ViaRule != "" {
 				msg = fmt.Sprintf(
 					"Possible infinite loop: body of '%s' can match empty because rule '%s' is nullable",
-					risk.Operator, risk.ViaRule)
+					risk.Operator, risk.ViaRule,
+				)
 			} else {
 				msg = fmt.Sprintf(
 					"Possible infinite loop: body of '%s' can match empty",
-					risk.Operator)
+					risk.Operator,
+				)
 			}
 		}
 		diagnostics = append(diagnostics, Diagnostic{

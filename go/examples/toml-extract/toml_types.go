@@ -12,8 +12,8 @@ type TOMLExpression struct {
 }
 
 type TOMLTable struct {
-	Key     TOMLKey       `ll:"Key"`
-	KeyVals []TOMLKeyVal  `ll:"KeyVal"`
+	Key     TOMLKey      `ll:"Key"`
+	KeyVals []TOMLKeyVal `ll:"KeyVal"`
 }
 
 type TOMLKeyVal struct {
@@ -26,8 +26,8 @@ type TOMLKey struct {
 }
 
 type TOMLSimpleKey struct {
-	BareKey    *string `ll:"BareKey"`
-	QuotedKey  *string `ll:"BasicString"`
+	BareKey   *string `ll:"BareKey"`
+	QuotedKey *string `ll:"BasicString"`
 }
 
 type TOMLVal struct {

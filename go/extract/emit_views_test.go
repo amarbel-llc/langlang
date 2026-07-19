@@ -28,8 +28,10 @@ func TestEmitViewLeaf(t *testing.T) {
 
 func TestEmitViewChoice(t *testing.T) {
 	rules := map[string]RuleInfo{
-		"Value": {Name: "Value", Kind: RuleChoice, NameID: 0,
-			Choices: []string{"Object", "String"}},
+		"Value": {
+			Name: "Value", Kind: RuleChoice, NameID: 0,
+			Choices: []string{"Object", "String"},
+		},
 		"Object": {Name: "Object", Kind: RuleSequence, NameID: 1},
 		"String": {Name: "String", Kind: RuleLeaf, NameID: 2},
 	}
@@ -56,8 +58,10 @@ func TestEmitViewChoice(t *testing.T) {
 
 func TestEmitViewChoiceLiterals(t *testing.T) {
 	rules := map[string]RuleInfo{
-		"Value": {Name: "Value", Kind: RuleChoice, NameID: 0,
-			Choices: []string{"Object", "lit:true", "lit:false", "lit:null"}},
+		"Value": {
+			Name: "Value", Kind: RuleChoice, NameID: 0,
+			Choices: []string{"Object", "lit:true", "lit:false", "lit:null"},
+		},
 		"Object": {Name: "Object", Kind: RuleSequence, NameID: 1},
 	}
 
@@ -81,12 +85,14 @@ func TestEmitViewChoiceLiterals(t *testing.T) {
 
 func TestEmitViewSequence(t *testing.T) {
 	rules := map[string]RuleInfo{
-		"Member": {Name: "Member", Kind: RuleSequence, NameID: 0,
+		"Member": {
+			Name: "Member", Kind: RuleSequence, NameID: 0,
 			Children: []RuleChild{
 				{RuleName: "Key", Index: 0},
 				{IsLiteral: true, Index: 1},
 				{RuleName: "Value", Index: 2},
-			}},
+			},
+		},
 		"Key":   {Name: "Key", Kind: RuleLeaf, NameID: 1},
 		"Value": {Name: "Value", Kind: RuleChoice, NameID: 2},
 	}
@@ -123,11 +129,13 @@ func TestEmitViewSequence(t *testing.T) {
 
 func TestEmitViewSequenceRepeated(t *testing.T) {
 	rules := map[string]RuleInfo{
-		"Array": {Name: "Array", Kind: RuleSequence, NameID: 0,
+		"Array": {
+			Name: "Array", Kind: RuleSequence, NameID: 0,
 			Children: []RuleChild{
 				{RuleName: "Value", Index: 0},
 				{RuleName: "Value", Index: 1},
-			}},
+			},
+		},
 		"Value": {Name: "Value", Kind: RuleChoice, NameID: 1},
 	}
 

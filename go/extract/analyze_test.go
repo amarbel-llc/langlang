@@ -25,7 +25,7 @@ type JSONMember struct {
 	Key   string    `+"`"+`ll:"String"`+"`"+`
 	Value JSONValue `+"`"+`ll:"Value"`+"`"+`
 }
-`), 0644)
+`), 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}

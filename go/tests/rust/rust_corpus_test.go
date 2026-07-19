@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clarete/langlang/go"
+	langlang "github.com/clarete/langlang/go"
 	"github.com/clarete/langlang/go/corpus"
 
 	"github.com/stretchr/testify/require"
@@ -82,7 +82,7 @@ func TestRustAutoCorpus(t *testing.T) {
 		}
 		defer os.RemoveAll(baseDir)
 	} else {
-		if err := os.MkdirAll(baseDir, 0755); err != nil {
+		if err := os.MkdirAll(baseDir, 0o755); err != nil {
 			t.Fatalf("cannot create cache dir %s: %v", baseDir, err)
 		}
 	}
@@ -142,7 +142,7 @@ func TestRustAutoCorpus2021(t *testing.T) {
 		}
 		defer os.RemoveAll(baseDir)
 	} else {
-		if err := os.MkdirAll(baseDir, 0755); err != nil {
+		if err := os.MkdirAll(baseDir, 0o755); err != nil {
 			t.Fatalf("cannot create cache dir %s: %v", baseDir, err)
 		}
 	}

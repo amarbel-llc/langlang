@@ -7,8 +7,10 @@ import (
 
 // Dummy types for parser.go framework compatibility
 // This is legacy code that uses an old Value interface model
-type Value any
-type Node struct{}
+type (
+	Value any
+	Node  struct{}
+)
 
 func NewString(Span) Value              { return nil }
 func NewSequence([]Value, Span) Value   { return nil }
@@ -236,7 +238,6 @@ func (p *Parser) ExpectLiteral(literal string) (string, error) {
 		return "", p.NewError(exp, msg, NewSpan(start, p.Location()))
 	}
 	return literal, nil
-
 }
 
 // Any matches any rune under the input cursor, and will throw an error on EOF

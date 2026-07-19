@@ -1,8 +1,9 @@
 package langlang
 
-import "maps"
-
-import "fmt"
+import (
+	"fmt"
+	"maps"
+)
 
 // ParsedGrammarQuery parses a grammar file and returns its AST.
 // The returned grammar may contain ErrorNode instances if there were

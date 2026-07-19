@@ -47,12 +47,14 @@ func TestEmitSequenceFunction(t *testing.T) {
 		},
 	}
 	rules := map[string]RuleInfo{
-		"Member": {Name: "Member", Kind: RuleSequence, NameID: 5,
+		"Member": {
+			Name: "Member", Kind: RuleSequence, NameID: 5,
 			Children: []RuleChild{
 				{RuleName: "String", Index: 0},
 				{IsLiteral: true, Index: 1},
 				{RuleName: "Value", Index: 2},
-			}},
+			},
+		},
 	}
 
 	code := emitExtractFunction(si, rules, false)
