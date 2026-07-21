@@ -85,7 +85,9 @@
     },
     "conformist_2": {
       "inputs": {
-        "igloo": "igloo",
+        "igloo": [
+          "igloo"
+        ],
         "nixpkgs-master": [
           "nixpkgs-master"
         ],
@@ -94,10 +96,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1784649683,
-        "narHash": "sha256-q3/pXh1iyYqb3TCkZfMLYgY3bFMLP+X0h6CrraWdZCA=",
+        "lastModified": 1784660283,
+        "narHash": "sha256-xAz3Fp/3HZQrcy/EiHtj/KO9nnPluNd1VQdD8wai6/o=",
         "type": "tarball",
-        "url": "https://code.linenisgreat.com/conformist/archive/e04044f7f9df19e9df18156f800165bc9e28881a.tar.gz"
+        "url": "https://code.linenisgreat.com/conformist/archive/bbb7c4ad76bdc3aca16f8f1eb5d43d4f3567649d.tar.gz"
       },
       "original": {
         "type": "tarball",
@@ -164,44 +166,13 @@
     },
     "igloo": {
       "inputs": {
-        "bun2nix": [
-          "igloo",
-          "bun2nix"
-        ],
-        "flake-parts": [
-          "igloo",
-          "flake-parts"
-        ],
-        "nixpkgs-master": [
-          "conformist",
-          "nixpkgs-master"
-        ],
-        "systems": [
-          "igloo",
-          "systems"
-        ],
-        "treefmt-nix": "treefmt-nix"
-      },
-      "locked": {
-        "lastModified": 1784469602,
-        "narHash": "sha256-S+E6tjeZeZnpDI3ChJt6q6Xu4Jp28TKKlo7oCQT2cZE=",
-        "type": "tarball",
-        "url": "https://code.linenisgreat.com/igloo/archive/0cfaeeafc73006abe61217cfb798905bb8b9f71e.tar.gz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://code.linenisgreat.com/igloo/archive/master.tar.gz"
-      }
-    },
-    "igloo_2": {
-      "inputs": {
         "bun2nix": "bun2nix",
         "flake-parts": "flake-parts",
         "nixpkgs-master": [
           "nixpkgs-master"
         ],
         "systems": "systems",
-        "treefmt-nix": "treefmt-nix_2"
+        "treefmt-nix": "treefmt-nix"
       },
       "locked": {
         "lastModified": 1784650356,
@@ -267,7 +238,7 @@
       "inputs": {
         "bats": "bats",
         "conformist": "conformist_2",
-        "igloo": "igloo_2",
+        "igloo": "igloo",
         "nixpkgs-master": "nixpkgs-master",
         "tap": "tap",
         "utils": "utils"
@@ -344,28 +315,6 @@
       }
     },
     "treefmt-nix": {
-      "inputs": {
-        "nixpkgs": [
-          "conformist",
-          "igloo",
-          "nixpkgs-master"
-        ]
-      },
-      "locked": {
-        "lastModified": 1780220602,
-        "narHash": "sha256-eynAfOmbmxJnkp7YewvCEbShNnnYJ9gLLqkzsYtBPeM=",
-        "owner": "numtide",
-        "repo": "treefmt-nix",
-        "rev": "db947814a175b7ca6ded66e21383d938df01c227",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "treefmt-nix",
-        "type": "github"
-      }
-    },
-    "treefmt-nix_2": {
       "inputs": {
         "nixpkgs": [
           "igloo",
