@@ -5,21 +5,26 @@
     # Fork of upstream nixpkgs. overlays.default exposes buildGoApplication,
     # gomod2nix, and other amarbel-llc additions, so we don't need a
     # standalone gomod2nix flake input.
-    igloo.url = "github:amarbel-llc/igloo";
+    igloo.url = "https://code.linenisgreat.com/igloo/archive/master.tar.gz";
+    igloo.inputs.nixpkgs-master.follows = "nixpkgs-master";
     nixpkgs-master.url = "github:NixOS/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
     utils.url = "https://flakehub.com/f/numtide/flake-utils/0.1.102";
+    utils.inputs.systems.follows = "igloo/systems";
     bats = {
-      url = "github:amarbel-llc/bats";
+      url = "https://code.linenisgreat.com/bats/archive/master.tar.gz";
       inputs.igloo.follows = "igloo";
       inputs.nixpkgs-master.follows = "nixpkgs-master";
       inputs.utils.follows = "utils";
     };
     tap = {
-      url = "github:amarbel-llc/tap";
+      url = "https://code.linenisgreat.com/tap/archive/master.tar.gz";
       inputs.igloo.follows = "igloo";
       inputs.nixpkgs-master.follows = "nixpkgs-master";
       inputs.utils.follows = "utils";
     };
+    tap.inputs.bats.follows = "bats";
+    tap.inputs.purse-first.inputs.conformist.follows = "conformist";
+    tap.inputs.treefmt-nix.follows = "igloo/treefmt-nix";
 
     # conformist: the linter/formatter multiplexer. `nix fmt` entry point;
     # config lives in ./conformist.nix (+ conformist.lib.presets.{eng,eng-go,
@@ -31,6 +36,9 @@
       inputs.nixpkgs-master.follows = "nixpkgs-master";
       inputs.utils.follows = "utils";
     };
+    conformist.inputs.igloo.inputs.bun2nix.follows = "igloo/bun2nix";
+    conformist.inputs.igloo.inputs.flake-parts.follows = "igloo/flake-parts";
+    conformist.inputs.igloo.inputs.systems.follows = "igloo/systems";
   };
 
   outputs =
