@@ -30,7 +30,7 @@ lint-worktree:
 
 build: build-go build-generate
 
-# Compile the langlang CLI via the host's go toolchain (fast iteration).
+# compile the langlang CLI via the host's go toolchain (fast iteration)
 [group("build")]
 build-go:
     cd go && go build -o ../build/langlang ./cmd/langlang
@@ -55,19 +55,19 @@ test-go: build-generate
 
 codemod-fmt: codemod-fmt-tree
 
-# Format the tree in place (repair mode) via `nix fmt`.
+# format the tree in place (repair mode) via `nix fmt`
 [group("codemod")]
 codemod-fmt-tree:
     nix fmt
 
 clean: clean-go
 
-# Remove the go build cache.
+# remove the go build cache
 [group("clean")]
 clean-go-cache:
     go clean -cache
 
-# Remove the go module download cache.
+# remove the go module download cache
 [group("clean")]
 clean-go-modcache:
     go clean -modcache
