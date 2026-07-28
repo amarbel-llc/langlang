@@ -6,6 +6,8 @@ lint: lint-fmt lint-worktree
 # derivation, which runs conformist (nixfmt/goimports/gofumpt + the eng
 # linters) against a /nix/store snapshot of the tree and fails if anything
 # would change. Does NOT modify the worktree --- that's `codemod-fmt-tree`.
+#
+# check formatting and eng conventions without touching the worktree
 [group("pre-build")]
 lint-fmt:
     #!/usr/bin/env bash
@@ -17,6 +19,8 @@ lint-fmt:
 # agents-md, gomod2nix) against the working tree, where .git and a real
 # go.mod resolution are available --- they can't run in the sandboxed
 # checks.formatting. See conformistImpureEval in flake.nix.
+#
+# run the impure eng checks against the working tree
 [group("pre-build")]
 lint-worktree:
     #!/usr/bin/env bash
@@ -33,6 +37,8 @@ build-go:
 
 # Run `go generate` over go/, using the freshly built langlang binary
 # (build-go) on PATH as the codegen tool.
+#
+# run `go generate` over go/ with the built langlang binary on PATH
 [group("build")]
 build-generate: build-go
     cd go && PATH="{{ justfile_directory() }}/build:$PATH" go generate ./...
@@ -41,6 +47,8 @@ test: test-go
 
 # Run the Go test suite. Depends on build-generate so generated code exists
 # before the tests that exercise it.
+#
+# run the Go test suite
 [group("post-build")]
 test-go: build-generate
     cd go && go test -v ./...
