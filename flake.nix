@@ -36,9 +36,6 @@
       inputs.nixpkgs-master.follows = "nixpkgs-master";
       inputs.utils.follows = "utils";
     };
-    conformist.inputs.igloo.inputs.bun2nix.follows = "igloo/bun2nix";
-    conformist.inputs.igloo.inputs.flake-parts.follows = "igloo/flake-parts";
-    conformist.inputs.igloo.inputs.systems.follows = "igloo/systems";
     conformist.inputs.igloo.follows = "igloo";
   };
 
