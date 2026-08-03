@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	jsonviews "github.com/clarete/langlang/go/examples/json-views"
+	jsonviews "code.linenisgreat.com/langlang/go/examples/json-views"
 )
 
 func TestParallelPartitionParse(t *testing.T) {

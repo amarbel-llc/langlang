@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/clarete/langlang/go/junction"
+	"code.linenisgreat.com/langlang/go/junction"
 )
 
 // Generate is the main orchestrator. It reads a Go source file and grammar,

@@ -3,7 +3,7 @@ package binary
 import (
 	"testing"
 
-	langlang "github.com/clarete/langlang/go"
+	langlang "code.linenisgreat.com/langlang/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

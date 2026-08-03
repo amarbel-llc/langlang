@@ -2,7 +2,7 @@
 # flake-input-go_mod protocol (amarbel-llc/nixpkgs RFC 0001):
 #
 #   - producer: mkGoPkgs publishes go-pkgs / go-pkgs-test so downstream
-#     repos can bridge github.com/clarete/langlang/go as a flake input
+#     repos can bridge code.linenisgreat.com/langlang/go as a flake input
 #     (routing that go.mod `require` onto langlang's own go-pkgs output)
 #     instead of pinning a go.mod pseudo-version. Motivated by madder's
 #     grammar-vectors gate (madder FDR-0010) and hyphence#13.
@@ -24,7 +24,7 @@
 pkgs.mkGoPkgs {
   inherit src;
   # Explicit name per RFC 0001 Appendix A (amarbel-llc/nixpkgs#49): the
-  # module path (github.com/clarete/langlang/go) ends in /go, so the
+  # module path (code.linenisgreat.com/langlang/go) ends in /go, so the
   # go.mod inference would yield the unhelpful store-path prefix "go"
   # (the same last-segment mismatch conformist.nix documents for the
   # goimports workingDir). Pin it to "langlang" for a repo-prefixed path.

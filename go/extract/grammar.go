@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	langlang "github.com/clarete/langlang/go"
+	langlang "code.linenisgreat.com/langlang/go"
 )
 
 // AnalyzeGrammar loads a PEG grammar and returns a map of rule names to

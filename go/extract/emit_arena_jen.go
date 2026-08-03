@@ -7,11 +7,11 @@ import (
 
 	jen "github.com/dave/jennifer/jen"
 
-	"github.com/clarete/langlang/go/junction"
+	"code.linenisgreat.com/langlang/go/junction"
 )
 
 // junctionPkg is the import path for the junction package.
-const junctionPkg = "github.com/clarete/langlang/go/junction"
+const junctionPkg = "code.linenisgreat.com/langlang/go/junction"
 
 // RenderArenaFileJen produces a formatted Go source file containing
 // per-type arena infrastructure and arena-backed extraction functions.

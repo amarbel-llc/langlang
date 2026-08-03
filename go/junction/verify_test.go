@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	jsonviews "github.com/clarete/langlang/go/examples/json-views"
+	jsonviews "code.linenisgreat.com/langlang/go/examples/json-views"
 )
 
 // collectLeafValues walks the full parse tree and collects the text of

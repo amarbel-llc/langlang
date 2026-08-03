@@ -3,7 +3,7 @@ package junction
 import (
 	"fmt"
 
-	langlang "github.com/clarete/langlang/go"
+	langlang "code.linenisgreat.com/langlang/go"
 )
 
 // AnalyzeForJunctions walks a PEG grammar AST and derives a ScannerSpec

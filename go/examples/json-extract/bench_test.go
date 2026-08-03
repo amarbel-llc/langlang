@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	junction "github.com/clarete/langlang/go/junction"
+	junction "code.linenisgreat.com/langlang/go/junction"
 )
 
 var inputNames = []string{"30kb", "500kb"}

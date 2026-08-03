@@ -12,11 +12,11 @@
   # with their own build). Without this, goimports/gofumpt run with cwd at
   # the tree root, where Go tooling can't resolve the module — confirmed by
   # hand: `goimports -d tests/java8/java8_test.go` from the tree root
-  # DELETES the (correctly used) unaliased `"github.com/clarete/langlang/go"`
+  # DELETES the (correctly used) unaliased `"code.linenisgreat.com/langlang/go"`
   # import as apparently-unused (it can't discover the import provides the
   # `langlang` identifier — the package's declared name doesn't match its
   # path's last segment, "go"), while `cd go && goimports -d ...` correctly
-  # ADDS the explicit `langlang "github.com/clarete/langlang/go"` alias
+  # ADDS the explicit `langlang "code.linenisgreat.com/langlang/go"` alias
   # instead. That's a silent build break, not a style nit. workingDir
   # (conformist#38) scopes the formatter's cwd to go/, matching the working
   # `cd go &&` invocation.

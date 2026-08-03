@@ -1,4 +1,4 @@
-module github.com/clarete/langlang/go
+module code.linenisgreat.com/langlang/go
 
 go 1.26.1
 

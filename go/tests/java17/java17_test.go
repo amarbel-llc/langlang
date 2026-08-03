@@ -3,8 +3,8 @@ package java17
 import (
 	"testing"
 
-	langlang "github.com/clarete/langlang/go"
-	"github.com/clarete/langlang/go/corpus"
+	langlang "code.linenisgreat.com/langlang/go"
+	"code.linenisgreat.com/langlang/go/corpus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

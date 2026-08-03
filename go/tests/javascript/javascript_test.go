@@ -11,8 +11,8 @@ import (
 	"slices"
 	"testing"
 
-	langlang "github.com/clarete/langlang/go"
-	"github.com/clarete/langlang/go/corpus"
+	langlang "code.linenisgreat.com/langlang/go"
+	"code.linenisgreat.com/langlang/go/corpus"
 
 	"github.com/stretchr/testify/require"
 )

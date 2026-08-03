@@ -1,6 +1,6 @@
 package tomlcst
 
-import langlang "github.com/clarete/langlang/go"
+import langlang "code.linenisgreat.com/langlang/go"
 
 // nameToKind maps langlang grammar rule names to CST NodeKind values.
 var nameToKind = map[string]NodeKind{

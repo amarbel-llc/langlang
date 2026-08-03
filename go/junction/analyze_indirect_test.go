@@ -3,7 +3,7 @@ package junction
 import (
 	"testing"
 
-	langlang "github.com/clarete/langlang/go"
+	langlang "code.linenisgreat.com/langlang/go"
 )
 
 // loc is a zero-value source location for synthetic AST nodes.

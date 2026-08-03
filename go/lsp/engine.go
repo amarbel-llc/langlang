@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	langlang "github.com/clarete/langlang/go"
+	langlang "code.linenisgreat.com/langlang/go"
 )
 
 // Engine is the transport-independent core of the LSP implementation.

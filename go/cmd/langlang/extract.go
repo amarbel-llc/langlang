@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/clarete/langlang/go/extract"
+	"code.linenisgreat.com/langlang/go/extract"
 )
 
 func runExtract(args []string) {

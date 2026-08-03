@@ -8,9 +8,9 @@ import (
 	"sync"
 	"testing"
 
-	goviews "github.com/clarete/langlang/go/examples/go-views"
-	jsonviews "github.com/clarete/langlang/go/examples/json-views"
-	tomlextract "github.com/clarete/langlang/go/examples/toml-extract"
+	goviews "code.linenisgreat.com/langlang/go/examples/go-views"
+	jsonviews "code.linenisgreat.com/langlang/go/examples/json-views"
+	tomlextract "code.linenisgreat.com/langlang/go/examples/toml-extract"
 )
 
 var inputNames = []string{"30kb", "500kb", "2000kb"}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	langlang "github.com/clarete/langlang/go"
-	"github.com/clarete/langlang/go/binary"
+	langlang "code.linenisgreat.com/langlang/go"
+	"code.linenisgreat.com/langlang/go/binary"
 )
 
 func runCodegen(args []string) {

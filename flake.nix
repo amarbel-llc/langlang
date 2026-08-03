@@ -64,7 +64,7 @@
         # Producer half of the flake-input-go_mod protocol (RFC 0001):
         # go-pkgs / go-pkgs-test, so downstream repos (madder's
         # grammar-vectors gate FDR-0010; hyphence#13) can bridge
-        # github.com/clarete/langlang/go as a flake input instead of
+        # code.linenisgreat.com/langlang/go as a flake input instead of
         # pinning a go.mod pseudo-version. src scoped to go/ (this repo is
         # polyglot — rust/ and js/ are siblings), so consumers bridge with
         # no subPath. See ./go/gomod.nix for the pure-producer rationale.

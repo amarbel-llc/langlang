@@ -6,7 +6,7 @@ package jsonextract
 import (
 	"fmt"
 
-	junction "github.com/clarete/langlang/go/junction"
+	junction "code.linenisgreat.com/langlang/go/junction"
 )
 
 const (

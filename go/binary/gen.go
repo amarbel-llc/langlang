@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	langlang "github.com/clarete/langlang/go"
+	langlang "code.linenisgreat.com/langlang/go"
 )
 
 // Options configures the binary codegen output.
