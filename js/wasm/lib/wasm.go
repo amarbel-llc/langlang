@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"github.com/clarete/langlang/go"
-	"github.com/clarete/langlang/go/lsp"
+	"code.linenisgreat.com/langlang/go"
+	"code.linenisgreat.com/langlang/go/lsp"
 )
 
 var (

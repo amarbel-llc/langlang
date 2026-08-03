@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/clarete/langlang/go"
+	_ "code.linenisgreat.com/langlang/go"
 )
 
 //go:generate go run ../go/cmd/langlang -grammar ../grammars/json.peg -output-language go -output-path ./json.go -disable-capture-spaces -go-package benchmarks
