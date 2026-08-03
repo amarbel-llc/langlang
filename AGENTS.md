@@ -18,7 +18,8 @@ attribution. The repo carries the full upstream git history (no squash) plus:
 - the eng repository conventions (conformist, this justfile).
 
 Only `go/` is Nix-built (`packages.default`, consumed by hyphence/papi/
-cutting-garden) — `rust/` and `js/` ship upstream's own Rust crates and JS/WASM
+cutting-garden, plus `go-pkgs`/`go-pkgs-test` producer outputs for downstream
+Go-module bridging — the flake-input-go_mod protocol, see `go/gomod.nix`) — `rust/` and `js/` ship upstream's own Rust crates and JS/WASM
 playground and are untouched by the fork (`rust/` has had exactly one commit
 since the fork's inception, a directory move by the upstream author).
 Formatting is scoped to what the fork owns: Go source under `go/` and the Nix

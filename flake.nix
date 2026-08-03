@@ -61,6 +61,18 @@
 
         conformistPkg = conformist.packages.${system}.default;
 
+        # Producer half of the flake-input-go_mod protocol (RFC 0001):
+        # go-pkgs / go-pkgs-test, so downstream repos (madder's
+        # grammar-vectors gate FDR-0010; hyphence#13) can bridge
+        # github.com/clarete/langlang/go as a flake input instead of
+        # pinning a go.mod pseudo-version. src scoped to go/ (this repo is
+        # polyglot — rust/ and js/ are siblings), so consumers bridge with
+        # no subPath. See ./go/gomod.nix for the pure-producer rationale.
+        goPkgs = import ./go/gomod.nix {
+          inherit pkgs;
+          src = ./go;
+        };
+
         # Pure lane: the eng presets (the eng-convention linters + the
         # canonical goimports->gofumpt Go formatter chain) plus this repo's
         # overlay (./conformist.nix). Drives `nix fmt` (build.wrapper), the
@@ -103,6 +115,11 @@
               license = pkgs.lib.licenses.gpl3Only;
             };
           };
+
+          # Producer half of the flake-input-go_mod protocol (RFC 0001).
+          # go-pkgs = prod source shape; go-pkgs-test = test superset.
+          # Purely additive — `.#default` (the CLI binary) is unchanged.
+          inherit (goPkgs) go-pkgs go-pkgs-test;
 
           # Store-pinned conformist hooks + configs (conformist#51/#59): the
           # per-commit restage hook, its merge-repair sibling, and the
