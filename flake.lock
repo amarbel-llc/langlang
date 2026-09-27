@@ -233,11 +233,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790407471,
-        "narHash": "sha256-M8elY2UShg4ZuLTiRLEHO+ae5xQFp3/ReQdxp/R+1UU=",
+        "lastModified": 1790495762,
+        "narHash": "sha256-26FbceKgybcbwkIvs2yHsF5jHcWLEkITYg5g9WPSy64=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "4e9bb05a9ab6c37dc74c22974ebed6e36dc73eb2",
+        "rev": "edea2d6f98b1e5f64ce5ac21e19a96c603c20b8c",
         "type": "github"
       },
       "original": {
@@ -285,11 +285,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790467962,
-        "narHash": "sha256-nVW/fyXUqgcxAxGLpBeKwAzWL81gngohnCvgCBRaFVk=",
-        "rev": "81cc2b145fa17497cc642b06f009fdce274803b4",
+        "lastModified": 1790531204,
+        "narHash": "sha256-DCkrJLxb7pMH1wZStPxtzfeqAWIObU7SyKuUr5vSPTE=",
+        "rev": "790e597318d14afb338338269166604bcff246d4",
         "type": "tarball",
-        "url": "https://code.linenisgreat.com/tap/archive/81cc2b145fa17497cc642b06f009fdce274803b4.tar.gz"
+        "url": "https://code.linenisgreat.com/tap/archive/790e597318d14afb338338269166604bcff246d4.tar.gz"
       },
       "original": {
         "type": "tarball",
